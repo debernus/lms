@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>LMS · 3D Karakter</title>
+    <title>LMS · 3D Modeller</title>
     <style>
       html, body { margin: 0; height: 100%; overflow: hidden; background: #f2f2f2; font: 14px system-ui, sans-serif; color: #1f2937; }
       canvas { display: block; }
@@ -18,11 +18,16 @@
       }
       button:hover { background: #f3f4f6; }
       button.active { background: #2563eb; border-color: #2563eb; color: #fff; }
+      .sep { width: 1px; background: #d1d5db; margin: 2px 2px; }
       #hint { position: fixed; bottom: 12px; left: 12px; font-size: 12px; color: #6b7280; }
     </style>
   </head>
   <body>
     <div id="panel">
+      <button data-model="stall">Tezgah</button>
+      <button data-model="character">Karakter</button>
+      <span class="sep"></span>
+      <button data-view="iso">Çapraz</button>
       <button data-view="front">Ön</button>
       <button data-view="side">Yan</button>
       <button data-view="back">Arka</button>

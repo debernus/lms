@@ -263,3 +263,80 @@ export function knitTextures(base = '#303338') {
 }
 
 export const surfacePoint = (S, u, a, opts = {}) => ringPoint(S, u, a, opts, new THREE.Vector3());
+
+// Damarları V yönünde uzanan ahşap dokusu.
+export function woodTextures(base = '#a0855f', contrast = 0.5) {
+  const size = 512;
+  const streaks = canvas(size);
+  const sg = streaks.getContext('2d');
+  sg.imageSmoothingQuality = 'high';
+  sg.drawImage(randomGray(64), 0, 0, 64, 1, 0, 0, size, size);
+  sg.globalAlpha = 0.5;
+  sg.drawImage(randomGray(256), 0, 0, 256, 1, 0, 0, size, size);
+  sg.globalAlpha = 0.25;
+  sg.drawImage(noise(size, [[12, 1], [48, 0.5]]), 0, 0); // damarlarda hafif dalgalanma
+  const c = canvas(size);
+  const g = c.getContext('2d');
+  g.fillStyle = base;
+  g.fillRect(0, 0, size, size);
+  overlay(g, streaks, 'overlay', contrast);
+  overlay(g, noise(size, [[5, 1], [16, 0.5]]), 'overlay', 0.3); // yıpranma lekeleri
+  return { map: texture(c, true), bumpMap: texture(streaks, false) };
+}
+
+// Branda bezi: hafif lekeli, ince dokuma izli.
+export function canvasTextures(base = '#9a9d8b') {
+  const size = 512;
+  const weave = canvas(size);
+  const wg = weave.getContext('2d');
+  wg.fillStyle = '#808080';
+  wg.fillRect(0, 0, size, size);
+  wg.fillStyle = 'rgba(255,255,255,0.35)';
+  for (let i = 0; i < size; i += 4) wg.fillRect(i, 0, 2, size);
+  wg.fillStyle = 'rgba(0,0,0,0.3)';
+  for (let i = 0; i < size; i += 4) wg.fillRect(0, i, size, 2);
+  const c = canvas(size);
+  const g = c.getContext('2d');
+  g.fillStyle = base;
+  g.fillRect(0, 0, size, size);
+  overlay(g, noise(size, [[4, 1], [10, 0.5], [32, 0.35]]), 'overlay', 0.22);
+  overlay(g, weave, 'soft-light', 0.25);
+  return { map: texture(c, true), bumpMap: texture(weave, false) };
+}
+
+// Arnavut kaldırımı: şaşırtmalı dizilmiş, aralarında yer yer yosun olan taşlar.
+export function cobbleTextures() {
+  const size = 512;
+  const cols = 6;
+  const rows = 10;
+  const w = size / cols;
+  const h = size / rows;
+  const c = canvas(size);
+  const g = c.getContext('2d');
+  const bump = canvas(size);
+  const bg = bump.getContext('2d');
+  g.fillStyle = '#3d403c';
+  g.fillRect(0, 0, size, size);
+  bg.fillStyle = '#000';
+  bg.fillRect(0, 0, size, size);
+  for (let r = 0; r < rows; r++) {
+    for (let k = -1; k < cols; k++) {
+      const x = k * w + (r % 2) * (w / 2) + 3;
+      const y = r * h + 3;
+      const tone = 125 + Math.random() * 55;
+      const mossy = Math.random() < 0.05;
+      g.fillStyle = mossy ? `rgb(${tone * 0.86},${tone * 0.95},${tone * 0.8})` : `rgb(${tone * 0.96},${tone},${tone * 1.05})`;
+      for (const ctx of [g, bg]) {
+        ctx.beginPath();
+        ctx.roundRect(x, y, w - 6 - Math.random() * 3, h - 6 - Math.random() * 2, 9);
+        ctx.fill();
+        if (ctx === g) bg.fillStyle = `rgb(${tone + 40},${tone + 40},${tone + 40})`;
+      }
+    }
+  }
+  overlay(g, noise(size, [[24, 1], [128, 0.5], [256, 0.4]]), 'overlay', 0.45);
+  const map = texture(c, true);
+  const bumpMap = texture(bump, false);
+  map.wrapS = map.wrapT = bumpMap.wrapS = bumpMap.wrapT = THREE.RepeatWrapping;
+  return { map, bumpMap };
+}

@@ -3,6 +3,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { GLTFExporter } from 'three/addons/exporters/GLTFExporter.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { createCharacter } from './character.js';
+import { createStall, createCobbleGround } from './stall.js';
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xf2f2f2);
@@ -23,11 +24,11 @@ scene.environment = new THREE.PMREMGenerator(renderer).fromScene(new RoomEnviron
 scene.environmentIntensity = 0.6;
 
 const key = new THREE.DirectionalLight(0xfff4e6, 2.4);
-key.position.set(2.5, 4, 3);
+key.position.set(3.5, 6, 4.5);
 key.castShadow = true;
 key.shadow.mapSize.set(2048, 2048);
-key.shadow.camera.left = key.shadow.camera.bottom = -1.5;
-key.shadow.camera.right = key.shadow.camera.top = 2;
+key.shadow.camera.left = key.shadow.camera.bottom = -4;
+key.shadow.camera.right = key.shadow.camera.top = 4;
 key.shadow.bias = -0.0004;
 key.shadow.normalBias = 0.01;
 key.shadow.radius = 4;
@@ -36,43 +37,70 @@ const rim = new THREE.DirectionalLight(0xdfe8ff, 1.2);
 rim.position.set(-3, 2, -3);
 scene.add(rim);
 
-const ground = new THREE.Mesh(new THREE.CircleGeometry(4, 64), new THREE.ShadowMaterial({ opacity: 0.25 }));
+const ground = new THREE.Mesh(new THREE.CircleGeometry(12, 64), new THREE.ShadowMaterial({ opacity: 0.25 }));
 ground.rotation.x = -Math.PI / 2;
 ground.receiveShadow = true;
 scene.add(ground);
 
-const character = createCharacter();
-scene.add(character);
+// Sahnede gösterilebilen modeller. Her biri ilk seçildiğinde oluşturulur.
+const models = {
+  stall: {
+    create: createStall,
+    file: 'tezgah.glb',
+    target: new THREE.Vector3(0, 1.25, 0),
+    distance: 8.5,
+    extras: () => [createCobbleGround()],
+  },
+  character: {
+    create: createCharacter,
+    file: 'karakter.glb',
+    target: new THREE.Vector3(0, 0.92, 0),
+    distance: 3.6,
+  },
+};
+let active = null;
 
-const TARGET = new THREE.Vector3(0, 0.92, 0);
-const DISTANCE = 3.6;
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
-controls.target.copy(TARGET);
 controls.minDistance = 0.6;
-controls.maxDistance = 10;
+controls.maxDistance = 25;
 
-// Referans görseldeki üç görünüş: ön, yan (sağa bakan profil) ve arka.
+// Görünüş yönleri: ön, yan, arka ve referans görsellerdeki gibi üstten çapraz bakış.
 const views = {
   front: [0, 0, 1],
   side: [-1, 0, 0],
   back: [0, 0, -1],
+  iso: [-0.62, 0.55, 0.56],
 };
 
 function setView(name) {
   const [x, y, z] = views[name];
-  controls.target.copy(TARGET);
-  camera.position.set(x, y, z).multiplyScalar(DISTANCE).add(TARGET);
+  controls.target.copy(active.target);
+  camera.position.set(x, y, z).normalize().multiplyScalar(active.distance).add(active.target);
   controls.update();
 }
 
+function showModel(key) {
+  if (active) for (const o of active.objects) o.visible = false;
+  active = models[key];
+  if (!active.objects) {
+    active.object = active.create();
+    active.objects = [active.object, ...(active.extras?.() ?? [])];
+    scene.add(...active.objects);
+  }
+  for (const o of active.objects) o.visible = true;
+  document.querySelectorAll('[data-model]').forEach((b) => b.classList.toggle('active', b.dataset.model === key));
+  setView(key === 'stall' ? 'iso' : 'front');
+}
+
 function exportGLB() {
+  const { object, file } = active;
   new GLTFExporter().parse(
-    character,
+    object,
     (buffer) => {
       const link = document.createElement('a');
       link.href = URL.createObjectURL(new Blob([buffer], { type: 'model/gltf-binary' }));
-      link.download = 'karakter.glb';
+      link.download = file;
       link.click();
       URL.revokeObjectURL(link.href);
     },
@@ -81,6 +109,7 @@ function exportGLB() {
   );
 }
 
+document.querySelectorAll('[data-model]').forEach((b) => b.addEventListener('click', () => showModel(b.dataset.model)));
 document.querySelectorAll('[data-view]').forEach((b) => b.addEventListener('click', () => setView(b.dataset.view)));
 const rotateBtn = document.getElementById('rotate');
 rotateBtn.addEventListener('click', () => {
@@ -100,4 +129,4 @@ renderer.setAnimationLoop(() => {
   renderer.render(scene, camera);
 });
 
-setView('front');
+showModel('stall');
