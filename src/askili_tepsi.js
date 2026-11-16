@@ -158,7 +158,8 @@ export function createAskiliTepsi() {
     tabaklar: new THREE.MeshStandardMaterial({ name: 'porselen', color: 0xd9d4c6, roughness: 0.35, side: THREE.DoubleSide }),
     tabak_seritleri: new THREE.MeshStandardMaterial({ name: 'tabak_seridi', color: 0x8c1f1a, roughness: 0.4, side: THREE.DoubleSide }),
     bardaklar: new THREE.MeshStandardMaterial({ name: 'cam', color: 0xe8efec, roughness: 0.06, transparent: true, opacity: 0.3, side: THREE.DoubleSide }),
-    cay: new THREE.MeshStandardMaterial({ name: 'cay', color: 0x6e1d07, roughness: 0.15 } // opak: camın arkasında her açıdan görünür),
+    // Çay opaktır: camın arkasında her açıdan görünür
+    cay: new THREE.MeshStandardMaterial({ name: 'cay', color: 0x6e1d07, roughness: 0.15 }),
   };
   for (const key of Object.keys(groups)) {
     add(key, mergeGeometries(groups[key]), materials[key]);
