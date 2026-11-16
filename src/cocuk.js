@@ -30,10 +30,10 @@ const dirtMap = canvasTexture('kir', 128, 128, (g) => {
   g.fillRect(0, 0, 128, 128);
   grime(g, 128, 128, 46, 0.55);
 });
-const dirty = (name, color) => new THREE.MeshStandardMaterial({ name, color, map: dirtMap, roughness: 0.95, metalness: 0, side: THREE.DoubleSide });
-const worldUV = (x, y, z) => [(x + z) * 2.6, y * 2.6];
+export const dirty = (name, color) => new THREE.MeshStandardMaterial({ name, color, map: dirtMap, roughness: 0.95, metalness: 0, side: THREE.DoubleSide });
+export const worldUV = (x, y, z) => [(x + z) * 2.6, y * 2.6];
 // Hazır bir ağa kir dokusu için uv ekler ve malzemesini değiştirir.
-function soil(mesh, name, color) {
+export function soil(mesh, name, color) {
   const p = mesh.geometry.attributes.position, uv = [];
   for (let i = 0; i < p.count; i++) uv.push(...worldUV(p.getX(i), p.getY(i), p.getZ(i)));
   mesh.geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));

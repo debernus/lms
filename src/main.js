@@ -26,6 +26,7 @@ import { createCocukKiyafet } from './cocuk.js';
 import { createAskiliTepsi } from './askili_tepsi.js';
 import { createPasaUniforma } from './pasa.js';
 import { createKule } from './kule.js';
+import { createKoylu } from './koylu.js';
 import { createSakal, createYasliSakal, createYasliKisaSakal, createUzunSacSakal } from './sakal.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
@@ -154,6 +155,27 @@ const models = {
     file: 'bos.glb',
     target: new THREE.Vector3(0, 0.15, 0),
     distance: 1,
+    extras: loadMannequin,
+  },
+  koylu1: {
+    create: () => createKoylu(1),
+    file: 'koylu_1.glb',
+    target: new THREE.Vector3(0, 0.95, 0),
+    distance: 4.8,
+    extras: loadMannequin,
+  },
+  koylu2: {
+    create: () => createKoylu(2),
+    file: 'koylu_2.glb',
+    target: new THREE.Vector3(0, 0.95, 0),
+    distance: 4.8,
+    extras: loadMannequin,
+  },
+  koylu3: {
+    create: () => createKoylu(3),
+    file: 'koylu_3.glb',
+    target: new THREE.Vector3(0, 0.95, 0),
+    distance: 4.8,
     extras: loadMannequin,
   },
   kule: {
@@ -307,7 +329,7 @@ function showModel(key) {
   }
   for (const o of active.objects) o.visible = true;
   document.querySelectorAll('[data-model]').forEach((b) => b.classList.toggle('active', b.dataset.model === key));
-  setView(['character', 'bandit', 'outfit', 'outfit2', 'asker', 'suvari', 'zabit', 'halk1', 'halk2', 'halk3', 'halk5', 'cocuk', 'pasa'].includes(key) ? 'front' : 'iso');
+  setView(['character', 'bandit', 'outfit', 'outfit2', 'asker', 'suvari', 'zabit', 'halk1', 'halk2', 'halk3', 'halk5', 'cocuk', 'pasa', 'koylu1', 'koylu2', 'koylu3'].includes(key) ? 'front' : 'iso');
 }
 
 function exportGLB() {
