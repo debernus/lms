@@ -89,28 +89,14 @@ const ceketOffset = () => 0.013;
 // Kol: mankenin gömleği omuzda ve dirsekte kabarıktır; ceketin kolu bu kabarıklıkları izlemez,
 // omuzdan bileğe düz incelen tek bir borudur. Borunun yarıçapı, kol ekseni boyunca ölçülen
 // (manken + pay) yarıçaplarının üstünden geçen en dar dışbükey çizgidir: her yerde mankenin dışında.
-const ARM = { y: 1.452, z: -0.066, from: 0.2, to: 0.72 }; // bilekte biter: el ölçüye girmez
+const ARM = { y: 1.451, z: -0.074, from: 0.2, to: 0.72 }; // mankenin çıplak kolunun ekseni
 // Kol dar ve düzdür: bilekte mankenin ön kolunu 1,2 cm payla sarar, omuza doğru hafifçe kalınlaşır.
 // Mankenin kabarık gömlek kolu bundan geniştir; ceket onu izlemez (gömlek kolu ceketin içinde
 // kalmaz, mankenle birlikte gösterilirse yer yer dışarı taşar).
-const sleeve = (() => {
-  // Bilek ölçüsü: ön kolun (x 0,60–0,70) eksenden en uzak noktaları
-  let wy = 0, wz = 0;
-  for (let x = 0.6; x <= 0.7001; x += 0.02) {
-    for (const side of [-1, 1]) {
-      for (let k = 0; k < 24; k++) {
-        const a = (k / 24) * TAU;
-        const origin = v3(side * x, ARM.y, ARM.z);
-        const hit = castOut(origin, v3(0, Math.cos(a), Math.sin(a)), 0.012);
-        if (!hit) continue;
-        wy = Math.max(wy, Math.abs(hit.y - ARM.y));
-        wz = Math.max(wz, Math.abs(hit.z - ARM.z));
-      }
-    }
-  }
-  const grow = (ax) => 1 + 0.32 * clamp((ARM.to - ax) / (ARM.to - 0.26), 0, 1); // omuzda bilekten üçte bir kalın
-  return { ry: (ax) => wy * grow(ax), rz: (ax) => wz * grow(ax) };
-})();
+// Ölçü mankenin çıplak kolundan alındı: dirsekte (x 0,44–0,52) eksenden en çok 5,4 cm, bilekte
+// 3,5 cm. Kol omuzdan dirseğe aynı kalınlıkta gider, dirsekten bileğe düz incelir.
+const sleeveR = (ax) => 0.068 - 0.022 * clamp((ax - 0.5) / (ARM.to - 0.5), 0, 1);
+const sleeve = { ry: sleeveR, rz: sleeveR };
 function ceketField(x, y, z) {
   const ax = Math.abs(x);
   // Omuzdan öteye gövde kabuğu geri çekilir: kol yalnız borudan oluşur
