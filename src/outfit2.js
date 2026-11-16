@@ -12,10 +12,10 @@ import { Surface, cloth, awayFromAxis, reach, bodyDistance, sliceCenter, buildTr
 // kuşak (belde hepsinin üstünde).
 
 const v3 = (x, y, z) => new THREE.Vector3(x, y, z);
-const brass = () => new THREE.MeshStandardMaterial({ name: 'pirinc', color: 0x8f7a3a, roughness: 0.85, metalness: 0.6 });
+export const brass = () => new THREE.MeshStandardMaterial({ name: 'pirinc', color: 0x8f7a3a, roughness: 0.85, metalness: 0.6 });
 
 // Gövde yüzeyinin dışa bakan yönü (uzaklık alanının eğimi).
-function bodyNormal(p) {
+export function bodyNormal(p) {
   const e = 0.004;
   return v3(
     bodyDistance(p.x + e, p.y, p.z) - bodyDistance(p.x - e, p.y, p.z),
@@ -24,12 +24,12 @@ function bodyNormal(p) {
   ).normalize();
 }
 // Noktayı gövdeden tam offset kadar uzağa oturtur.
-function settle(p, offset) {
+export function settle(p, offset) {
   for (let i = 0; i < 4; i++) p.addScaledVector(bodyNormal(p), offset - bodyDistance(p.x, p.y, p.z));
   return p;
 }
 // origin'den dir yönünde giderken gövdeden offset kadar uzaklaşılan ilk nokta.
-function castOut(origin, dir, offset) {
+export function castOut(origin, dir, offset) {
   let r0 = 0;
   for (let r = 0.01; r < 0.7; r += 0.005) {
     const p = origin.clone().addScaledVector(dir, r);
@@ -49,7 +49,7 @@ function castOut(origin, dir, offset) {
 }
 
 // Birden çok malzemeli ağ: parts = [[Surface ya da {positions, indices}, malzeme], ...]
-function assemble(name, parts) {
+export function assemble(name, parts) {
   const positions = [];
   const indices = [];
   const geometry = new THREE.BufferGeometry();
