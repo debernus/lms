@@ -17,6 +17,7 @@ import { createSoldierOutfit } from './outfit3.js';
 import { createCavalryOutfit } from './outfit4.js';
 import { createOfficerOutfit } from './outfit5.js';
 import { createHalk1 } from './halk1.js';
+import { createHalk2 } from './halk2.js';
 import { createSakal, createYasliSakal, createYasliKisaSakal } from './sakal.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
@@ -132,6 +133,13 @@ const models = {
     distance: 1.2,
     extras: loadMannequin,
   },
+  halk2: {
+    create: createHalk2,
+    file: 'halk_02_kurklu.glb',
+    target: new THREE.Vector3(0, 0.95, 0),
+    distance: 4.8,
+    extras: loadMannequin,
+  },
   halk1: {
     // Renk çeşidi adres satırından seçilir: ?renk=siyah | kahve | bordo | yesil | krem
     create: () => createHalk1(RENK ?? undefined),
@@ -224,7 +232,7 @@ function showModel(key) {
   }
   for (const o of active.objects) o.visible = true;
   document.querySelectorAll('[data-model]').forEach((b) => b.classList.toggle('active', b.dataset.model === key));
-  setView(['character', 'bandit', 'outfit', 'outfit2', 'asker', 'suvari', 'zabit', 'halk1'].includes(key) ? 'front' : 'iso');
+  setView(['character', 'bandit', 'outfit', 'outfit2', 'asker', 'suvari', 'zabit', 'halk1', 'halk2'].includes(key) ? 'front' : 'iso');
 }
 
 function exportGLB() {
