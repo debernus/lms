@@ -23,6 +23,7 @@ import { createHalk5 } from './halk5.js';
 import { createTabanca } from './tabanca.js';
 import { createBoyaciSandigi } from './boyaci_sandigi.js';
 import { createCocukKiyafet } from './cocuk.js';
+import { createAskiliTepsi } from './askili_tepsi.js';
 import { createSakal, createYasliSakal, createYasliKisaSakal } from './sakal.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
@@ -137,6 +138,12 @@ const models = {
     target: new THREE.Vector3(0, 1.63, 0),
     distance: 1.2,
     extras: loadMannequin,
+  },
+  tepsi: {
+    create: createAskiliTepsi,
+    file: 'askili_tepsi.glb',
+    target: new THREE.Vector3(0, 0.2, 0),
+    distance: 1.2,
   },
   cocuk: {
     create: createCocukKiyafet,
