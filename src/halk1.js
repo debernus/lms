@@ -13,16 +13,16 @@ const HEM = 0.14; // etek ucu: ayak bileği
 
 // ---------- Entari ----------
 // Bileğe inen uzun kollu, V yakalı, ayak bileğine kadar inen iç giysi; boyuna pembe çizgili.
-function stripeTexture() {
+function stripeTexture([base, light, dark]) {
   const c = document.createElement('canvas');
   c.width = 64;
   c.height = 8;
   const g = c.getContext('2d');
-  g.fillStyle = '#b98f8c';
+  g.fillStyle = base;
   g.fillRect(0, 0, 64, 8);
-  g.fillStyle = '#d9c3ba';
+  g.fillStyle = light;
   g.fillRect(0, 0, 22, 8);
-  g.fillStyle = '#a87674';
+  g.fillStyle = dark;
   g.fillRect(40, 0, 5, 8);
   const t = new THREE.CanvasTexture(c);
   t.wrapS = t.wrapT = THREE.RepeatWrapping;
@@ -30,7 +30,7 @@ function stripeTexture() {
   t.name = 'entari_cizgi';
   return t;
 }
-function buildEntari() {
+function buildEntari(p) {
   const s = jacketFabric(
     [[1.1, 0.018], [1.06, 0.019], [1.0, 0.02], [0.9, 0.024], [0.75, 0.03], [0.6, 0.036], [0.45, 0.042], [0.3, 0.05], [HEM, 0.058], [HEM - 0.003, 0.052]],
     { drop: 0.07, from: -0.03, to: 0.06 }, // V yaka: önde göğse doğru açılır
@@ -47,13 +47,13 @@ function buildEntari() {
   g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
   g.setIndex(s.indices);
   g.computeVertexNormals();
-  const mesh = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ name: 'entari', map: stripeTexture(), roughness: 0.85, metalness: 0, side: THREE.DoubleSide }));
+  const mesh = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ name: 'entari', map: stripeTexture(p.entari), roughness: 0.85, metalness: 0, side: THREE.DoubleSide }));
   mesh.name = 'entari';
   return mesh;
 }
 
 // ---------- Kuşak ve mendil ----------
-function buildKusak() {
+function buildKusak(p) {
   const red = new Surface(), gold = new Surface(), white = new Surface();
   // Kuşak yalnız önde ve yanlarda modellenir; arkası cübbenin altında kalır
   const ring = (s, y, gap) => Array.from({ length: 25 }, (_, k) => {
@@ -77,7 +77,7 @@ function buildKusak() {
     if (above) white.strip(above, row, false, out);
     above = row;
   }
-  return assemble('kusak', [[red, cloth('kusak', 0x8c2a1f)], [gold, cloth('kusak_serit', 0xb08a2e)], [white, cloth('mendil', 0xd8d2c0)]]);
+  return assemble('kusak', [[red, cloth('kusak', p.kusak)], [gold, cloth('kusak_serit', p.serit)], [white, cloth('mendil', p.mendil)]]);
 }
 
 // ---------- Cübbe ----------
@@ -97,7 +97,7 @@ function inCubbe(x, y, z) {
   if (z > 0 && Math.abs(x) < OPEN + 0.03 * Math.max(0, (y - 1.3) / 0.25)) return 0; // ön açıklık, yukarı doğru genişler
   return y < 1.6 ? 1 : 0;
 }
-function buildCubbe() {
+function buildCubbe(p) {
   const { positions, indices } = meshField(cubbeField, [-0.66, 1.03, -0.24, 0.66, 1.63, 0.18], 0.028);
   sharpenBoundaries(cubbeField, inCubbe, positions, indices);
   const s = new Surface();
@@ -123,15 +123,25 @@ function buildCubbe() {
     if (previous) s.strip(previous, row, false, awayFromAxis(CEKET.cx, CEKET.cz));
     previous = row;
   }
-  const mesh = new THREE.Mesh(s.geometry(), cloth('cubbe', 0x1f5a6b));
+  const mesh = new THREE.Mesh(s.geometry(), cloth('cubbe', p.cubbe));
   mesh.name = 'cubbe';
   return mesh;
 }
 
-export function createHalk1() {
+// Renk çeşitleri: dış cübbe ile iç entari hep zıt tonlarda. entari: [zemin, açık çizgi, koyu çizgi]
+export const HALK1_RENKLER = {
+  mavi: { cubbe: 0x1f5a6b, entari: ['#b98f8c', '#d9c3ba', '#a87674'], kusak: 0x8c2a1f, serit: 0xb08a2e, mendil: 0xd8d2c0, ayakkabi: 0x2a211a },
+  siyah: { cubbe: 0x161618, entari: ['#cfc8b6', '#e4dfd0', '#a9a08a'], kusak: 0x8c2a1f, serit: 0xb08a2e, mendil: 0xd8d2c0, ayakkabi: 0x15120f },
+  kahve: { cubbe: 0x4a3222, entari: ['#1c1c1f', '#2e2e33', '#0c0c0e'], kusak: 0xa8842c, serit: 0x7a1f1c, mendil: 0xd8d2c0, ayakkabi: 0x15120f },
+  bordo: { cubbe: 0x5a1a1c, entari: ['#c9b58a', '#ddceaa', '#a08a5c'], kusak: 0x1f3a36, serit: 0xb08a2e, mendil: 0xd8d2c0, ayakkabi: 0x2a211a },
+  yesil: { cubbe: 0x23402f, entari: ['#b8a26a', '#d2c08c', '#8f7a45'], kusak: 0x6b1420, serit: 0xb08a2e, mendil: 0xd8d2c0, ayakkabi: 0x2a211a },
+  krem: { cubbe: 0xbfb49a, entari: ['#1c2738', '#2c3a52', '#111927'], kusak: 0x8c2a1f, serit: 0xb08a2e, mendil: 0x9a947f, ayakkabi: 0x2a211a },
+};
+export function createHalk1(renk = 'mavi') {
+  const p = HALK1_RENKLER[renk] ?? HALK1_RENKLER.mavi;
   const root = new THREE.Group();
-  root.name = 'halk_01_cubbeli';
-  root.add(buildEntari(), buildKusak(), buildCubbe(), buildAyakkabi(0x2a211a));
+  root.name = renk === 'mavi' ? 'halk_01_cubbeli' : `halk_01_cubbeli_${renk}`;
+  root.add(buildEntari(p), buildKusak(p), buildCubbe(p), buildAyakkabi(p.ayakkabi));
   root.traverse((o) => {
     if (o.isMesh) o.castShadow = o.receiveShadow = true;
   });

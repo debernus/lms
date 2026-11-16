@@ -58,6 +58,7 @@ ground.receiveShadow = true;
 scene.add(ground);
 
 // Sahnede gösterilebilen modeller. Her biri ilk seçildiğinde oluşturulur.
+const RENK = new URLSearchParams(location.search).get('renk');
 const models = {
   stall: {
     create: createStall,
@@ -132,8 +133,9 @@ const models = {
     extras: loadMannequin,
   },
   halk1: {
-    create: createHalk1,
-    file: 'halk_01_cubbeli.glb',
+    // Renk çeşidi adres satırından seçilir: ?renk=siyah | kahve | bordo | yesil | krem
+    create: () => createHalk1(RENK ?? undefined),
+    file: RENK ? `halk_01_cubbeli_${RENK}.glb` : 'halk_01_cubbeli.glb',
     target: new THREE.Vector3(0, 0.95, 0),
     distance: 4.8,
     extras: loadMannequin,
