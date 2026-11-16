@@ -96,6 +96,9 @@ const YASLI = {
   thick: 1.8, tuft: 1.5, chinDrop: 0.04, chinForward: 0.008, tipX: 0.085, tipY: 1.625, deep: true, wave: 0.006,
 };
 export const createYasliSakal = () => createSakal(YASLI);
+// Aynı kır sakalın kısa kesilmişi: çenenin hemen altında biter, öne ve aşağı uzamaz
+const YASLI_KISA = { ...YASLI, thick: 1.5, tuft: 1.0, chinDrop: 0.01, chinForward: 0.002, wave: 0.004 };
+export const createYasliKisaSakal = () => createSakal(YASLI_KISA);
 
 export function createSakal(o = GENC) {
   // --- Yüzeyi bir kez incelt (her üçgen dörde bölünür) ---
