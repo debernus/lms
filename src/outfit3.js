@@ -131,7 +131,7 @@ function inCeket(x, y, z) {
   if (Math.abs(x) > CEKET.cuff || y < CEKET.waist) return 0;
   const neck = Math.hypot(x, z + 0.045) < 0.11;
   // Dik yaka boynu sarar: arkada ve yanlarda 1,6'ya çıkar, önde çenenin altında 3 cm alçalır
-  if (neck) return y < CEKET.collar - 0.03 * S(0, 0.04, z) ? 1 : 0;
+  if (neck) return y < CEKET.collar - collarDrop * S(0, 0.04, z) ? 1 : 0;
   if (z > 0.03 && Math.abs(x) < 0.11 && y > 1.555) return 0; // çene ve gıdı açıkta
   return y < 1.59 ? 1 : 0;
 }
@@ -147,7 +147,9 @@ export function onChest(x, y, lift) {
 }
 // Ceketin kumaşı: gövde kabuğu, düz kollar ve etek. skirt: [yükseklik, pay] satırları.
 const SKIRT = [[1.1, 0.018], [1.06, 0.019], [1.01, 0.02], [0.965, 0.021], [CEKET.hem, 0.022], [CEKET.hem - 0.003, 0.017]];
-export function jacketFabric(skirt = SKIRT) {
+let collarDrop = 0.03; // yakanın önde, çenenin altında ne kadar alçaldığı
+export function jacketFabric(skirt = SKIRT, frontDrop = 0.03) {
+  collarDrop = frontDrop;
   const { positions, indices } = meshField(ceketField, [-0.75, 1.03, -0.2, 0.75, 1.615, 0.14], 0.026);
   sharpenBoundaries(ceketField, inCeket, positions, indices);
   const keep = new Int32Array(positions.length / 3).fill(-1);

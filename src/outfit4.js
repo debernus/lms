@@ -16,8 +16,9 @@ const RED = 0x7a1f1c;
 // Koyu yeşil, uyluğun üstüne inen uzun ceket: kırmızı dik yaka, göğüste beş sıra kırmızı kordon ve
 // pirinç düğmeler, kırmızı kol kapakları ve apoletler, sol göğüste madalya.
 const HEM = 0.86;
+const COLLAR_DROP = 0.065; // yaka önde çeneye değmesin: çenenin 2,5 cm altında biter
 function buildCeket() {
-  const fabric = jacketFabric([[1.1, 0.018], [1.06, 0.019], [1.01, 0.02], [0.965, 0.021], [0.91, 0.023], [HEM, 0.026], [HEM - 0.003, 0.021]]);
+  const fabric = jacketFabric([[1.1, 0.018], [1.06, 0.019], [1.01, 0.02], [0.965, 0.021], [0.91, 0.023], [HEM, 0.026], [HEM - 0.003, 0.021]], COLLAR_DROP);
   const red = new Surface(), metal = new Surface();
   const front = () => [0, 0, 1];
 
@@ -43,7 +44,7 @@ function buildCeket() {
     const a = (k / 24) * TAU;
     const dir = v3(Math.cos(a), 0, Math.sin(a));
     const z = NECK.z + 0.06 * Math.sin(a);
-    const y = top ? CEKET.collar - 0.004 - 0.03 * S(0, 0.04, z) : 1.574 - 0.022 * S(0, 0.04, z);
+    const y = top ? CEKET.collar - 0.004 - COLLAR_DROP * S(0, 0.04, z) : 1.574 - 0.058 * S(0, 0.04, z);
     const p = castToCeket(v3(0, y, NECK.z), dir, 0.003);
     return red.point(p.x, p.y, p.z);
   }));
