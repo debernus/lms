@@ -8,6 +8,7 @@ import { createStreetLamp } from './lamp.js';
 import { createClerkDesk } from './desk.js';
 import { createThonetChair } from './chair.js';
 import { createFilingCabinet } from './cabinet.js';
+import { createBandit } from './bandit.js';
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xf2f2f2);
@@ -79,6 +80,12 @@ const models = {
     target: new THREE.Vector3(0, 1.15, 0),
     distance: 6.4,
   },
+  bandit: {
+    create: createBandit,
+    file: 'eskiya_deneme.glb',
+    target: new THREE.Vector3(0, 0.9, 0),
+    distance: 4.6,
+  },
   character: {
     create: createCharacter,
     file: 'karakter.glb',
@@ -118,7 +125,7 @@ function showModel(key) {
   }
   for (const o of active.objects) o.visible = true;
   document.querySelectorAll('[data-model]').forEach((b) => b.classList.toggle('active', b.dataset.model === key));
-  setView(key === 'character' ? 'front' : 'iso');
+  setView(key === 'character' || key === 'bandit' ? 'front' : 'iso');
 }
 
 function exportGLB() {
