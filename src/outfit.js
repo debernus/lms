@@ -8,12 +8,12 @@ import { meshField, sharpenBoundaries } from './isosurface.js';
 // burada yoktur). Mankenle aynı konum ve duruş: 1 birim = 1 metre, Y yukarı, yüz +Z'ye bakar.
 // Yalnız dış yüzeyler modellenir; hiçbir parça taşınmaz, döndürülmez, ölçeklenmez.
 
-const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
-const S = (a, b, v) => {
+export const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+export const S = (a, b, v) => {
   const t = clamp((v - a) / (b - a), 0, 1);
   return t * t * (3 - 2 * t);
 };
-const TAU = Math.PI * 2;
+export const TAU = Math.PI * 2;
 
 // ---------- Ölçü okuma ----------
 
@@ -32,18 +32,28 @@ function hullRadius(hull, cx, cz, dx, dz) {
   }
   return best;
 }
+// Bacak tabloları ilk ölçümde 0,36'dan başlıyordu, sonra ayak tabanına kadar uzatıldı. Dilim
+// numarası hâlâ 0,36'ya göre hesaplanır: aksi halde yuvarlama farkı tam dilim sınırındaki
+// yüksekliklerde başka dilimi seçer ve daha önce üretilmiş parçalar milimetre oynar.
+M.legRight.anchor = M.legLeft.anchor = 0.36;
+// [dilim konumu (çıpaya göre, kesirli), çıpanın tablodaki dilim numarası]; ikisi ayrı tutulur ki
+// toplama, kesrin son basamağını yutmasın
+function slicePosition(table, y) {
+  const anchor = table.anchor ?? table.y0;
+  return [(y - anchor) / table.dy, Math.round((anchor - table.y0) / table.dy)];
+}
 // y yüksekliğinde mankenin o yöndeki en dış noktası: komşu iki dilimin büyüğü (asla içeride kalmaz).
-function reach(table, y, cx, cz, dx, dz) {
-  const f = (y - table.y0) / table.dy;
+export function reach(table, y, cx, cz, dx, dz) {
+  const [f, first] = slicePosition(table, y);
   const last = table.hulls.length - 1;
-  const a = clamp(Math.floor(f), 0, last), b = clamp(Math.ceil(f), 0, last);
+  const a = clamp(Math.floor(f) + first, 0, last), b = clamp(Math.ceil(f) + first, 0, last);
   return Math.max(hullRadius(table.hulls[a], cx, cz, dx, dz), hullRadius(table.hulls[b], cx, cz, dx, dz));
 }
 
 // Gövde ve kolların çevresindeki işaretli uzaklık (dışarısı artı); ızgaradan üç doğrusal okunur.
 const GRID = M.grid;
 const cells = Uint8Array.from(atob(GRID.data), (c) => c.charCodeAt(0));
-function bodyDistance(x, y, z) {
+export function bodyDistance(x, y, z) {
   const [nx, ny, nz] = GRID.dims;
   const fx = (x - GRID.min[0]) / GRID.cell, fy = (y - GRID.min[1]) / GRID.cell, fz = (z - GRID.min[2]) / GRID.cell;
   if (fx < 0 || fy < 0 || fz < 0 || fx > nx - 1 || fy > ny - 1 || fz > nz - 1) return GRID.range[1];
@@ -113,18 +123,24 @@ export const awayFromAxis = (cx, cz) => (x, y, z) => [x - cx, 0, z - cz];
 // Vücuda oturan, hafif bol pantolon: mankenin kendi pantolonunun 0,5–2,5 cm dışında. Kalçada ve
 // uylukta hafif bolluk, dizden aşağı daralır ve çizmenin ağzında biter. İki bacak ayrıdır; ağ
 // sarkmaz, yalnız iki paçayı birleştiren düz bir dikiş vardır.
-const SALVAR = { top: 1.08, crotch: 0.84, hem: 0.452, cx: 0, cz: -0.04 };
-// [yükseklik, mankenden pay]: çizmenin ağzında dar, uylukta ve kalçada biraz bol, belde kuşağın altına girer
-const EASE = [[0.452, 0.006], [0.47, 0.009], [0.5, 0.012], [0.56, 0.014], [0.66, 0.016], [0.76, 0.02], [0.96, 0.02], [1.0, 0.015], [1.08, 0.015]];
-function ease(y) {
-  for (let i = 1; i < EASE.length; i++) {
-    if (y <= EASE[i][0]) return EASE[i - 1][1] + ((EASE[i][1] - EASE[i - 1][1]) * (y - EASE[i - 1][0])) / (EASE[i][0] - EASE[i - 1][0]);
+const SALVAR = {
+  name: 'salvar', color: 0x1b1b1d, top: 1.08, crotch: 0.84, hem: 0.452, cx: 0, cz: -0.04,
+  // [yükseklik, mankenden pay]: çizmenin ağzında dar, uylukta ve kalçada biraz bol, belde kuşağın altına girer
+  ease: [[0.452, 0.006], [0.47, 0.009], [0.5, 0.012], [0.56, 0.014], [0.66, 0.016], [0.76, 0.02], [0.96, 0.02], [1.0, 0.015], [1.08, 0.015]],
+  legRows: [0.452, 0.47, 0.5, 0.54, 0.585, 0.64, 0.7, 0.755, 0.8, 0.84],
+  hipRows: [0.88, 0.92, 0.96, 0.98, 1.0, 1.04, 1.08],
+  legFold: 0.005, hipFold: 0.004, // dikey kıvrımların derinliği
+};
+function easeAt(table, y) {
+  for (let i = 1; i < table.length; i++) {
+    if (y <= table[i][0]) return table[i - 1][1] + ((table[i][1] - table[i - 1][1]) * (y - table[i - 1][0])) / (table[i][0] - table[i - 1][0]);
   }
-  return EASE[EASE.length - 1][1];
+  return table[table.length - 1][1];
 }
 // Kesitin ağırlık merkezi: bacak halkaları bunun çevresine kurulur (uyluk ve baldır aynı eksende değil).
-function sliceCenter(table, y) {
-  const hull = table.hulls[clamp(Math.round((y - table.y0) / table.dy), 0, table.hulls.length - 1)];
+export function sliceCenter(table, y) {
+  const [f, first] = slicePosition(table, y);
+  const hull = table.hulls[clamp(Math.round(f) + first, 0, table.hulls.length - 1)];
   let x = 0, z = 0;
   for (let i = 0; i < hull.length; i += 2) {
     x += hull[i];
@@ -133,11 +149,13 @@ function sliceCenter(table, y) {
   return [x / (hull.length / 2), z / (hull.length / 2)];
 }
 
-function buildSalvar() {
+// Pantolon kurucusu: iki ayrı bacak, düz ağ dikişi, kalçadan bele tek gövde. Ölçüler o'dan gelir.
+export function buildTrousers(o = SALVAR) {
+  const ease = (y) => easeAt(o.ease, y);
   const s = new Surface();
   const N = 20; // bacak halkasındaki köşe sayısı; 7..13 arası köşeler öbür bacağa bakar
   const INNER = [7, 13];
-  const legRows = [SALVAR.hem, 0.47, 0.5, 0.54, 0.585, 0.64, 0.7, 0.755, 0.8, SALVAR.crotch];
+  const legRows = o.legRows;
   const top = {}; // her bacağın en üst halkası
   for (const side of [1, -1]) {
     const table = side > 0 ? M.legRight : M.legLeft;
@@ -151,7 +169,7 @@ function buildSalvar() {
         const dx = side * Math.cos(a), dz = Math.sin(a);
         const outer = (1 + Math.cos(a)) / 2; // dış yanda 1, iki bacağın arasında 0
         // Üç dikey kıvrım: dış yanda belirgin, bacak arasında yok
-        const fold = 0.005 * Math.max(0, Math.cos(3 * a + 0.6)) ** 2 * (0.3 + 0.7 * outer) * S(0.49, 0.58, y);
+        const fold = o.legFold * Math.max(0, Math.cos(3 * a + 0.6)) ** 2 * (0.3 + 0.7 * outer) * S(0.49, 0.58, y);
         const r = reach(table, y, cx, cz, dx, dz) + ease(y) + fold;
         // İki bacak birbirine değmesin: iç yan orta düzlemden 6 mm beride kalır; mankenin bacakları
         // buna yer bırakmayacak kadar yakınsa (kasığa doğru) pay 2 mm'ye kadar iner
@@ -168,7 +186,7 @@ function buildSalvar() {
   const inner = (ring) => ring.slice(INNER[0], INNER[1] + 1);
   const R = inner(top[1]), L = inner(top[-1]);
   const P = s.positions;
-  const mid = R.map((r, m) => s.point((P[r * 3] + P[L[m] * 3]) / 2, SALVAR.crotch, (P[r * 3 + 2] + P[L[m] * 3 + 2]) / 2));
+  const mid = R.map((r, m) => s.point((P[r * 3] + P[L[m] * 3]) / 2, o.crotch, (P[r * 3 + 2] + P[L[m] * 3 + 2]) / 2));
   s.strip(R, mid, false, () => [0, -1, 0]);
   s.strip(mid, L, false, () => [0, -1, 0]);
 
@@ -183,19 +201,19 @@ function buildSalvar() {
   const front = between(top[1][INNER[0]], mid[0], top[-1][INNER[0]]);
   const back = between(top[-1][INNER[1]], mid[mid.length - 1], top[1][INNER[1]]);
   const base = [...outerArc.map((i) => top[1][i]), ...front, ...[...outerArc].reverse().map((i) => top[-1][i]), ...back];
-  const angles = base.map((v) => Math.atan2(P[v * 3 + 2] - SALVAR.cz, P[v * 3] - SALVAR.cx));
+  const angles = base.map((v) => Math.atan2(P[v * 3 + 2] - o.cz, P[v * 3] - o.cx));
   let previous = base;
-  for (const y of [0.88, 0.92, 0.96, 0.98, 1.0, 1.04, SALVAR.top]) {
+  for (const y of o.hipRows) {
     const ring = angles.map((a) => {
-      const fold = 0.004 * Math.max(0, Math.cos(5 * a + 0.4)) ** 2 * (1 - S(0.94, 1.0, y)); // kuşağın altında kıvrım yok
-      const r = reach(M.body, y, SALVAR.cx, SALVAR.cz, Math.cos(a), Math.sin(a)) + ease(y) + fold;
-      return s.point(SALVAR.cx + Math.cos(a) * r, y, SALVAR.cz + Math.sin(a) * r);
+      const fold = o.hipFold * Math.max(0, Math.cos(5 * a + 0.4)) ** 2 * (1 - S(0.94, 1.0, y)); // kuşağın altında kıvrım yok
+      const r = reach(M.body, y, o.cx, o.cz, Math.cos(a), Math.sin(a)) + ease(y) + fold;
+      return s.point(o.cx + Math.cos(a) * r, y, o.cz + Math.sin(a) * r);
     });
-    s.strip(previous, ring, true, awayFromAxis(SALVAR.cx, SALVAR.cz));
+    s.strip(previous, ring, true, awayFromAxis(o.cx, o.cz));
     previous = ring;
   }
-  const mesh = new THREE.Mesh(s.geometry(), cloth('salvar', 0x1b1b1d));
-  mesh.name = 'salvar';
+  const mesh = new THREE.Mesh(s.geometry(), cloth(o.name, o.color));
+  mesh.name = o.name;
   return mesh;
 }
 
@@ -541,7 +559,7 @@ function buildCepken() {
 export function createOutfit() {
   const root = new THREE.Group();
   root.name = 'eskiya_kiyafet';
-  root.add(buildCepken(), buildKusak(), buildSalvar(), buildTakke(), buildSarikliTakke());
+  root.add(buildCepken(), buildKusak(), buildTrousers(), buildTakke(), buildSarikliTakke());
   root.traverse((o) => {
     if (o.isMesh) o.castShadow = o.receiveShadow = true;
   });

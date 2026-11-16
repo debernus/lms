@@ -95,8 +95,8 @@ function distance(x, y, z, limit) {
 // --- 1) Gövde ve kolların çevresinde işaretli uzaklık ızgarası (cepken için) ---
 // Dışarısı artı, içerisi eksi.
 const CELL = 0.015;
-const MIN = [-0.525, 1.065, -0.225];
-const DIMS = [71, 38, 27]; // x: ±0.525, y: 1.065..1.62, z: -0.225..0.165
+const MIN = [-0.78, 1.065, -0.225];
+const DIMS = [105, 38, 27]; // x: ±0.78 (bileğe kadar), y: 1.065..1.62, z: -0.225..0.165
 const RANGE = [-0.03, 0.09]; // saklanan uzaklık aralığı
 const total = DIMS[0] * DIMS[1] * DIMS[2];
 const dist = new Float32Array(total);
@@ -195,8 +195,8 @@ const lower = (p) => Math.abs(X(p)) < 0.3; // gövde ve bacaklar (kollar ve elle
 const measures = {
   grid: { min: MIN, cell: CELL, dims: DIMS, range: RANGE, data: bytes.toString('base64') },
   body: slices(0.48, 1.22, 0.02, lower), // kalça, bel ve iki bacak birlikte
-  legRight: slices(0.36, 0.88, 0.02, (p) => lower(p) && X(p) > 0), // +X tarafındaki bacak
-  legLeft: slices(0.36, 0.88, 0.02, (p) => lower(p) && X(p) < 0),
+  legRight: slices(0, 0.88, 0.02, (p) => lower(p) && X(p) > 0), // +X tarafındaki bacak, ayak tabanından kasığa
+  legLeft: slices(0, 0.88, 0.02, (p) => lower(p) && X(p) < 0),
   head: star(1.66, 1.81, 0.01, 72, 0, -0.008, (p) => Math.abs(X(p)) < 0.15),
 };
 

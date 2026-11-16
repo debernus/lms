@@ -11,6 +11,8 @@ import { createFilingCabinet } from './cabinet.js';
 import { createBandit } from './bandit.js';
 import { createOutfit } from './outfit.js';
 import { createFes } from './fes.js';
+import { createOutfit2 } from './outfit2.js';
+import { createEfeTakke } from './baslik.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 const scene = new THREE.Scene();
@@ -96,6 +98,20 @@ const models = {
     distance: 4.8,
     extras: loadMannequin,
   },
+  outfit2: {
+    create: createOutfit2,
+    file: 'eskiya2_kiyafet.glb',
+    target: new THREE.Vector3(0, 0.95, 0),
+    distance: 4.8,
+    extras: loadMannequin,
+  },
+  efeTakke: {
+    create: createEfeTakke,
+    file: 'efe_takke.glb',
+    target: new THREE.Vector3(0, 1.72, 0),
+    distance: 1.5,
+    extras: loadMannequin,
+  },
   fes: {
     create: createFes,
     file: 'fes.glb',
@@ -152,7 +168,7 @@ function showModel(key) {
   }
   for (const o of active.objects) o.visible = true;
   document.querySelectorAll('[data-model]').forEach((b) => b.classList.toggle('active', b.dataset.model === key));
-  setView(['character', 'bandit', 'outfit'].includes(key) ? 'front' : 'iso');
+  setView(['character', 'bandit', 'outfit', 'outfit2'].includes(key) ? 'front' : 'iso');
 }
 
 function exportGLB() {
