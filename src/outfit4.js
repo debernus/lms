@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import M from './manken_olcu.js';
 import { Surface, cloth, awayFromAxis, reach, sliceCenter, buildTrousers, S, clamp, TAU } from './outfit.js';
-import { brass, bodyNormal, castOut, assemble } from './outfit2.js';
+import { brass, bodyNormal, castOut, settle, assemble } from './outfit2.js';
 import { jacketFabric, button, patchOf, castToCeket, onChest, skirtRadius, ARM, CEKET } from './outfit3.js';
 
 // Osmanlı süvari (mızraklı) eri üniforması, 1900'lerin başı; manken_erkek.glb'nin üstüne oturur.
@@ -71,46 +71,31 @@ function buildCeket() {
 }
 
 // ---------- Omuz kuşağı ----------
-// Sol omuzdan sağ kalçaya çapraz asılan, rulo yapılmış gri kumaş (kenarlarında kırmızı şerit);
-// gövdeyi dolanan kapalı bir halkadır, ceketin üstünde durur.
+// Sol omuzdan sağ kalçaya çapraz inen, cekete yapışık yassı kumaş şerit: 7 cm eninde, gri, iki
+// kenarında kırmızı şerit. Gövdeyi dolanan kapalı bir halkadır; ceketin 4 mm üstünde durur.
 function buildOmuzKusagi() {
   const grey = new Surface(), red = new Surface();
-  const R = 0.027;
+  const WIDTH = 0.07, EDGE = 0.012, OFFSET = 0.013 + 0.004;
   const shoulder = v3(0.135, 1.53, -0.045), hip = v3(-0.165, 1.14, -0.03);
   const along = hip.clone().sub(shoulder).normalize();
   const depth = v3(0, 0, 1);
-  const across = along.clone().cross(depth).normalize();
+  const across = along.clone().cross(depth).normalize(); // şeridin eni bu yönde
   const center = shoulder.clone().lerp(hip, 0.5);
-  const K = 56, SIDES = 8;
-  const mids = Array.from({ length: K }, (_, k) => {
-    const phi = (k / K) * TAU;
-    return castOut(center, along.clone().multiplyScalar(Math.cos(phi)).addScaledVector(depth, Math.sin(phi)), 0.013 + R + 0.003);
-  });
-  const rings = { grey: [], red: [] };
-  for (const s of [grey, red]) {
-    const list = mids.map((c, k) => {
-      const tangent = mids[(k + 1) % K].clone().sub(mids[(k + K - 1) % K]).normalize();
-      const out = across.clone().cross(tangent).normalize();
-      return Array.from({ length: SIDES }, (_, i) => {
-        const a = (i / SIDES) * TAU;
-        const p = c.clone().addScaledVector(across, Math.cos(a) * R * 1.25).addScaledVector(out, Math.sin(a) * R);
-        return s.point(p.x, p.y, p.z);
-      });
-    });
-    rings[s === grey ? 'grey' : 'red'] = list;
-  }
-  // Rulonun sekiz yüzünden ikisi (dış kenarlara yakın olanlar) kırmızı şerit, öbürleri gri
+  const K = 72;
+  const offsets = [-WIDTH / 2, -WIDTH / 2 + EDGE, 0, WIDTH / 2 - EDGE, WIDTH / 2];
+  const rows = { grey: [], red: [] };
   for (let k = 0; k < K; k++) {
-    const k1 = (k + 1) % K;
-    for (let i = 0; i < SIDES; i++) {
-      const i1 = (i + 1) % SIDES;
-      const isRed = i === 2 || i === 6; // biri her zaman dışa bakar
-      const s = isRed ? red : grey, r = isRed ? rings.red : rings.grey;
-      const start = s.indices.length;
-      s.indices.push(r[k][i], r[k][i1], r[k1][i1], r[k][i], r[k1][i1], r[k1][i]);
-      const c = mids[k];
-      s.orient(start, (x, y, z) => [x - c.x, y - c.y, z - c.z]);
-    }
+    const phi = (k / K) * TAU;
+    const mid = castOut(center, along.clone().multiplyScalar(Math.cos(phi)).addScaledVector(depth, Math.sin(phi)), OFFSET);
+    const points = offsets.map((o) => (o === 0 ? mid : settle(mid.clone().addScaledVector(across, o), OFFSET)));
+    rows.grey.push(points.map((p) => grey.point(p.x, p.y, p.z)));
+    rows.red.push(points.map((p) => red.point(p.x, p.y, p.z)));
+  }
+  const outward = (x, y, z) => [x - center.x, y - center.y, z - center.z];
+  for (let c = 0; c < 4; c++) {
+    const edge = c === 0 || c === 3;
+    const s = edge ? red : grey, r = edge ? rows.red : rows.grey;
+    s.strip(r.map((row) => row[c]), r.map((row) => row[c + 1]), true, outward);
   }
   return assemble('omuz_kusagi', [[grey, cloth('kusak_gri', 0x6c6c63)], [red, cloth('kusak_kirmizi', RED)]]);
 }
