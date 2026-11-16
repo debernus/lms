@@ -20,6 +20,7 @@ import { createHalk1 } from './halk1.js';
 import { createHalk2 } from './halk2.js';
 import { createHalk3 } from './halk3.js';
 import { createHalk5 } from './halk5.js';
+import { createTabanca } from './tabanca.js';
 import { createSakal, createYasliSakal, createYasliKisaSakal } from './sakal.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
@@ -134,6 +135,12 @@ const models = {
     target: new THREE.Vector3(0, 1.63, 0),
     distance: 1.2,
     extras: loadMannequin,
+  },
+  tabanca: {
+    create: createTabanca,
+    file: 'tabanca.glb',
+    target: new THREE.Vector3(0, 0.09, 0),
+    distance: 0.8,
   },
   halk5: {
     create: createHalk5,
