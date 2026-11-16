@@ -27,6 +27,7 @@ import { createAskiliTepsi } from './askili_tepsi.js';
 import { createPasaUniforma } from './pasa.js';
 import { createKule } from './kule.js';
 import { createKoylu } from './koylu.js';
+import { createKayik } from './kayik.js';
 import { createSakal, createYasliSakal, createYasliKisaSakal, createUzunSacSakal } from './sakal.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
@@ -177,6 +178,12 @@ const models = {
     target: new THREE.Vector3(0, 0.95, 0),
     distance: 4.8,
     extras: loadMannequin,
+  },
+  kayik: {
+    create: createKayik,
+    file: 'kayik.glb',
+    target: new THREE.Vector3(0, 0.3, 0),
+    distance: 9,
   },
   kule: {
     create: createKule,
