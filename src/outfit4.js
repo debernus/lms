@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import M from './manken_olcu.js';
 import { Surface, cloth, awayFromAxis, reach, sliceCenter, buildTrousers, S, clamp, TAU } from './outfit.js';
 import { brass, bodyNormal, castOut, settle, assemble } from './outfit2.js';
-import { jacketFabric, button, patchOf, castToCeket, onChest, skirtRadius, ARM, CEKET } from './outfit3.js';
+import { jacketFabric, collarTop, button, patchOf, castToCeket, onChest, skirtRadius, ARM, CEKET } from './outfit3.js';
 
 // Osmanlı süvari (mızraklı) eri üniforması, 1900'lerin başı; manken_erkek.glb'nin üstüne oturur.
 // Dört parça: ceket, omuz_kusagi, salvar, cizme. Fes ayrı dosyada; kılıç ve mızrak yok.
@@ -16,9 +16,10 @@ const RED = 0x7a1f1c;
 // Koyu yeşil, uyluğun üstüne inen uzun ceket: kırmızı dik yaka, göğüste beş sıra kırmızı kordon ve
 // pirinç düğmeler, kırmızı kol kapakları ve apoletler, sol göğüste madalya.
 const HEM = 0.86;
-const COLLAR_DROP = 0.065; // yaka önde çeneye değmesin: çenenin 2,5 cm altında biter
+// Yaka önde çeneye değmesin: yanlardan öne doğru yumuşakça 5,5 cm alçalır
+const COLLAR = { drop: 0.055, from: -0.04, to: 0.06 };
 function buildCeket() {
-  const fabric = jacketFabric([[1.1, 0.018], [1.06, 0.019], [1.01, 0.02], [0.965, 0.021], [0.91, 0.023], [HEM, 0.026], [HEM - 0.003, 0.021]], COLLAR_DROP);
+  const fabric = jacketFabric([[1.1, 0.018], [1.06, 0.019], [1.01, 0.02], [0.965, 0.021], [0.91, 0.023], [HEM, 0.026], [HEM - 0.003, 0.021]], COLLAR);
   const red = new Surface(), metal = new Surface();
   const front = () => [0, 0, 1];
 
@@ -38,17 +39,31 @@ function buildCeket() {
   const medal = onChest(0.085, 1.39, 0.002);
   button(metal, medal, bodyNormal(medal), 0.012);
 
-  // Dik yaka: boynu saran kırmızı şerit
+  // Gömlek yakası: boynun çevresinden dışa devrilen kırmızı yaka; önde açık, iki ucu sivri
   const NECK = v3(0, 0, -0.045);
-  const collar = [0, 1].map((top) => Array.from({ length: 24 }, (_, k) => {
-    const a = (k / 24) * TAU;
+  const OPEN = 0.16; // öndeki açıklığın yarısı (radyan)
+  const leaf = [0, 1, 2].map(() => []);
+  for (let k = 0; k <= 40; k++) {
+    const a = Math.PI / 2 + OPEN + ((TAU - 2 * OPEN) * k) / 40;
     const dir = v3(Math.cos(a), 0, Math.sin(a));
-    const z = NECK.z + 0.06 * Math.sin(a);
-    const y = top ? CEKET.collar - 0.004 - COLLAR_DROP * S(0, 0.04, z) : 1.574 - 0.058 * S(0, 0.04, z);
-    const p = castToCeket(v3(0, y, NECK.z), dir, 0.003);
-    return red.point(p.x, p.y, p.z);
-  }));
-  red.strip(collar[0], collar[1], true, (x, y, z) => [x, 0, z - NECK.z]);
+    // Katlama çizgisi: yakanın üst kenarı (yüksekliği değdiği noktanın z'sine bağlı)
+    let top = castToCeket(v3(0, 1.57, NECK.z), dir, 0.004);
+    for (let i = 0; i < 3; i++) top = castToCeket(v3(0, collarTop(top.z) - 0.003, NECK.z), dir, 0.004);
+    const frontness = S(0.72, 0.985, Math.sin(a)); // uçlara doğru yaka uzar
+    const down = 0.03 + 0.04 * frontness;
+    const point = (t) => {
+      const p = top.clone().addScaledVector(dir, 0.004 + 0.02 * t).add(v3(0, -down * t, 0));
+      if (Math.sin(a) > 0.3) p.z = Math.max(p.z, onChest(p.x, p.y, 0.006).z); // önde göğsün üstünde kalır
+      return p;
+    };
+    [0, 0.5, 1].forEach((t, j) => {
+      const p = point(t);
+      leaf[j].push(red.point(p.x, p.y, p.z));
+    });
+  }
+  const fromNeck = (x, y, z) => [x, 0.4, z - NECK.z];
+  red.strip(leaf[0], leaf[1], false, fromNeck);
+  red.strip(leaf[1], leaf[2], false, fromNeck);
 
   for (const side of [-1, 1]) {
     // Kol kapağı: bilekte 6 cm'lik kırmızı şerit
