@@ -1,5 +1,9 @@
 import * as THREE from 'three';
 import FACE from './manken_yuz.js';
+import M from './manken_olcu.js';
+import { headRadius } from './outfit.js';
+
+const HEAD = M.head;
 
 // Kısa, düzgün kesilmiş sakal ve ona bitişik bıyık (1914, genç Osmanlı subayı); manken_erkek.glb'nin
 // yüzüne oturur. Mankenin yüz yüzeyinden (manken_yuz.js) üretilir: yüzey inceltilir, sakal bölgesi
@@ -13,6 +17,7 @@ const S = (a, b, v) => {
 const lerp3 = (a, b, t) => a.map((v, i) => v + (b[i] - v) * t);
 
 // Sakal maskesi: artı = sakalın içi (yaklaşık metre cinsinden kenara uzaklık), eksi = dışı.
+let coverMouth = false; // gür bıyık ağzı örter
 function mask(p, n) {
   const x = Math.abs(p[0]), y = p[1], z = p[2];
   // Yanak çizgisi: kulağın önünden ağız kenarına yumuşak, düz iniş
@@ -42,7 +47,7 @@ function mask(p, n) {
   // Dudaklar açık kalır
   // Dudaklar (mankenden ölçüldü): alt dudağın altındaki çukur y 1,605, burun dibi y 1,645
   const lips = (Math.hypot(x / 0.027, (y - 1.6195) / 0.0125) - 1) * 0.0125;
-  return Math.min(m, lips);
+  return coverMouth ? m : Math.min(m, lips);
 }
 // Kalınlık (metre): yanakta 5 mm, çenede 11 mm, bıyıkta 5 mm, favoride 4 mm
 function thickness(p) {
@@ -100,7 +105,102 @@ export const createYasliSakal = () => createSakal(YASLI);
 const YASLI_KISA = { ...YASLI, thick: 1.5, tuft: 1.0, chinDrop: 0.01, chinForward: 0.002, wave: 0.004 };
 export const createYasliKisaSakal = () => createSakal(YASLI_KISA);
 
+// Dervişvari uzun, gür, dağınık kır sakal: göğse kadar iner, bıyık ağzı örter
+const UZUN = {
+  hair: [138, 136, 131], shadow: [66, 65, 62], dark: [0.55, 0.55], light: [1.35, 0.4],
+  thick: 4.2, tuft: 3.4, chinDrop: 0.15, chinForward: 0.035, tipX: 0.16, tipY: 1.66, deep: true, wave: 0.014, coverMouth: true,
+};
+export const createUzunSakal = () => createSakal(UZUN);
+
+// Aynı tarzda uzun, dağınık kır saç: tepeden ayrılır, kulakları örtüp omuzlara dökülür; alın açıktır.
+// Başın ölçü tablosundan (manken_olcu.js) üretilir; mankenle aynı konum.
+export function createUzunSac(o = UZUN) {
+  const TAU = Math.PI * 2;
+  const cx = HEAD.cx, cz = HEAD.cz, TOP = 1.812;
+  const positions = [], uvs = [], colors = [], indices = [];
+  let seed = 23;
+  const rand = () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296);
+  // Saç yüzeyi: a açısı (ön = PI/2), v tepeden (0) uca (1). lift: baştan yükseklik
+  const end = (a) => 1.5 - 0.05 * S(0.2, -0.9, Math.sin(a)); // arkada daha uzun
+  const point = (a, v, lift) => {
+    const wave = 0.012 * Math.sin(a * 9 + v * 11) * v + 0.006 * Math.sin(a * 23 + v * 31) * v;
+    if (v < 0.45) {
+      // Tepe yuvarlak bir kubbedir: önce kubbe (tepeden başın en geniş yerine), sonra başın yanı
+      const t = (v / 0.45) * 2.2, EQ = 1.755;
+      if (t < 1) {
+        const th = (t * Math.PI) / 2, r = (headRadius(EQ, a) + lift + wave) * Math.sin(th);
+        return [cx + Math.cos(a) * r, EQ + (TOP + lift - EQ) * Math.cos(th), cz + Math.sin(a) * r];
+      }
+      const y = EQ - (EQ - 1.68) * ((t - 1) / 1.2), r = headRadius(y, a) + lift + wave;
+      return [cx + Math.cos(a) * r, y, cz + Math.sin(a) * r];
+    }
+    const t = (v - 0.45) / 0.55, y = 1.68 - (1.68 - end(a)) * t;
+    const r = headRadius(1.68, a) + lift + 0.045 * Math.sin(t * Math.PI * 0.6) + 0.035 * t + wave;
+    return [cx + Math.cos(a) * r, y, cz + Math.sin(a) * r];
+  };
+  // Yüz açıklığı: önde saç alnın üstünde biter, yanlara doğru şakaktan aşağı iner
+  const hairline = (a) => {
+    const f = Math.sin(a);
+    return f > 0.3 ? 1.69 + 0.095 * S(0.3, 0.72, f) : -1;
+  };
+  const SEG = 56, ROWS = 16;
+  for (const [lift, density] of [[0.008, 1], [0.018, 0.86], [0.028, 0.78], [0.04, 0.7]]) {
+    const base = positions.length / 3;
+    for (let j = 0; j <= ROWS; j++) {
+      for (let k = 0; k <= SEG; k++) {
+        const a = (k / SEG) * TAU + Math.PI / 2, v = j / ROWS;
+        const p = point(a, v, lift);
+        positions.push(...p);
+        uvs.push((k / SEG) * 18 + lift * 37, v * 7 + lift * 61);
+        const open = S(0, 0.025, p[1] - hairline(a)); // alında ve yüzün önünde saç yok
+        colors.push(1, 1, 1, open * density * (1 - 0.45 * S(0.8, 1, v))); // uçlarda seyrelir
+      }
+    }
+    for (let j = 0; j < ROWS; j++) for (let k = 0; k < SEG; k++) {
+      const q = base + j * (SEG + 1) + k;
+      indices.push(q, q + SEG + 1, q + 1, q + 1, q + SEG + 1, q + SEG + 2);
+    }
+  }
+  // Dağınık tutamlar: yüzeyden dışa ve aşağı fırlayan ince, sivri teller
+  for (let i = 0; i < 1500; i++) {
+    const a = rand() * TAU, v = 0.12 + rand() * 0.88;
+    const p = point(a, v, 0.03), q = point(a, Math.min(1, v + 0.02), 0.03);
+    if (p[1] - hairline(a) < 0.03) continue;
+    const out = [Math.cos(a), 0, Math.sin(a)];
+    const len = 0.03 + rand() * 0.05 * (0.5 + v), half = 0.0016 + rand() * 0.0012;
+    const dir = [out[0] * (0.5 + rand() * 0.5) + (rand() - 0.5) * 0.5, -0.5 - rand() * 0.6 + (v < 0.3 ? 0.5 : 0), out[2] * (0.5 + rand() * 0.5) + (rand() - 0.5) * 0.5];
+    const dl = Math.hypot(...dir), side = [-out[2], 0, out[0]];
+    const base = positions.length / 3, u0 = rand(), v0 = rand();
+    const push = (along, e, w) => {
+      positions.push(...p.map((c, n) => c + (dir[n] / dl) * len * along + side[n] * half * e * w));
+      uvs.push(u0 + e * w * 0.05, v0 - along * len * 20);
+      colors.push(1, 1, 1, 1);
+    };
+    push(0, -1, 1); push(0, 1, 1); push(0.55, -1, 0.6); push(0.55, 1, 0.6); push(1, 0, 0);
+    indices.push(base, base + 1, base + 3, base, base + 3, base + 2, base + 2, base + 3, base + 4);
+    void q;
+  }
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+  geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 4));
+  geometry.setIndex(indices);
+  geometry.computeVertexNormals();
+  const mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({ name: 'sac', map: hairTexture(o), vertexColors: true, alphaTest: 0.5, roughness: 0.95, metalness: 0, side: THREE.DoubleSide }));
+  mesh.name = 'sac';
+  mesh.castShadow = mesh.receiveShadow = true;
+  return mesh;
+}
+// Uzun saç ve uzun sakal birlikte, tek kök altında
+export function createUzunSacSakal() {
+  const root = new THREE.Group();
+  root.name = 'uzun_sac_sakal';
+  root.add(createUzunSac(), createUzunSakal());
+  return root;
+}
+
 export function createSakal(o = GENC) {
+  coverMouth = !!o.coverMouth;
   // --- Yüzeyi bir kez incelt (her üçgen dörde bölünür) ---
   let P = [], N = [], T = [];
   for (let i = 0; i < FACE.positions.length; i += 3) {

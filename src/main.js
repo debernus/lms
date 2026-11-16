@@ -26,7 +26,7 @@ import { createCocukKiyafet } from './cocuk.js';
 import { createAskiliTepsi } from './askili_tepsi.js';
 import { createPasaUniforma } from './pasa.js';
 import { createKule } from './kule.js';
-import { createSakal, createYasliSakal, createYasliKisaSakal } from './sakal.js';
+import { createSakal, createYasliSakal, createYasliKisaSakal, createUzunSacSakal } from './sakal.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 const scene = new THREE.Scene();
@@ -118,6 +118,13 @@ const models = {
     file: 'eskiya2_kiyafet.glb',
     target: new THREE.Vector3(0, 0.95, 0),
     distance: 4.8,
+    extras: loadMannequin,
+  },
+  uzunSacSakal: {
+    create: createUzunSacSakal,
+    file: 'uzun_sac_sakal.glb',
+    target: new THREE.Vector3(0, 1.6, 0),
+    distance: 1.6,
     extras: loadMannequin,
   },
   yasliKisaSakal: {
