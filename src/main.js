@@ -5,6 +5,7 @@ import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { createCharacter } from './character.js';
 import { createStall, createCobbleGround } from './stall.js';
 import { createStreetLamp } from './lamp.js';
+import { createClerkDesk } from './desk.js';
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xf2f2f2);
@@ -58,6 +59,12 @@ const models = {
     target: new THREE.Vector3(0, 1.8, 0),
     distance: 7,
   },
+  desk: {
+    create: createClerkDesk,
+    file: 'memur_masasi.glb',
+    target: new THREE.Vector3(0, 0.4, 0),
+    distance: 3.6,
+  },
   character: {
     create: createCharacter,
     file: 'karakter.glb',
@@ -97,7 +104,7 @@ function showModel(key) {
   }
   for (const o of active.objects) o.visible = true;
   document.querySelectorAll('[data-model]').forEach((b) => b.classList.toggle('active', b.dataset.model === key));
-  setView(key === 'stall' ? 'iso' : 'front');
+  setView(key === 'character' ? 'front' : 'iso');
 }
 
 function exportGLB() {
