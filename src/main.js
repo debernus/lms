@@ -6,6 +6,7 @@ import { createCharacter } from './character.js';
 import { createStall, createCobbleGround } from './stall.js';
 import { createStreetLamp } from './lamp.js';
 import { createClerkDesk } from './desk.js';
+import { createThonetChair } from './chair.js';
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xf2f2f2);
@@ -64,6 +65,12 @@ const models = {
     file: 'memur_masasi.glb',
     target: new THREE.Vector3(0, 0.4, 0),
     distance: 3.6,
+  },
+  chair: {
+    create: createThonetChair,
+    file: 'sandalye.glb',
+    target: new THREE.Vector3(0, 0.45, 0),
+    distance: 2.6,
   },
   character: {
     create: createCharacter,
