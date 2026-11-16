@@ -12,7 +12,7 @@ import { buildAyakkabi } from './outfit5.js';
 const v3 = (x, y, z) => new THREE.Vector3(x, y, z);
 const clamp01 = (v) => Math.min(1, Math.max(0, v));
 
-function canvasTexture(name, w, h, draw) {
+export function canvasTexture(name, w, h, draw) {
   const c = document.createElement('canvas');
   c.width = w;
   c.height = h;
@@ -23,10 +23,10 @@ function canvasTexture(name, w, h, draw) {
   t.name = name;
   return t;
 }
-const patterned = (name, map) => new THREE.MeshStandardMaterial({ name, map, roughness: 0.85, metalness: 0, side: THREE.DoubleSide });
+export const patterned = (name, map) => new THREE.MeshStandardMaterial({ name, map, roughness: 0.85, metalness: 0, side: THREE.DoubleSide });
 
 // Birden çok yüzeyi tek ağda toplar: parts = [[Surface, malzeme, uv(x, y, z) ya da null], ...]
-function build(name, parts) {
+export function build(name, parts) {
   const positions = [], uvs = [], indices = [];
   const g = new THREE.BufferGeometry();
   parts.forEach(([s, , uv], i) => {
@@ -49,7 +49,7 @@ function build(name, parts) {
 
 // Gövde kabuğu (ve istenirse kollar) + belden aşağı etek. o: { offset, sleeve(ax) | null, inside(x, y, z),
 // rows: [[y, pay]], gapAngle (ön açıklığın yarısı, radyan; 0 = kapalı), cell }
-function robe(o) {
+export function robe(o) {
   const field = (x, y, z) => {
     const ax = Math.abs(x);
     const body = bodyDistance(x, y, z) - o.offset + (o.sleeve ? 0.08 * clamp01((ax - 0.2) / 0.14) : 0);
@@ -86,7 +86,7 @@ function robe(o) {
   return s;
 }
 // Desen yüzü dolanır (u) ve aşağı akar (v); kollarda kol boyunca
-const wrapUV = (around, along) => (x, y, z) =>
+export const wrapUV = (around, along) => (x, y, z) =>
   Math.abs(x) > 0.24 && y > 1.3 ? [(Math.atan2(y - ARM.y, z - ARM.z) / TAU) * Math.round(around / 3), x * along] : [(Math.atan2(x, z - CEKET.cz) / TAU) * around, y * along];
 
 // ---------- Entari ----------
