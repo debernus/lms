@@ -140,6 +140,14 @@ const models = {
     distance: 1.2,
     extras: loadMannequin,
   },
+  // Hazır bir GLB dosyasını göstermek için: ?manken=<dosya adresi> ile açıp bu modeli seçin
+  dosya: {
+    create: () => new THREE.Group(),
+    file: 'bos.glb',
+    target: new THREE.Vector3(0, 0.15, 0),
+    distance: 1,
+    extras: loadMannequin,
+  },
   pasa: {
     create: createPasaUniforma,
     file: 'pasa_uniforma.glb',
