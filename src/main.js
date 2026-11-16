@@ -25,6 +25,7 @@ import { createBoyaciSandigi } from './boyaci_sandigi.js';
 import { createCocukKiyafet } from './cocuk.js';
 import { createAskiliTepsi } from './askili_tepsi.js';
 import { createPasaUniforma } from './pasa.js';
+import { createKule } from './kule.js';
 import { createSakal, createYasliSakal, createYasliKisaSakal } from './sakal.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
@@ -148,6 +149,12 @@ const models = {
     distance: 1,
     extras: loadMannequin,
   },
+  kule: {
+    create: createKule,
+    file: 'tas_kule.glb',
+    target: new THREE.Vector3(0, 8.5, 0),
+    distance: 36,
+  },
   pasa: {
     create: createPasaUniforma,
     file: 'pasa_uniforma.glb',
@@ -266,7 +273,7 @@ function loadMannequin() {
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.minDistance = 0.6;
-controls.maxDistance = 25;
+controls.maxDistance = 80;
 
 // Görünüş yönleri: ön, yan, arka ve referans görsellerdeki gibi üstten çapraz bakış.
 const views = {
