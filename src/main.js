@@ -10,6 +10,7 @@ import { createThonetChair } from './chair.js';
 import { createFilingCabinet } from './cabinet.js';
 import { createBandit } from './bandit.js';
 import { createOutfit } from './outfit.js';
+import { createFes } from './fes.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 const scene = new THREE.Scene();
@@ -93,6 +94,13 @@ const models = {
     file: 'eskiya_kiyafet.glb',
     target: new THREE.Vector3(0, 0.95, 0),
     distance: 4.8,
+    extras: loadMannequin,
+  },
+  fes: {
+    create: createFes,
+    file: 'fes.glb',
+    target: new THREE.Vector3(0, 1.72, 0),
+    distance: 1.5,
     extras: loadMannequin,
   },
   character: {

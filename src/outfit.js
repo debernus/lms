@@ -2,7 +2,8 @@ import * as THREE from 'three';
 import M from './manken_olcu.js';
 import { meshField, sharpenBoundaries } from './isosurface.js';
 
-// 1914, Anadolu'da bir yol eşkıyasının kıyafeti: cepken, kuşak, şalvar, kalpak.
+// 1914, Anadolu'da bir yol eşkıyasının kıyafeti: cepken, kuşak, şalvar ve iki başlık seçeneği
+// (takke ya da sarıklı takke).
 // Parçalar manken_erkek.glb'nin üstüne oturur; ölçüler manken_olcu.js'ten gelir (mankenin kendisi
 // burada yoktur). Mankenle aynı konum ve duruş: 1 birim = 1 metre, Y yukarı, yüz +Z'ye bakar.
 // Yalnız dış yüzeyler modellenir; hiçbir parça taşınmaz, döndürülmez, ölçeklenmez.
@@ -60,7 +61,7 @@ function bodyDistance(x, y, z) {
 
 // ---------- Ağ kurma ----------
 
-class Surface {
+export class Surface {
   constructor() {
     this.positions = [];
     this.indices = [];
@@ -105,76 +106,89 @@ class Surface {
     return g;
   }
 }
-const cloth = (name, color) => new THREE.MeshStandardMaterial({ name, color, roughness: 0.85, metalness: 0, side: THREE.DoubleSide });
-const awayFromAxis = (cx, cz) => (x, y, z) => [x - cx, 0, z - cz];
+export const cloth = (name, color) => new THREE.MeshStandardMaterial({ name, color, roughness: 0.85, metalness: 0, side: THREE.DoubleSide });
+export const awayFromAxis = (cx, cz) => (x, y, z) => [x - cx, 0, z - cz];
 
 // ---------- Şalvar ----------
-// Belden dize kadar tek bir bol torba; ağı dizlerin hizasına sarkar, altında her bacak ayrı
-// paçaya girer ve dizin 10 cm altında büzülür.
-const SALVAR = { top: 1.08, crotch: 0.52, hem: 0.41, cx: 0, cz: -0.04, leg: [0.105, -0.048] };
-const BAG = [[0.52, 0.02], [0.55, 0.03], [0.6, 0.05], [0.67, 0.06], [0.75, 0.068], [0.83, 0.07], [0.9, 0.06], [0.945, 0.035], [0.972, 0.003], [1.08, 0]]; // kuşağın altında bolluk yok
-function bagginess(y) {
-  for (let i = 1; i < BAG.length; i++) {
-    if (y <= BAG[i][0]) return BAG[i - 1][1] + ((BAG[i][1] - BAG[i - 1][1]) * (y - BAG[i - 1][0])) / (BAG[i][0] - BAG[i - 1][0]);
+// Vücuda oturan, hafif bol pantolon: mankenin kendi pantolonunun 0,5–2,5 cm dışında. Kalçada ve
+// uylukta hafif bolluk, dizden aşağı daralır ve çizmenin ağzında biter. İki bacak ayrıdır; ağ
+// sarkmaz, yalnız iki paçayı birleştiren düz bir dikiş vardır.
+const SALVAR = { top: 1.08, crotch: 0.84, hem: 0.452, cx: 0, cz: -0.04 };
+// [yükseklik, mankenden pay]: çizmenin ağzında dar, uylukta ve kalçada biraz bol, belde kuşağın altına girer
+const EASE = [[0.452, 0.006], [0.47, 0.009], [0.5, 0.012], [0.56, 0.014], [0.66, 0.016], [0.76, 0.02], [0.96, 0.02], [1.0, 0.015], [1.08, 0.015]];
+function ease(y) {
+  for (let i = 1; i < EASE.length; i++) {
+    if (y <= EASE[i][0]) return EASE[i - 1][1] + ((EASE[i][1] - EASE[i - 1][1]) * (y - EASE[i - 1][0])) / (EASE[i][0] - EASE[i - 1][0]);
   }
-  return 0;
+  return EASE[EASE.length - 1][1];
 }
-// Torbanın, orta eksenden angle yönündeki yarıçapı: manken + 1,5 cm + bolluk (altı büyük kıvrımla).
-function salvarRadius(y, angle) {
-  const folds = 1 + 0.28 * Math.cos(6 * angle + 0.7) * (1 - S(0.9, 1.0, y));
-  return reach(M.body, y, SALVAR.cx, SALVAR.cz, Math.cos(angle), Math.sin(angle)) + 0.015 + bagginess(y) * folds;
+// Kesitin ağırlık merkezi: bacak halkaları bunun çevresine kurulur (uyluk ve baldır aynı eksende değil).
+function sliceCenter(table, y) {
+  const hull = table.hulls[clamp(Math.round((y - table.y0) / table.dy), 0, table.hulls.length - 1)];
+  let x = 0, z = 0;
+  for (let i = 0; i < hull.length; i += 2) {
+    x += hull[i];
+    z += hull[i + 1];
+  }
+  return [x / (hull.length / 2), z / (hull.length / 2)];
 }
 
 function buildSalvar() {
   const s = new Surface();
-  const N = 24; // paça halkasındaki köşe sayısı; 8..16 arası köşeler öbür bacağa bakar
-  const cuffRows = [SALVAR.hem, 0.43, 0.455, 0.485, SALVAR.crotch];
-  const top = {}; // her bacağın en üst paça halkası
+  const N = 20; // bacak halkasındaki köşe sayısı; 7..13 arası köşeler öbür bacağa bakar
+  const INNER = [7, 13];
+  const legRows = [SALVAR.hem, 0.47, 0.5, 0.54, 0.585, 0.64, 0.7, 0.755, 0.8, SALVAR.crotch];
+  const top = {}; // her bacağın en üst halkası
   for (const side of [1, -1]) {
     const table = side > 0 ? M.legRight : M.legLeft;
-    const cx = side * SALVAR.leg[0], cz = SALVAR.leg[1];
-    const rings = cuffRows.map((y) => {
+    let previous = null;
+    for (const y of legRows) {
+      const [cx, cz] = sliceCenter(table, y);
+      const innerX = Math.abs(cx) - reach(table, y, cx, cz, -side, 0); // mankenin bacağının orta düzleme uzaklığı
       const ring = [];
       for (let i = 0; i < N; i++) {
         const a = (i / N) * TAU;
         const dx = side * Math.cos(a), dz = Math.sin(a);
         const outer = (1 + Math.cos(a)) / 2; // dış yanda 1, iki bacağın arasında 0
-        const r = reach(table, y, cx, cz, dx, dz) + 0.01 + 0.005 * outer + 0.012 * outer * S(SALVAR.hem, SALVAR.crotch, y);
-        ring.push(s.point(cx + dx * r, y, cz + dz * r));
+        // Üç dikey kıvrım: dış yanda belirgin, bacak arasında yok
+        const fold = 0.005 * Math.max(0, Math.cos(3 * a + 0.6)) ** 2 * (0.3 + 0.7 * outer) * S(0.49, 0.58, y);
+        const r = reach(table, y, cx, cz, dx, dz) + ease(y) + fold;
+        // İki bacak birbirine değmesin: iç yan orta düzlemden 6 mm beride kalır; mankenin bacakları
+        // buna yer bırakmayacak kadar yakınsa (kasığa doğru) pay 2 mm'ye kadar iner
+        const x = side * Math.max(Math.min(0.006, innerX - 0.002), side * (cx + dx * r));
+        ring.push(s.point(x, y, cz + dz * r));
       }
-      return ring;
-    });
-    for (let j = 1; j < rings.length; j++) s.strip(rings[j - 1], rings[j], true, awayFromAxis(cx, cz));
-    top[side] = rings[rings.length - 1];
+      if (previous) s.strip(previous, ring, true, awayFromAxis(cx, cz));
+      previous = ring;
+    }
+    top[side] = previous;
   }
 
-  // Ağ: iki paçanın birbirine bakan yaylarını birleştiren, ortası sarkık şerit
-  const inner = (ring) => ring.slice(8, 17);
+  // Ağ dikişi: iki bacağın birbirine bakan yaylarını birleştiren düz, dar şerit
+  const inner = (ring) => ring.slice(INNER[0], INNER[1] + 1);
   const R = inner(top[1]), L = inner(top[-1]);
   const P = s.positions;
-  const mid = R.map((r, m) => {
-    const l = L[m];
-    const sag = 0.02 * Math.sin((Math.PI * m) / (R.length - 1));
-    return s.point((P[r * 3] + P[l * 3]) / 2, SALVAR.crotch - sag, (P[r * 3 + 2] + P[l * 3 + 2]) / 2);
-  });
+  const mid = R.map((r, m) => s.point((P[r * 3] + P[L[m] * 3]) / 2, SALVAR.crotch, (P[r * 3 + 2] + P[L[m] * 3 + 2]) / 2));
   s.strip(R, mid, false, () => [0, -1, 0]);
   s.strip(mid, L, false, () => [0, -1, 0]);
 
-  // Torba: en alt halkası iki paçanın dış yaylarıdır; yukarı doğru bele kadar çıkar
-  const order = [...Array(9).keys()].map((i) => 16 + i).map((i) => i % N).concat([...Array(8).keys()].map((i) => i + 1));
-  // İki paça arasındaki ön ve arka açıklığa ara köşeler: yoksa torba orada karnı ve sırtı keser
+  // Kalça: en alt halkası iki bacağın dış yaylarıdır (arada ön ve arka ara köşeler); bele kadar çıkar
+  const outerArc = [];
+  for (let i = INNER[1]; i !== INNER[0]; i = (i + 1) % N) outerArc.push(i);
+  outerArc.push(INNER[0]);
   const between = (a, m, b) => {
     const at = (t, u, v) => s.point(P[u * 3] + (P[v * 3] - P[u * 3]) * t, P[u * 3 + 1], P[u * 3 + 2] + (P[v * 3 + 2] - P[u * 3 + 2]) * t);
-    return [at(1 / 3, a, m), at(2 / 3, a, m), m, at(1 / 3, m, b), at(2 / 3, m, b)];
+    return [at(0.5, a, m), m, at(0.5, m, b)];
   };
-  const front = between(top[1][8], mid[0], top[-1][8]);
-  const back = between(top[-1][16], mid[mid.length - 1], top[1][16]);
-  const base = [...order.map((i) => top[1][i]), ...front, ...[...order].reverse().map((i) => top[-1][i]), ...back];
+  const front = between(top[1][INNER[0]], mid[0], top[-1][INNER[0]]);
+  const back = between(top[-1][INNER[1]], mid[mid.length - 1], top[1][INNER[1]]);
+  const base = [...outerArc.map((i) => top[1][i]), ...front, ...[...outerArc].reverse().map((i) => top[-1][i]), ...back];
   const angles = base.map((v) => Math.atan2(P[v * 3 + 2] - SALVAR.cz, P[v * 3] - SALVAR.cx));
   let previous = base;
-  for (const y of [0.55, 0.6, 0.67, 0.76, 0.83, 0.9, 0.945, 0.972, 1.03, SALVAR.top]) {
+  for (const y of [0.88, 0.92, 0.96, 0.98, 1.0, 1.04, SALVAR.top]) {
     const ring = angles.map((a) => {
-      const r = salvarRadius(y, a);
+      const fold = 0.004 * Math.max(0, Math.cos(5 * a + 0.4)) ** 2 * (1 - S(0.94, 1.0, y)); // kuşağın altında kıvrım yok
+      const r = reach(M.body, y, SALVAR.cx, SALVAR.cz, Math.cos(a), Math.sin(a)) + ease(y) + fold;
       return s.point(SALVAR.cx + Math.cos(a) * r, y, SALVAR.cz + Math.sin(a) * r);
     });
     s.strip(previous, ring, true, awayFromAxis(SALVAR.cx, SALVAR.cz));
@@ -188,6 +202,21 @@ function buildSalvar() {
 // ---------- Kuşak ----------
 // Bele üç kat sarılmış 18 cm yüksekliğinde sargı; şalvarın üst, cepkenin alt kenarını örter.
 // Bir ucu sol yanda (mankenin solu = +X) 25 cm sarkar.
+// Sarkan uç, bu parça ilk yapıldığındaki bol şalvarın yüzeyine göre biçimlendi ve öyle bırakıldı:
+const DRAPE = { top: 1.08, cx: 0, cz: -0.04 };
+const BAG = [[0.52, 0.02], [0.55, 0.03], [0.6, 0.05], [0.67, 0.06], [0.75, 0.068], [0.83, 0.07], [0.9, 0.06], [0.945, 0.035], [0.972, 0.003], [1.08, 0]]; // kuşağın altında bolluk yok
+function bagginess(y) {
+  for (let i = 1; i < BAG.length; i++) {
+    if (y <= BAG[i][0]) return BAG[i - 1][1] + ((BAG[i][1] - BAG[i - 1][1]) * (y - BAG[i - 1][0])) / (BAG[i][0] - BAG[i - 1][0]);
+  }
+  return 0;
+}
+// Sarkan ucun, orta eksenden angle yönündeki uzaklığı: manken + 1,5 cm + bolluk (altı büyük kıvrımla).
+function drapeRadius(y, angle) {
+  const folds = 1 + 0.28 * Math.cos(6 * angle + 0.7) * (1 - S(0.9, 1.0, y));
+  return reach(M.body, y, DRAPE.cx, DRAPE.cz, Math.cos(angle), Math.sin(angle)) + 0.015 + bagginess(y) * folds;
+}
+
 const KUSAK = { bottom: 1.0, height: 0.18, cx: 0, cz: -0.01 };
 function buildKusak() {
   const s = new Surface();
@@ -226,10 +255,10 @@ function buildKusak() {
     for (let c = 0; c < COLS; c++) {
       const a = center + half * ((2 * c) / (COLS - 1) - 1) * (1 + 0.25 * S(0.95, 0.76, y)); // aşağı doğru hafif açılır
       // Şalvarın o noktadaki yüzeyi ölçü merkezine göre tanımlı; kuşağın ucu onun 1,2 cm dışında durur
-      const r = salvarRadius(Math.min(y, SALVAR.top), a) + (y > 1.0 ? 0.008 : 0.012);
-      row.push(s.point(SALVAR.cx + Math.cos(a) * r, y, SALVAR.cz + Math.sin(a) * r));
+      const r = drapeRadius(Math.min(y, DRAPE.top), a) + (y > 1.0 ? 0.008 : 0.012);
+      row.push(s.point(DRAPE.cx + Math.cos(a) * r, y, DRAPE.cz + Math.sin(a) * r));
     }
-    if (above) s.strip(above, row, false, awayFromAxis(SALVAR.cx, SALVAR.cz));
+    if (above) s.strip(above, row, false, awayFromAxis(DRAPE.cx, DRAPE.cz));
     above = row;
   }
   const mesh = new THREE.Mesh(s.geometry(), cloth('kusak', 0x5a1210));
@@ -237,35 +266,166 @@ function buildKusak() {
   return mesh;
 }
 
-// ---------- Kalpak ----------
-// Yukarı doğru hafif daralan, tepesi düz kürk başlık; 16 cm. Alnın ortasına iner, kulakların üstünde biter.
-const KALPAK = { bottom: 1.75, height: 0.16, cx: 0, cz: -0.008 };
-function buildKalpak() {
+// ---------- Takke ----------
+// Başa tam oturan, örme, yuvarlak ve alçak başlık; başın yüzeyinden 0,5–1 cm dışarıda. Kenarı önde
+// alnın üst kısmında, yanlarda kulakların hemen üstünde, arkada ense çukurunun üstünde biter.
+const HEAD = M.head;
+// Başın, y yüksekliğinde angle yönündeki en dış noktası. Dilimler ve açılar arasında yumuşak
+// geçer (ölçü tablosu komşu açıların büyüğünü tuttuğu için sonuç yine güvenli taraftadır).
+export function headRadius(y, angle) {
+  const n = HEAD.radii[0].length;
+  const last = HEAD.radii.length - 1;
+  const f = clamp((y - HEAD.y0) / HEAD.dy, 0, last);
+  const j = Math.min(Math.floor(f), last - 1);
+  const g = ((((angle % TAU) + TAU) % TAU) / TAU) * n - 0.5;
+  const k0 = ((Math.floor(g) % n) + n) % n, k1 = (k0 + 1) % n;
+  const t = g - Math.floor(g);
+  const at = (row) => HEAD.radii[row][k0] + (HEAD.radii[row][k1] - HEAD.radii[row][k0]) * t;
+  return at(j) + (at(j + 1) - at(j)) * (f - j);
+}
+const TAKKE = { front: 1.765, side: 1.735, back: 1.678, apex: 1.838, band: 0.02, seam: 0.6 };
+function takkeRim(angle) {
+  const s = Math.sin(angle); // +1 ön, -1 arka
+  if (s >= 0) return TAKKE.side + (TAKKE.front - TAKKE.side) * S(0.2, 0.9, s);
+  return TAKKE.side + (TAKKE.back - TAKKE.side) * S(0.55, 1.0, -s); // kulağın arkasına kadar düz, sonra enseye iner
+}
+// Referanstaki gibi: kenarda koyu işlemeli bant, üstünde büzgülü krem bezden dolgun yanlar, tepede
+// dikişle ayrılan tepelik ve ortasında küçük düğüm. İşlemenin motifleri yok (doku kullanılmıyor):
+// bant tek renk, iki kenarında ince şerit. Bant başa oturur; bez yukarı doğru baştan uzaklaşıp
+// kubbe yapar (tepede başın yaklaşık 3 cm üstünde).
+function buildTakke() {
+  const SEG = 48;
+  const PLEATS = 24; // büzgü sayısı: her ikinci köşe dışarıda
+  const BAND = 0.0075, FABRIC = 0.0045, PLEAT = 0.006, PIPING = 0.0015;
   const s = new Surface();
-  const SEG = 28;
-  const brim = [];
+  const groups = [[], [], []]; // bez, bant, şerit ve düğüm
+  const head = (y, a) => (y > HEAD.y0 + HEAD.dy * (HEAD.radii.length - 1) + 0.002 ? 0 : headRadius(y, a));
+  // Bant satırı: kenardan up kadar yukarıda, baştan gap kadar dışarıda
+  const bandRing = (up, gap) => Array.from({ length: SEG }, (_, k) => {
+    const a = (k / SEG) * TAU;
+    const y = takkeRim(a) + up;
+    const r = head(y, a) + gap;
+    return s.point(HEAD.cx + Math.cos(a) * r, y, HEAD.cz + Math.sin(a) * r);
+  });
+  // Bez satırı: bandın üstünden (t = 0) tepeye (t = 1) uzanan kubbe profili; hiçbir yerde başın
+  // FABRIC kadar dışından içeri girmez. pleat: büzgü derinliği
+  const clothRing = (t, pleat) => Array.from({ length: SEG }, (_, k) => {
+    const a = (k / SEG) * TAU;
+    const y0 = takkeRim(a) + TAKKE.band;
+    const r0 = head(y0, a) + FABRIC + 0.002;
+    const y = y0 + (TAKKE.apex - y0) * Math.sin((t * Math.PI) / 2) ** 0.9;
+    const dome = r0 * Math.cos((t * Math.PI) / 2) ** 0.5;
+    const r = Math.max(dome, head(y, a) + FABRIC) + (k % (SEG / PLEATS) === 0 ? pleat : 0);
+    return s.point(HEAD.cx + Math.cos(a) * r, y, HEAD.cz + Math.sin(a) * r);
+  });
+  const join = (group, a, b) => {
+    const start = s.indices.length;
+    s.strip(a, b, true, awayFromAxis(HEAD.cx, HEAD.cz));
+    groups[group].push(...s.indices.splice(start));
+  };
+
+  // Bant: iki kenarında ince şerit, arası düz
+  const edge = 0.003;
+  join(2, bandRing(0, BAND + PIPING), bandRing(edge, BAND + PIPING));
+  join(1, bandRing(edge, BAND), bandRing(TAKKE.band - edge, BAND));
+  join(2, bandRing(TAKKE.band - edge, BAND + PIPING), bandRing(TAKKE.band, BAND + PIPING));
+  // Büzgülü yanlar: banttan tepelik dikişine kadar dikey kıvrımlar; dikişe doğru derinleşir
+  const side = [[0, 0.002], [0.15, 0.004], [0.3, PLEAT], [0.45, PLEAT], [TAKKE.seam, PLEAT]].map(([t, p]) => clothRing(t, p));
+  for (let j = 1; j < side.length; j++) join(0, side[j - 1], side[j]);
+  // Tepelik: dikişte büzgülerin üstüne binen düz kenar, sonra yuvarlak tepe
+  const crown = [clothRing(TAKKE.seam, PLEAT + 0.002), clothRing(TAKKE.seam + 0.03, 0.003), ...[0.72, 0.82, 0.91, 0.97].map((t) => clothRing(t, 0))];
+  for (let j = 1; j < crown.length; j++) join(0, crown[j - 1], crown[j]);
+  let start = s.indices.length;
+  s.fan(s.point(HEAD.cx, TAKKE.apex, HEAD.cz), crown[crown.length - 1], () => [0, 1, 0]);
+  groups[0].push(...s.indices.splice(start));
+  // Tepedeki küçük düğüm
+  const knot = Array.from({ length: 6 }, (_, k) => s.point(HEAD.cx + Math.cos((k / 6) * TAU) * 0.006, TAKKE.apex + 0.0005, HEAD.cz + Math.sin((k / 6) * TAU) * 0.006));
+  start = s.indices.length;
+  s.fan(s.point(HEAD.cx, TAKKE.apex + 0.006, HEAD.cz), knot, () => [0, 1, 0]);
+  groups[2].push(...s.indices.splice(start));
+
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(s.positions, 3));
+  geometry.setIndex(groups.flat());
+  let offset = 0;
+  groups.forEach((g, i) => {
+    geometry.addGroup(offset, g.length, i);
+    offset += g.length;
+  });
+  geometry.computeVertexNormals();
+  const mesh = new THREE.Mesh(geometry, [cloth('takke', 0xb9ae93), cloth('takke_bant', 0x2e1216), cloth('takke_serit', 0x6e2a33)]);
+  mesh.name = 'takke';
+  return mesh;
+}
+
+// ---------- Sarıklı takke ----------
+// İkinci başlık seçeneği (takke ile aynı yerde durur; ikisi birlikte giyilmez): üstü yuvarlak
+// tepeli kahverengi keçe külah, altında koyu renkli kumaştan çapraz sarılmış kalın sargı.
+const KULAH = { center: [HEAD.cx, 1.733, HEAD.cz], tilt: 0.1, wrap: 0.055, height: 0.15 };
+function buildSarikliTakke() {
+  const SEG = 32;
+  const C = new THREE.Vector3(...KULAH.center);
+  const axis = new THREE.Vector3(0, 1, -KULAH.tilt).normalize(); // hafifçe arkaya yatık
+  // Alt kenar: yatık düzlemin başı kestiği çizgi; düzgün bir oval olacak kadar yumuşatılır ve
+  // hiçbir yerde başın içine girmeyecek kadar genişletilir
+  const raw = [];
   for (let k = 0; k < SEG; k++) {
     const a = (k / SEG) * TAU;
-    let r = 0; // başın kalpağın içinde kalan kısmının o yöndeki en geniş yeri
-    for (let y = KALPAK.bottom - 0.005; y <= 1.81; y += 0.01) r = Math.max(r, reach(M.head, y, KALPAK.cx, KALPAK.cz, Math.cos(a), Math.sin(a)));
-    brim.push(r + 0.02); // kürkün kalınlığı
+    let r = 0.09;
+    for (let it = 0; it < 4; it++) r = headRadius(C.y + KULAH.tilt * r * Math.sin(a), a) + 0.006;
+    raw.push(r);
   }
-  // [yükseklik oranı, yarıçap çarpanı, ek yarıçap]
-  const profile = [[0, 1, 0], [0.1, 1, 0.005], [0.5, 0.955, 0.005], [0.94, 0.91, 0.003], [1, 0.86, 0]];
-  let previous = null;
-  for (const [t, scale, extra] of profile) {
-    const y = KALPAK.bottom + t * KALPAK.height;
-    const ring = brim.map((r, k) => {
-      const a = (k / SEG) * TAU;
-      const rr = r * scale + extra;
-      return s.point(KALPAK.cx + Math.cos(a) * rr, y, KALPAK.cz + Math.sin(a) * rr);
-    });
-    if (previous) s.strip(previous, ring, true, awayFromAxis(KALPAK.cx, KALPAK.cz));
-    previous = ring;
+  const smooth = raw.map((_, k) => [-2, -1, 0, 1, 2].reduce((sum, d) => sum + raw[(k + d + SEG) % SEG], 0) / 5);
+  const widen = Math.max(...raw.map((r, k) => r - smooth[k]));
+  const spoke = smooth.map((r, k) => {
+    const a = (k / SEG) * TAU;
+    return new THREE.Vector3(Math.cos(a) * (r + widen), KULAH.tilt * (r + widen) * Math.sin(a), Math.sin(a) * (r + widen));
+  });
+  const s = new Surface();
+  const groups = [[], [], []]; // külah, sargının iki rengi
+  // Eksen boyunca h yükseklikte, alt kenarın scale katı genişlikte, extra kadar dışarıda halka
+  const ring = (h, scale, extra) => spoke.map((v, k) => {
+    const p = C.clone().addScaledVector(axis, h).addScaledVector(v, scale).addScaledVector(v.clone().normalize(), extra(k));
+    return s.point(p.x, p.y, p.z);
+  });
+  const outward = (x, y, z) => {
+    const d = new THREE.Vector3(x, y, z).sub(C);
+    return d.addScaledVector(axis, -d.dot(axis)).toArray();
+  };
+  // Sargı: ortası kabarık kalın bir rulo; çapraz kıvrımlar ve çapraz dönen iki renk
+  const wrapRows = [0, 0.14, 0.34, 0.6, 0.84, 1].map((t) => ring(t * KULAH.wrap, 1, (k) => 0.004 + 0.015 * Math.sin(Math.PI * t) ** 0.7 + 0.003 * Math.sin(5 * (k / SEG) * TAU + t * 5) * Math.sin(Math.PI * t)));
+  for (let j = 1; j < wrapRows.length; j++) {
+    for (let k = 0; k < SEG; k++) {
+      const k1 = (k + 1) % SEG;
+      const start = s.indices.length;
+      s.indices.push(wrapRows[j - 1][k], wrapRows[j - 1][k1], wrapRows[j][k1], wrapRows[j - 1][k], wrapRows[j][k1], wrapRows[j][k]);
+      s.orient(start, outward);
+      groups[1 + (Math.floor((k + j * 1.5) / 4) % 2)].push(...s.indices.splice(start));
+    }
   }
-  s.fan(s.point(KALPAK.cx, KALPAK.bottom + KALPAK.height, KALPAK.cz), previous, () => [0, 1, 0]);
-  const mesh = new THREE.Mesh(s.geometry(), cloth('kalpak', 0x0b0b0b));
-  mesh.name = 'kalpak';
+  // Külah: sargının içinden çıkar, yukarı doğru hafif daralır, tepesi yuvarlak
+  const cap = [[KULAH.wrap - 0.005, 1], [0.1, 0.93], [0.13, 0.8], [0.146, 0.55]].map(([h, scale]) => ring(h, scale, () => 0));
+  for (let j = 1; j < cap.length; j++) {
+    const start = s.indices.length;
+    s.strip(cap[j - 1], cap[j], true, outward);
+    groups[0].push(...s.indices.splice(start));
+  }
+  const start = s.indices.length;
+  const apex = C.clone().addScaledVector(axis, KULAH.height);
+  s.fan(s.point(apex.x, apex.y, apex.z), cap[cap.length - 1], () => axis.toArray());
+  groups[0].push(...s.indices.splice(start));
+
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(s.positions, 3));
+  geometry.setIndex(groups.flat());
+  let offset = 0;
+  groups.forEach((g, i) => {
+    geometry.addGroup(offset, g.length, i);
+    offset += g.length;
+  });
+  geometry.computeVertexNormals();
+  const mesh = new THREE.Mesh(geometry, [cloth('kulah', 0x4a3222), cloth('sarik_lacivert', 0x191d28), cloth('sarik_visne', 0x3a1519)]);
+  mesh.name = 'sarikli_takke';
   return mesh;
 }
 
@@ -381,7 +541,7 @@ function buildCepken() {
 export function createOutfit() {
   const root = new THREE.Group();
   root.name = 'eskiya_kiyafet';
-  root.add(buildCepken(), buildKusak(), buildSalvar(), buildKalpak());
+  root.add(buildCepken(), buildKusak(), buildSalvar(), buildTakke(), buildSarikliTakke());
   root.traverse((o) => {
     if (o.isMesh) o.castShadow = o.receiveShadow = true;
   });

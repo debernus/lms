@@ -173,14 +173,31 @@ function slices(y0, y1, dy, keep) {
     }),
   };
 }
+// Dışbükey olmayan kesit: merkezden her yöne en uzak yüzey noktası (kulak gibi çıkıntılar yalnız
+// kendi yönünde görünür). Her dilim için 'angles' adet yarıçap; komşu dilimlere taşma payı dahil.
+function star(y0, y1, dy, angles, cx, cz, keep) {
+  const n = Math.round((y1 - y0) / dy) + 1;
+  const raw = Array.from({ length: n }, () => new Float64Array(angles));
+  for (let p = 0; p < count; p++) {
+    if (!keep(p)) continue;
+    const s = Math.round((points[p * 3 + 1] - y0) / dy);
+    if (s < 0 || s >= n) continue;
+    const dx = points[p * 3] - cx, dz = points[p * 3 + 2] - cz;
+    const bin = Math.floor(((Math.atan2(dz, dx) + 2 * Math.PI) % (2 * Math.PI)) / (2 * Math.PI) * angles) % angles;
+    raw[s][bin] = Math.max(raw[s][bin], Math.hypot(dx, dz));
+  }
+  // Her yön, iki yanındaki yönlerin de en büyüğünü alır: aradaki açılar için güvenli taraf
+  const radii = raw.map((r) => Array.from(r, (_, k) => Math.round(Math.max(r[(k + angles - 1) % angles], r[k], r[(k + 1) % angles]) * 1000) / 1000));
+  return { y0, dy, cx, cz, radii };
+}
 const X = (p) => points[p * 3];
 const lower = (p) => Math.abs(X(p)) < 0.3; // gövde ve bacaklar (kollar ve eller dışarıda)
 const measures = {
   grid: { min: MIN, cell: CELL, dims: DIMS, range: RANGE, data: bytes.toString('base64') },
   body: slices(0.48, 1.22, 0.02, lower), // kalça, bel ve iki bacak birlikte
-  legRight: slices(0.38, 0.56, 0.02, (p) => lower(p) && X(p) > 0),
-  legLeft: slices(0.38, 0.56, 0.02, (p) => lower(p) && X(p) < 0),
-  head: slices(1.7, 1.81, 0.01, (p) => Math.abs(X(p)) < 0.15),
+  legRight: slices(0.36, 0.88, 0.02, (p) => lower(p) && X(p) > 0), // +X tarafındaki bacak
+  legLeft: slices(0.36, 0.88, 0.02, (p) => lower(p) && X(p) < 0),
+  head: star(1.66, 1.81, 0.01, 72, 0, -0.008, (p) => Math.abs(X(p)) < 0.15),
 };
 
 let height = 0;
