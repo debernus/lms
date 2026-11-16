@@ -90,53 +90,36 @@ const ceketOffset = () => 0.013;
 // omuzdan bileğe düz incelen tek bir borudur. Borunun yarıçapı, kol ekseni boyunca ölçülen
 // (manken + pay) yarıçaplarının üstünden geçen en dar dışbükey çizgidir: her yerde mankenin dışında.
 const ARM = { y: 1.452, z: -0.066, from: 0.2, to: 0.72 }; // bilekte biter: el ölçüye girmez
-// Üst dışbükey zarf: ölçülerin üstünden, çukurları düz geçerek giden çizgi.
-function majorant(points) {
-  const hull = [];
-  for (const p of points) {
-    while (hull.length >= 2) {
-      const [a, b] = [hull[hull.length - 2], hull[hull.length - 1]];
-      if ((b[0] - a[0]) * (p[1] - a[1]) - (b[1] - a[1]) * (p[0] - a[0]) >= 0) hull.pop();
-      else break;
-    }
-    hull.push(p);
-  }
-  return (x) => {
-    for (let i = 1; i < hull.length; i++) {
-      if (x <= hull[i][0]) return hull[i - 1][1] + ((hull[i][1] - hull[i - 1][1]) * (x - hull[i - 1][0])) / (hull[i][0] - hull[i - 1][0]);
-    }
-    return hull[hull.length - 1][1];
-  };
-}
-// Borunun kesiti ovaldir (kol önden arkaya daha geniştir): her istasyonda, mankenin kolunu 1,3 cm
-// payla içine alan en küçük oval; yarıçaplar eksen boyunca düz çizgilerle birleştirilir.
+// Kol dar ve düzdür: bilekte mankenin ön kolunu 1,2 cm payla sarar, omuza doğru hafifçe kalınlaşır.
+// Mankenin kabarık gömlek kolu bundan geniştir; ceket onu izlemez (gömlek kolu ceketin içinde
+// kalmaz, mankenle birlikte gösterilirse yer yer dışarı taşar).
 const sleeve = (() => {
-  const ry = [], rz = [];
-  for (let x = ARM.from; x <= ARM.to + 1e-9; x += 0.02) {
-    const hits = [];
+  // Bilek ölçüsü: ön kolun (x 0,60–0,70) eksenden en uzak noktaları
+  let wy = 0, wz = 0;
+  for (let x = 0.6; x <= 0.7001; x += 0.02) {
     for (const side of [-1, 1]) {
       for (let k = 0; k < 24; k++) {
         const a = (k / 24) * TAU;
         const origin = v3(side * x, ARM.y, ARM.z);
-        const hit = castOut(origin, v3(0, Math.cos(a), Math.sin(a)), 0.013);
-        if (hit) hits.push([hit.y - ARM.y, hit.z - ARM.z]);
+        const hit = castOut(origin, v3(0, Math.cos(a), Math.sin(a)), 0.012);
+        if (!hit) continue;
+        wy = Math.max(wy, Math.abs(hit.y - ARM.y));
+        wz = Math.max(wz, Math.abs(hit.z - ARM.z));
       }
     }
-    const my = Math.max(...hits.map(([dy]) => Math.abs(dy))), mz = Math.max(...hits.map(([, dz]) => Math.abs(dz)));
-    const grow = Math.max(...hits.map(([dy, dz]) => Math.hypot(dy / my, dz / mz)));
-    ry.push([x, my * grow]);
-    rz.push([x, mz * grow]);
   }
-  return { ry: majorant(ry), rz: majorant(rz) };
+  const grow = (ax) => 1 + 0.32 * clamp((ARM.to - ax) / (ARM.to - 0.26), 0, 1); // omuzda bilekten üçte bir kalın
+  return { ry: (ax) => wy * grow(ax), rz: (ax) => wz * grow(ax) };
 })();
 function ceketField(x, y, z) {
-  const body = bodyDistance(x, y, z) - ceketOffset();
   const ax = Math.abs(x);
-  if (ax < ARM.from || ax > ARM.to + 0.04) return body;
+  // Omuzdan öteye gövde kabuğu geri çekilir: kol yalnız borudan oluşur
+  const body = bodyDistance(x, y, z) - ceketOffset() + 0.08 * S(0.2, 0.34, ax);
+  if (ax < ARM.from || ax > ARM.to + 0.04) return ax < ARM.from ? body : 1;
   const ry = sleeve.ry(Math.min(ax, ARM.to)), rz = sleeve.rz(Math.min(ax, ARM.to));
   const tube = (Math.hypot((y - ARM.y) / ry, (z - ARM.z) / rz) - 1) * Math.min(ry, rz);
   // Yumuşak birleşim: kol gövdeye omuzda keskin bir kenar yapmadan bağlanır
-  const k = 0.02, t = Math.max(k - Math.abs(body - tube), 0) / k;
+  const k = 0.03, t = Math.max(k - Math.abs(body - tube), 0) / k;
   return Math.min(body, tube) - t * t * k * 0.25;
 }
 // origin'den dir yönünde giderken ceketin yüzeyinin lift kadar dışına çıkılan ilk nokta.
@@ -227,7 +210,7 @@ function buildCeket() {
     // Apolet: omzun üstünde, yakadan kola uzanan düz şerit; yaka ucunda düğmesi
     const up = () => [0, 1, 0];
     const strap = (x, z, lift) => castToCeket(v3(x, 1.4, z), v3(0, 1, 0), lift);
-    patchOf(trim, [-0.022, 0, 0.022].map((dz) => [0.1, 0.13, 0.16, 0.19, 0.215].map((x) => strap(side * x, -0.055 + dz, 0.005))), up);
+    patchOf(trim, [-0.022, 0, 0.022].map((dz) => [0.1, 0.125, 0.15, 0.175, 0.195].map((x) => strap(side * x, -0.055 + dz, 0.005))), up);
     const e = strap(side * 0.112, -0.055, 0.005);
     button(metal, e, v3(0, 1, 0), 0.006);
 
