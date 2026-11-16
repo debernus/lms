@@ -24,6 +24,7 @@ import { createTabanca } from './tabanca.js';
 import { createBoyaciSandigi } from './boyaci_sandigi.js';
 import { createCocukKiyafet } from './cocuk.js';
 import { createAskiliTepsi } from './askili_tepsi.js';
+import { createPasaUniforma } from './pasa.js';
 import { createSakal, createYasliSakal, createYasliKisaSakal } from './sakal.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
@@ -137,6 +138,13 @@ const models = {
     file: 'sakal.glb',
     target: new THREE.Vector3(0, 1.63, 0),
     distance: 1.2,
+    extras: loadMannequin,
+  },
+  pasa: {
+    create: createPasaUniforma,
+    file: 'pasa_uniforma.glb',
+    target: new THREE.Vector3(0, 0.95, 0),
+    distance: 4.8,
     extras: loadMannequin,
   },
   tepsi: {
@@ -277,7 +285,7 @@ function showModel(key) {
   }
   for (const o of active.objects) o.visible = true;
   document.querySelectorAll('[data-model]').forEach((b) => b.classList.toggle('active', b.dataset.model === key));
-  setView(['character', 'bandit', 'outfit', 'outfit2', 'asker', 'suvari', 'zabit', 'halk1', 'halk2', 'halk3', 'halk5', 'cocuk'].includes(key) ? 'front' : 'iso');
+  setView(['character', 'bandit', 'outfit', 'outfit2', 'asker', 'suvari', 'zabit', 'halk1', 'halk2', 'halk3', 'halk5', 'cocuk', 'pasa'].includes(key) ? 'front' : 'iso');
 }
 
 function exportGLB() {
