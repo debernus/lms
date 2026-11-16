@@ -21,6 +21,7 @@ import { createHalk2 } from './halk2.js';
 import { createHalk3 } from './halk3.js';
 import { createHalk5 } from './halk5.js';
 import { createTabanca } from './tabanca.js';
+import { createBoyaciSandigi } from './boyaci_sandigi.js';
 import { createSakal, createYasliSakal, createYasliKisaSakal } from './sakal.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
@@ -135,6 +136,12 @@ const models = {
     target: new THREE.Vector3(0, 1.63, 0),
     distance: 1.2,
     extras: loadMannequin,
+  },
+  sandik: {
+    create: createBoyaciSandigi,
+    file: 'boyaci_sandigi.glb',
+    target: new THREE.Vector3(0, 0.25, 0),
+    distance: 1.5,
   },
   tabanca: {
     create: createTabanca,
