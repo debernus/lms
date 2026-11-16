@@ -28,6 +28,7 @@ import { createPasaUniforma } from './pasa.js';
 import { createKule } from './kule.js';
 import { createKoylu } from './koylu.js';
 import { createKayik } from './kayik.js';
+import { createGemi } from './gemi.js';
 import { createSakal, createYasliSakal, createYasliKisaSakal, createUzunSacSakal } from './sakal.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
@@ -178,6 +179,12 @@ const models = {
     target: new THREE.Vector3(0, 0.95, 0),
     distance: 4.8,
     extras: loadMannequin,
+  },
+  gemi: {
+    create: createGemi,
+    file: 'gemi.glb',
+    target: new THREE.Vector3(0, 4.5, 0),
+    distance: 30,
   },
   kayik: {
     create: createKayik,

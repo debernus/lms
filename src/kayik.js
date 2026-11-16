@@ -10,9 +10,9 @@ const L = 5.2, HALF = 0.675, BORDO = 0.55;
 const GREEN = [0x1f, 0x3a, 0x2c], RED = [0x7a, 0x24, 0x1c], WOOD = [0x7a, 0x5c, 0x3c], DARKWOOD = [0x5a, 0x40, 0x28], ROPE = [0x8a, 0x7a, 0x56], IRON = [0x2e, 0x2a, 0x26];
 
 // Konuma bağlı aşınma (0..1): boyanın döküldüğü, ahşabın karardığı yerler
-const wear = (x, y, z) => 0.5 + 0.3 * Math.sin(x * 9 + z * 4.3) * Math.sin(y * 13 - z * 2.7) + 0.2 * Math.sin(z * 11 + x * 5 + y * 7);
+export const wear = (x, y, z) => 0.5 + 0.3 * Math.sin(x * 9 + z * 4.3) * Math.sin(y * 13 - z * 2.7) + 0.2 * Math.sin(z * 11 + x * 5 + y * 7);
 // Renkler sRGB verilir; köşe renkleri doğrusal uzayda saklanır
-const mix = (a, b, t) => a.map((v, i) => ((v + (b[i] - v) * t) / 255) ** 2.2);
+export const mix = (a, b, t) => a.map((v, i) => ((v + (b[i] - v) * t) / 255) ** 2.2);
 
 // Kesit: z konumunda yarı genişlik, omurga ve küpeşte yüksekliği (uçlara doğru kalkar)
 const t01 = (z) => Math.abs(z) / (L / 2);
@@ -23,7 +23,7 @@ const sheerY = (z) => BORDO + 0.1 * t01(z) ** 2;
 const SECTION = [[0, 0], [0.42, 0.04], [0.74, 0.2], [0.92, 0.48], [0.98, 0.78], [1, 1]];
 
 // paint(x, y, z) => [r, g, b]; yüzey nokta ızgarasından kurulur
-function grid(rows, paint, flip = false) {
+export function grid(rows, paint, flip = false) {
   const pos = [], col = [], idx = [];
   const w = rows[0].length;
   for (const row of rows) for (const p of row) { pos.push(...p); col.push(...paint(...p)); }
@@ -39,7 +39,7 @@ function grid(rows, paint, flip = false) {
   return g;
 }
 // Hazır bir geometriyi boyar (uv'siz, köşe renkli)
-function tint(geometry, base, worn, amount = 0.5) {
+export function tint(geometry, base, worn, amount = 0.5) {
   const g = geometry.index ? geometry.toNonIndexed() : geometry;
   g.deleteAttribute('uv');
   const p = g.attributes.position, col = [];
