@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
 // Yuvarlak taş gözetleme kulesi; sahne yapısı. Moloz taş örgülü gövde, üstte dışa taşan mazgallı
-// seyir katı, taş sütunlar üstünde taş külah. Gerçek boyut (çap 4,4 m, yükseklik yaklaşık 17 m),
+// seyir katı, taş sütunlar üstünde taş külah. Zemin katında +Z'ye bakan kapısı olan nöbet odası. Gerçek boyut (çap 4,4 m, yükseklik yaklaşık 17 m),
 // 1 birim = 1 metre, Y yukarı; taban y = 0'da, taban ortası (0, 0, 0)'da.
 
 const TAU = Math.PI * 2;
@@ -89,7 +89,14 @@ export function createKule() {
   const R = 2.2, BODY = 12, TOP_R = 2.65, WALK = 12.9; // gövde yarıçapı ve yüksekliği, seyir katı
   const parts = [];
   // Gövde ve dışa taşan seyir katı (profil döndürülür); üstü döşemeyle kapalı
-  const profile = [[R * 1.02, 0], [R, 0.4], [R, BODY], [TOP_R - 0.15, BODY + 0.45], [TOP_R, BODY + 0.75], [TOP_R, WALK], [0, WALK]];
+  // Zemin katı içi boş bir nöbet odasıdır: çevre duvarı, +Z yönünde kapı boşluğu, lento, döşeme, tavan
+  const ROOM = { r: 1.5, h: 3.0, door: 2.15, half: Math.asin(0.55 / R) }; // kapı 1,1 m x 2,15 m
+  const DOOR = -Math.PI / 2; // halka parçalarında +Z yönünün açısı
+  parts.push(arcBlock(ROOM.r, R, 0, ROOM.h, DOOR + ROOM.half, DOOR + TAU - ROOM.half, 36));
+  parts.push(arcBlock(ROOM.r, R, ROOM.door, ROOM.h, DOOR - ROOM.half, DOOR + ROOM.half, 4)); // kapı üstü lentosu
+  parts.push(new THREE.CircleGeometry(ROOM.r + 0.02, 32).rotateX(-Math.PI / 2).translate(0, 0.02, 0)); // taş döşeme
+  parts.push(new THREE.CircleGeometry(ROOM.r + 0.02, 32).rotateX(Math.PI / 2).translate(0, ROOM.h, 0)); // tavan
+  const profile = [[R, ROOM.h], [R, BODY], [TOP_R - 0.15, BODY + 0.45], [TOP_R, BODY + 0.75], [TOP_R, WALK], [0, WALK]];
   parts.push(new THREE.LatheGeometry(profile.map(([r, y]) => new THREE.Vector2(r, y)), 40));
   // Korkuluk duvarı ve sekiz mazgal dişi
   parts.push(arcBlock(TOP_R - 0.4, TOP_R, WALK, WALK + 0.6, 0, TAU, 40));
