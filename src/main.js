@@ -16,6 +16,7 @@ import { createEfeTakke } from './baslik.js';
 import { createSoldierOutfit } from './outfit3.js';
 import { createCavalryOutfit } from './outfit4.js';
 import { createOfficerOutfit } from './outfit5.js';
+import { createSakal } from './sakal.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 const scene = new THREE.Scene();
@@ -106,6 +107,13 @@ const models = {
     file: 'eskiya2_kiyafet.glb',
     target: new THREE.Vector3(0, 0.95, 0),
     distance: 4.8,
+    extras: loadMannequin,
+  },
+  sakal: {
+    create: createSakal,
+    file: 'sakal.glb',
+    target: new THREE.Vector3(0, 1.63, 0),
+    distance: 1.2,
     extras: loadMannequin,
   },
   zabit: {
