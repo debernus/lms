@@ -16,6 +16,7 @@ import { createEfeTakke } from './baslik.js';
 import { createSoldierOutfit } from './outfit3.js';
 import { createCavalryOutfit } from './outfit4.js';
 import { createOfficerOutfit } from './outfit5.js';
+import { createHalk1 } from './halk1.js';
 import { createSakal, createYasliSakal, createYasliKisaSakal } from './sakal.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
@@ -130,6 +131,13 @@ const models = {
     distance: 1.2,
     extras: loadMannequin,
   },
+  halk1: {
+    create: createHalk1,
+    file: 'halk_01_cubbeli.glb',
+    target: new THREE.Vector3(0, 0.95, 0),
+    distance: 4.8,
+    extras: loadMannequin,
+  },
   zabit: {
     create: createOfficerOutfit,
     file: 'zabit_kiyafet.glb',
@@ -214,7 +222,7 @@ function showModel(key) {
   }
   for (const o of active.objects) o.visible = true;
   document.querySelectorAll('[data-model]').forEach((b) => b.classList.toggle('active', b.dataset.model === key));
-  setView(['character', 'bandit', 'outfit', 'outfit2', 'asker', 'suvari', 'zabit'].includes(key) ? 'front' : 'iso');
+  setView(['character', 'bandit', 'outfit', 'outfit2', 'asker', 'suvari', 'zabit', 'halk1'].includes(key) ? 'front' : 'iso');
 }
 
 function exportGLB() {

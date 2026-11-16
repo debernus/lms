@@ -113,7 +113,7 @@ const PANTOLON = {
 
 // ---------- Ayakkabı ----------
 // Alçak siyah deri ayakkabı; üstü pantolon paçasının içinde kalır, mankenin çizmesinin ayağını örter.
-function buildAyakkabi() {
+export function buildAyakkabi(color = 0x121110) {
   const s = new Surface();
   const N = 24;
   for (const side of [1, -1]) {
@@ -137,7 +137,7 @@ function buildAyakkabi() {
     });
     for (let j = 1; j < rows.length; j++) s.strip(rows[j - 1].ids, rows[j].ids, true, awayFromAxis(rows[j].cx, rows[j].cz));
   }
-  const mesh = new THREE.Mesh(s.geometry(), cloth('ayakkabi', 0x121110));
+  const mesh = new THREE.Mesh(s.geometry(), cloth('ayakkabi', color));
   mesh.name = 'ayakkabi';
   return mesh;
 }

@@ -48,7 +48,7 @@ function boxOn(s, center, right, up, out, w, h, d) {
 }
 
 // Ağın birbirine bağlı parçalarından yalnız en büyüğünü bırakır.
-function keepLargestPiece(s) {
+export function keepLargestPiece(s) {
   const parent = Array.from({ length: s.positions.length / 3 }, (_, i) => i);
   const find = (i) => {
     while (parent[i] !== i) i = parent[i] = parent[parent[i]];
