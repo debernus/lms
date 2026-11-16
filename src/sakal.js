@@ -54,21 +54,21 @@ function thickness(p) {
 
 // Kıl dokusu: saydam zemin üstünde aşağı doğru akan kısa, ince teller. Zeminin yarı saydam koyu
 // tabanı iç katmanda teni örter; dış katmanlarda yalnız teller görünür.
-function hairTexture() {
+function hairTexture(o) {
   const size = 512;
   const canvas = document.createElement('canvas');
   canvas.width = canvas.height = size;
   const g = canvas.getContext('2d');
   let seed = 1914;
   const rand = () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296);
-  g.fillStyle = 'rgba(12,8,6,0.56)'; // teller arasındaki gölge
+  g.fillStyle = `rgba(${o.shadow.join(',')},0.56)`; // teller arasındaki gölge
   g.fillRect(0, 0, size, size);
   g.lineCap = 'round';
   // Teller ayrı ayrı seçilsin: ince, aralıklı, tonları koyudan açık kahveye değişir
   for (let i = 0; i < 2400; i++) {
     const x = rand() * size, y = rand() * size, len = 30 + rand() * 70, lean = (rand() - 0.5) * 22;
-    const tone = rand() < 0.18 ? 2.2 + rand() * 1.3 : 0.7 + rand() * 1.1;
-    g.strokeStyle = `rgb(${Math.round(23 * tone)},${Math.round(17 * tone)},${Math.round(12 * tone)})`;
+    const tone = rand() < 0.18 ? o.light[0] + rand() * o.light[1] : o.dark[0] + rand() * o.dark[1];
+    g.strokeStyle = `rgb(${o.hair.map((c) => Math.min(255, Math.round(c * tone))).join(',')})`;
     g.lineWidth = 1.3 + rand() * 1.4;
     for (const [ox, oy] of [[0, 0], [size, 0], [-size, 0], [0, size], [0, -size]]) { // kenarlarda sarar
       g.beginPath();
@@ -85,7 +85,19 @@ function hairTexture() {
   return texture;
 }
 
-export function createSakal() {
+// Kısa, koyu kahve genç subay sakalı
+const GENC = {
+  hair: [23, 17, 12], shadow: [12, 8, 6], dark: [0.7, 1.1], light: [2.2, 1.3],
+  thick: 1, tuft: 1, chinDrop: 0.004, chinForward: 0.002, tipX: 0.03, tipY: 1.6, deep: false, wave: 0,
+};
+// Yaşlı adam sakalı: kırlaşmış, grimsi beyaz; daha gür, çenede aşağı doğru uzun ve sivri
+const YASLI = {
+  hair: [150, 148, 142], shadow: [62, 60, 57], dark: [0.62, 0.5], light: [1.2, 0.28],
+  thick: 1.8, tuft: 1.5, chinDrop: 0.04, chinForward: 0.008, tipX: 0.085, tipY: 1.625, deep: true, wave: 0.006,
+};
+export const createYasliSakal = () => createSakal(YASLI);
+
+export function createSakal(o = GENC) {
   // --- Yüzeyi bir kez incelt (her üçgen dörde bölünür) ---
   let P = [], N = [], T = [];
   for (let i = 0; i < FACE.positions.length; i += 3) {
@@ -147,11 +159,13 @@ export function createSakal() {
       if (!used.has(v)) {
         const p = P[v], n = N[v];
         const edge = S(0, 0.009, M[v]); // kenarda kalınlık da kıl yoğunluğu da sıfıra iner
-        const h = 0.0006 + thickness(p) * edge * depth;
+        const h = 0.0006 + thickness(p) * o.thick * edge * depth;
         // Çenede hafif sivri biçim: uç biraz aşağı ve öne uzar
-        const tip = S(0.03, 0.0, Math.abs(p[0])) * S(1.6, 1.578, p[1]) * edge * depth;
+        const tip = S(o.tipX, 0.0, Math.abs(p[0])) * S(o.tipY, 1.578, p[1]) * edge * depth;
         used.set(v, positions.length / 3);
-        positions.push(p[0] + n[0] * h, p[1] + n[1] * h - 0.004 * tip, p[2] + n[2] * h + 0.002 * tip);
+        // Dalgalı tutamlar: aşağı akan geniş, yumuşak oluklar
+        const wave = o.wave * Math.sin(Math.atan2(p[0], p[2] + 0.02) * 26 + p[1] * 60) * edge * depth;
+        positions.push(p[0] + n[0] * (h + wave), p[1] + n[1] * (h + wave) - o.chinDrop * tip, p[2] + n[2] * (h + wave) + o.chinForward * tip);
         // Doku yüzü dolanır; teller aşağı akar (her katman biraz kaydırılır: üst üste binmesin)
         uvs.push((Math.atan2(p[0], p[2] + 0.02) * 0.085) / 0.032 + depth * 0.37, p[1] / 0.032 + depth * 0.61);
         colors.push(1, 1, 1, S(0, 0.0045, M[v]) * density); // kenarın son birkaç milimetresinde teller seyrelir
@@ -181,13 +195,18 @@ export function createSakal() {
       if (m < 0.0025) continue; // kenarın dibinde tutam yok
       const p = mix(P), n = norm(mix(N));
       const full = S(0.002, 0.009, m);
-      const thick = thickness(p);
+      const thick = thickness(p) * o.thick;
       // Kıl aşağı ve dışa doğru büyür; her tutam biraz farklı yöne yatar
       const grow = norm([n[0] * 0.55 + (rand() - 0.5) * 0.35, n[1] * 0.55 - 0.75, n[2] * 0.55 + (rand() - 0.5) * 0.2]);
       const sideways = norm(cross(n, grow));
-      const length = (0.0035 + thick * 0.55) * (0.6 + 0.6 * rand()) * (0.5 + 0.5 * full);
+      const length = (0.0035 + thick * 0.55) * o.tuft * (0.6 + 0.6 * rand()) * (0.5 + 0.5 * full);
       const half = 0.0011 + 0.0009 * rand();
-      const root = p.map((v, i) => v + n[i] * (0.0006 + thick * full * 0.35));
+      // Gür sakalda tutamlar hacmin her derinliğinden çıkar ve çenedeki uzamayı izler
+      const at = o.deep ? 0.25 + 0.75 * rand() : 0.35;
+      const drop = S(o.tipX, 0.0, Math.abs(p[0])) * S(o.tipY, 1.578, p[1]) * full * at;
+      const root = p.map((v, i) => v + n[i] * (0.0006 + thick * full * at));
+      root[1] -= o.chinDrop * drop * (o.deep ? 1 : 0);
+      root[2] += o.chinForward * drop * (o.deep ? 1 : 0);
       const u0 = rand(), v0 = rand();
       const base = positions.length / 3;
       // Sivri uçlu ince tutam: dipte geniş, ortada daralır, uçta tek noktada biter
@@ -207,7 +226,7 @@ export function createSakal() {
   geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 4));
   geometry.setIndex(indices);
   geometry.computeVertexNormals();
-  const material = new THREE.MeshStandardMaterial({ name: 'sakal', map: hairTexture(), vertexColors: true, alphaTest: 0.5, roughness: 0.95, metalness: 0, side: THREE.DoubleSide });
+  const material = new THREE.MeshStandardMaterial({ name: 'sakal', map: hairTexture(o), vertexColors: true, alphaTest: 0.5, roughness: 0.95, metalness: 0, side: THREE.DoubleSide });
   const mesh = new THREE.Mesh(geometry, material);
   mesh.name = 'sakal';
   mesh.castShadow = mesh.receiveShadow = true;
