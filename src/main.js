@@ -7,6 +7,7 @@ import { createStall, createCobbleGround } from './stall.js';
 import { createStreetLamp } from './lamp.js';
 import { createClerkDesk } from './desk.js';
 import { createThonetChair } from './chair.js';
+import { createFilingCabinet } from './cabinet.js';
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xf2f2f2);
@@ -71,6 +72,12 @@ const models = {
     file: 'sandalye.glb',
     target: new THREE.Vector3(0, 0.45, 0),
     distance: 2.6,
+  },
+  cabinet: {
+    create: createFilingCabinet,
+    file: 'evrak_dolabi.glb',
+    target: new THREE.Vector3(0, 1.15, 0),
+    distance: 6.4,
   },
   character: {
     create: createCharacter,

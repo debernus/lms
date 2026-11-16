@@ -110,3 +110,52 @@ export function mapUVs(geometry, size, rect, remap = (u, v) => [u, v]) {
   }
   return geometry;
 }
+
+// Kutu yüzleri: [ad, normal ekseni, yön, yüzün iki kenar ekseni]
+const BOX_FACES = [
+  ['px', 0, 1, 2, 1], ['nx', 0, -1, 2, 1],
+  ['py', 1, 1, 0, 2], ['ny', 1, -1, 0, 2],
+  ['pz', 2, 1, 0, 1], ['nz', 2, -1, 0, 1],
+];
+
+// Yalnız istenen yüzleri olan kutu (konum, normal, uv, köşe rengi).
+//   skip: modellenmeyecek yüzler ("ny nz" gibi)
+//   uv:   ({ name, la, lb }) => (s, t) => [u, v]. la, lb yüzün kenar uzunlukları (metre);
+//         s yüzün yatay ekseninde, t yukarıdan aşağı (üst yüzlerde arkadan öne) 0..1 ilerler
+//   tone: (x, y, z, yüzAdı) => köşe renginin parlaklığı
+export function boxGeometry(w, h, d, x, y, z, { skip = '', uv, tone = () => 1 } = {}) {
+  const size = [w, h, d];
+  const center = [x, y, z];
+  const positions = [];
+  const normals = [];
+  const uvs = [];
+  const colors = [];
+  for (const [name, n, dir, a, b] of BOX_FACES) {
+    if (skip.includes(name)) continue;
+    const mapper = uv({ name, la: size[a], lb: size[b] });
+    const corners = [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([sa, sb]) => {
+      const p = [0, 0, 0];
+      p[n] = center[n] + (dir * size[n]) / 2;
+      p[a] = center[a] + (sa * size[a]) / 2;
+      p[b] = center[b] + (sb * size[b]) / 2;
+      const t = n === 1 ? (sb + 1) / 2 : 1 - (sb + 1) / 2;
+      const shade = tone(p[0], p[1], p[2], name);
+      return { p, uv: mapper((sa + 1) / 2, t), shade };
+    });
+    // Dışarıdan bakınca saat yönünün tersine sıralı iki üçgen
+    const order = dir * (n === 2 ? -1 : 1) < 0 ? [0, 1, 2, 0, 2, 3] : [0, 2, 1, 0, 3, 2];
+    for (const i of order) {
+      const c = corners[i];
+      positions.push(...c.p);
+      normals.push(n === 0 ? dir : 0, n === 1 ? dir : 0, n === 2 ? dir : 0);
+      uvs.push(...c.uv);
+      colors.push(c.shade, c.shade, c.shade);
+    }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  g.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
+  g.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+  g.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+  return g;
+}
