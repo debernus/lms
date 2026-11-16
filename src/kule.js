@@ -64,6 +64,9 @@ function mapStone(geometry) {
     for (let k = 0; k < 3; k++) {
       const x = p.getX(i + k), y = p.getY(i + k), z = p.getZ(i + k);
       if (flat) { uv.push(x / TILE, z / TILE); continue; }
+      // Kapı yanağı gibi merkeze doğru uzanan yüzler: çevre yerine derinlik (yarıçap) kullanılır
+      const rr = Math.hypot(x, z) || 1;
+      if (Math.abs((n.getX(i) * x + n.getZ(i) * z) / rr) < 0.5) { uv.push(rr / TILE, y / TILE); continue; }
       let a = Math.atan2(z, x);
       if (a - a0 > Math.PI) a -= TAU;
       if (a0 - a > Math.PI) a += TAU;
