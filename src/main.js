@@ -1,10 +1,11 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { GLTFExporter } from 'three/addons/exporters/GLTFExporter.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { createCharacter } from './character.js';
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0xe8eaed);
+scene.background = new THREE.Color(0xf2f2f2);
 
 const camera = new THREE.PerspectiveCamera(35, window.innerWidth / window.innerHeight, 0.1, 100);
 
@@ -13,18 +14,25 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 0.9;
 document.body.appendChild(renderer.domElement);
 
-scene.add(new THREE.HemisphereLight(0xffffff, 0x8a8f98, 1.6));
-const key = new THREE.DirectionalLight(0xffffff, 2.2);
+// Stüdyo ortam ışığı: malzemelerin (deri, metal) yansımaları için.
+scene.environment = new THREE.PMREMGenerator(renderer).fromScene(new RoomEnvironment(), 0.04).texture;
+scene.environmentIntensity = 0.6;
+
+const key = new THREE.DirectionalLight(0xfff4e6, 2.4);
 key.position.set(2.5, 4, 3);
 key.castShadow = true;
 key.shadow.mapSize.set(2048, 2048);
 key.shadow.camera.left = key.shadow.camera.bottom = -1.5;
 key.shadow.camera.right = key.shadow.camera.top = 2;
-key.shadow.bias = -0.0005;
+key.shadow.bias = -0.0004;
+key.shadow.normalBias = 0.01;
+key.shadow.radius = 4;
 scene.add(key);
-const rim = new THREE.DirectionalLight(0xffffff, 0.8);
+const rim = new THREE.DirectionalLight(0xdfe8ff, 1.2);
 rim.position.set(-3, 2, -3);
 scene.add(rim);
 
