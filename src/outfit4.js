@@ -72,10 +72,10 @@ function buildCeket() {
 
 // ---------- Omuz kuşağı ----------
 // Sol omuzdan sağ kalçaya çapraz inen, cekete yapışık yassı kumaş şerit: 7 cm eninde, gri, iki
-// kenarında kırmızı şerit. Gövdeyi dolanan kapalı bir halkadır; ceketin 4 mm üstünde durur.
+// kenarında kırmızı şerit. Gövdeyi dolanan kapalı bir halkadır; ceketin 9 mm üstünde durur.
 function buildOmuzKusagi() {
   const grey = new Surface(), red = new Surface();
-  const WIDTH = 0.07, EDGE = 0.012, OFFSET = 0.013 + 0.004;
+  const WIDTH = 0.07, EDGE = 0.012, OFFSET = 0.013 + 0.009; // kordonların ve düğmelerin üstünde
   const shoulder = v3(0.135, 1.53, -0.045), hip = v3(-0.165, 1.14, -0.03);
   const along = hip.clone().sub(shoulder).normalize();
   const depth = v3(0, 0, 1);
