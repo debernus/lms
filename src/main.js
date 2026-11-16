@@ -9,6 +9,8 @@ import { createClerkDesk } from './desk.js';
 import { createThonetChair } from './chair.js';
 import { createFilingCabinet } from './cabinet.js';
 import { createBandit } from './bandit.js';
+import { createOutfit } from './outfit.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xf2f2f2);
@@ -86,6 +88,13 @@ const models = {
     target: new THREE.Vector3(0, 0.9, 0),
     distance: 4.6,
   },
+  outfit: {
+    create: createOutfit,
+    file: 'eskiya_kiyafet.glb',
+    target: new THREE.Vector3(0, 0.95, 0),
+    distance: 4.8,
+    extras: loadMannequin,
+  },
   character: {
     create: createCharacter,
     file: 'karakter.glb',
@@ -94,6 +103,16 @@ const models = {
   },
 };
 let active = null;
+
+// Kıyafeti mankenin üstünde görmek için: sayfayı ?manken=<manken.glb adresi> ile açın.
+// Manken yalnız sahnede gösterilir; dışa aktarılan dosyaya girmez.
+function loadMannequin() {
+  const url = new URLSearchParams(location.search).get('manken');
+  const holder = new THREE.Group();
+  holder.name = 'manken';
+  if (url) new GLTFLoader().load(url, (gltf) => holder.add(gltf.scene));
+  return [holder];
+}
 
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
@@ -125,7 +144,7 @@ function showModel(key) {
   }
   for (const o of active.objects) o.visible = true;
   document.querySelectorAll('[data-model]').forEach((b) => b.classList.toggle('active', b.dataset.model === key));
-  setView(key === 'character' || key === 'bandit' ? 'front' : 'iso');
+  setView(['character', 'bandit', 'outfit'].includes(key) ? 'front' : 'iso');
 }
 
 function exportGLB() {
