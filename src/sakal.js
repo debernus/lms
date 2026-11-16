@@ -33,14 +33,15 @@ function mask(p, n) {
   const sideburn = x > 0.055 ? Math.min(z - 0.011, 0.034 - 0.01 * S(1.66, 1.705, y) - z, (1.708 - y) * 0.6) : -1;
   // Bıyık: üst dudağın üstünü kaplar, uçları ağız kenarlarından aşağı inip sakala bağlanır
   const droop = 0.034 * S(0.022, 0.037, x);
-  const moustache = Math.min(0.041 - x, y - (1.6345 - droop), 1.651 - 0.005 * S(0.0, 0.03, x) - y) - 0.003 * S(-0.4, -0.8, n[1]);
+  // Üst kenar burun kanatlarına tırmanmaz: ortadan uçlara doğru alçalır
+  const moustache = Math.min(0.041 - x, y - (1.631 - droop), 1.6495 - 0.013 * S(0.01, 0.034, x) - y) - 0.003 * S(-0.4, -0.8, n[1]);
   // Yumuşak birleşim: parçalar arasında basamak kalmaz
   const k = 0.006;
   const smax = (a, b) => Math.max(a, b) + (Math.max(k - Math.abs(a - b), 0) ** 2 * 0.25) / k;
   let m = smax(smax(body, sideburn), moustache);
   // Dudaklar açık kalır
   // Dudaklar (mankenden ölçüldü): alt dudağın altındaki çukur y 1,605, burun dibi y 1,645
-  const lips = (Math.hypot(x / 0.027, (y - 1.6225) / 0.0135) - 1) * 0.0135;
+  const lips = (Math.hypot(x / 0.027, (y - 1.6195) / 0.0125) - 1) * 0.0125;
   return Math.min(m, lips);
 }
 // Kalınlık (metre): yanakta 5 mm, çenede 11 mm, bıyıkta 5 mm, favoride 4 mm
@@ -54,24 +55,25 @@ function thickness(p) {
 // Kıl dokusu: saydam zemin üstünde aşağı doğru akan kısa, ince teller. Zeminin yarı saydam koyu
 // tabanı iç katmanda teni örter; dış katmanlarda yalnız teller görünür.
 function hairTexture() {
-  const size = 256;
+  const size = 512;
   const canvas = document.createElement('canvas');
   canvas.width = canvas.height = size;
   const g = canvas.getContext('2d');
   let seed = 1914;
   const rand = () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296);
-  g.fillStyle = 'rgba(17,12,9,0.56)';
+  g.fillStyle = 'rgba(12,8,6,0.56)'; // teller arasındaki gölge
   g.fillRect(0, 0, size, size);
   g.lineCap = 'round';
-  for (let i = 0; i < 1500; i++) {
-    const x = rand() * size, y = rand() * size, len = 14 + rand() * 30, lean = (rand() - 0.5) * 9;
-    const tone = 0.8 + rand() * 1.5;
+  // Teller ayrı ayrı seçilsin: ince, aralıklı, tonları koyudan açık kahveye değişir
+  for (let i = 0; i < 2400; i++) {
+    const x = rand() * size, y = rand() * size, len = 30 + rand() * 70, lean = (rand() - 0.5) * 22;
+    const tone = rand() < 0.18 ? 2.2 + rand() * 1.3 : 0.7 + rand() * 1.1;
     g.strokeStyle = `rgb(${Math.round(23 * tone)},${Math.round(17 * tone)},${Math.round(12 * tone)})`;
-    g.lineWidth = 1.4 + rand() * 1.6;
+    g.lineWidth = 1.3 + rand() * 1.4;
     for (const [ox, oy] of [[0, 0], [size, 0], [-size, 0], [0, size], [0, -size]]) { // kenarlarda sarar
       g.beginPath();
       g.moveTo(x + ox, y + oy);
-      g.quadraticCurveTo(x + ox + lean * 0.2, y + oy + len * 0.5, x + ox + lean, y + oy + len);
+      g.quadraticCurveTo(x + ox + lean * 0.15, y + oy + len * 0.5, x + ox + lean, y + oy + len);
       g.stroke();
     }
   }
@@ -136,8 +138,8 @@ export function createSakal() {
     for (let k = 1; k + 1 < poly.length; k++) kept.push(poly[0], poly[k], poly[k + 1]);
   }
 
-  // --- Üç katman: içteki teni örter, dıştakiler seyrelen tellerle hacim verir ---
-  const LAYERS = [[0.3, 1], [0.65, 0.86], [1, 0.72]]; // [kalınlık oranı, kıl yoğunluğu]
+  // --- Beş katman: içteki teni örter, dıştakiler seyrelen tellerle hacim verir ---
+  const LAYERS = [[0.15, 1], [0.38, 0.88], [0.6, 0.8], [0.8, 0.74], [1, 0.68]]; // [kalınlık oranı, kıl yoğunluğu]
   const positions = [], uvs = [], colors = [], indices = [];
   for (const [depth, density] of LAYERS) {
     const used = new Map();
@@ -155,6 +157,48 @@ export function createSakal() {
         colors.push(1, 1, 1, S(0, 0.0045, M[v]) * density); // kenarın son birkaç milimetresinde teller seyrelir
       }
       indices.push(used.get(v));
+    }
+  }
+  // --- Kıl tutamları: yüzeyden aşağı ve dışa doğru çıkan ince kartlar; sakala kabarıklık ve
+  // tüylü bir dış çizgi verir. Her kartın ucunda teller seyrelir.
+  let seed = 7;
+  const rand = () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296);
+  const norm = (v) => {
+    const l = Math.hypot(...v) || 1;
+    return v.map((c) => c / l);
+  };
+  const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+  for (let t = 0; t < kept.length; t += 3) {
+    const [a, b, c] = [kept[t], kept[t + 1], kept[t + 2]];
+    const area = 0.5 * Math.hypot(...cross(P[b].map((v, i) => v - P[a][i]), P[c].map((v, i) => v - P[a][i])));
+    let count = area / 0.000009; // yaklaşık her 9 mm² için bir tutam
+    while (count > rand()) {
+      count -= 1;
+      let u = rand(), w = rand();
+      if (u + w > 1) { u = 1 - u; w = 1 - w; }
+      const mix = (A) => A[a].map((v, i) => v + (A[b][i] - v) * u + (A[c][i] - v) * w);
+      const m = M[a] + (M[b] - M[a]) * u + (M[c] - M[a]) * w;
+      if (m < 0.0025) continue; // kenarın dibinde tutam yok
+      const p = mix(P), n = norm(mix(N));
+      const full = S(0.002, 0.009, m);
+      const thick = thickness(p);
+      // Kıl aşağı ve dışa doğru büyür; her tutam biraz farklı yöne yatar
+      const grow = norm([n[0] * 0.55 + (rand() - 0.5) * 0.35, n[1] * 0.55 - 0.75, n[2] * 0.55 + (rand() - 0.5) * 0.2]);
+      const sideways = norm(cross(n, grow));
+      const length = (0.0035 + thick * 0.55) * (0.6 + 0.6 * rand()) * (0.5 + 0.5 * full);
+      const half = 0.0011 + 0.0009 * rand();
+      const root = p.map((v, i) => v + n[i] * (0.0006 + thick * full * 0.35));
+      const u0 = rand(), v0 = rand();
+      const base = positions.length / 3;
+      // Sivri uçlu ince tutam: dipte geniş, ortada daralır, uçta tek noktada biter
+      const point = (along, e, width) => {
+        const lift = along * along * 0.35; // uca doğru yüzeye yaklaşır: tutam kıvrılır
+        positions.push(...root.map((v, i) => v + grow[i] * length * along + sideways[i] * half * e * width - n[i] * length * lift * 0.4));
+        uvs.push(u0 + (e * half * width) / 0.032, v0 - (length * along) / 0.032);
+        colors.push(1, 1, 1, 1); // tutamın biçimi geometriden gelir: dokunun saydamlığına bağlı değil
+      };
+      point(0, -1, 1); point(0, 1, 1); point(0.55, -1, 0.6); point(0.55, 1, 0.6); point(1, 0, 0);
+      indices.push(base, base + 1, base + 3, base, base + 3, base + 2, base + 2, base + 3, base + 4);
     }
   }
   const geometry = new THREE.BufferGeometry();
