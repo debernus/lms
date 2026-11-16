@@ -4,6 +4,7 @@ import { GLTFExporter } from 'three/addons/exporters/GLTFExporter.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { createCharacter } from './character.js';
 import { createStall, createCobbleGround } from './stall.js';
+import { createStreetLamp } from './lamp.js';
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xf2f2f2);
@@ -50,6 +51,12 @@ const models = {
     target: new THREE.Vector3(0, 1.25, 0),
     distance: 8.5,
     extras: () => [createCobbleGround()],
+  },
+  lamp: {
+    create: createStreetLamp,
+    file: 'sokak_lambasi.glb',
+    target: new THREE.Vector3(0, 1.8, 0),
+    distance: 7,
   },
   character: {
     create: createCharacter,
