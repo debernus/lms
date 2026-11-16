@@ -15,7 +15,7 @@ const v3 = (x, y, z) => new THREE.Vector3(x, y, z);
 const KHAKI = 0x5b5139;
 
 // Yüzeyin üstünde duran küçük yuvarlak düğme: c merkez, n dışa bakan yön.
-function button(s, c, n, radius = 0.009) {
+export function button(s, c, n, radius = 0.009) {
   const u = (Math.abs(n.x) < 0.9 ? v3(1, 0, 0) : v3(0, 1, 0)).addScaledVector(n, -(Math.abs(n.x) < 0.9 ? n.x : n.y)).normalize();
   const w = n.clone().cross(u);
   const ring = (r, lift) => Array.from({ length: 8 }, (_, k) => {
@@ -28,7 +28,7 @@ function button(s, c, n, radius = 0.009) {
   s.fan(s.point(top.x, top.y, top.z), rim, () => n.toArray());
 }
 // Nokta ızgarasından yama (cep, apolet): rows[j][i] noktaları; yüzler outward yönüne bakar.
-function patchOf(s, rows, outward) {
+export function patchOf(s, rows, outward) {
   const ids = rows.map((row) => row.map((p) => s.point(p.x, p.y, p.z)));
   for (let j = 1; j < ids.length; j++) s.strip(ids[j - 1], ids[j], false, outward);
 }
@@ -84,12 +84,12 @@ function keepLargestPiece(s) {
 // Belden yukarısı mankenin gövde ve boyun yüzeyinin 1,3 cm dışında örülen kabuk ile düz kol
 // borularının birleşimidir; belden
 // aşağı etek, kalça kesitlerini saran halkalardır. İkisinin birleştiği yer palaskanın altında kalır.
-const CEKET = { waist: 1.085, hem: 0.93, cuff: 0.715, collar: 1.6, cx: 0, cz: -0.03 };
+export const CEKET = { waist: 1.085, hem: 0.93, cuff: 0.715, collar: 1.6, cx: 0, cz: -0.03 };
 const ceketOffset = () => 0.013;
 // Kol: mankenin gömleği omuzda ve dirsekte kabarıktır; ceketin kolu bu kabarıklıkları izlemez,
 // omuzdan bileğe düz incelen tek bir borudur. Borunun yarıçapı, kol ekseni boyunca ölçülen
 // (manken + pay) yarıçaplarının üstünden geçen en dar dışbükey çizgidir: her yerde mankenin dışında.
-const ARM = { y: 1.451, z: -0.074, from: 0.2, to: 0.72 }; // mankenin çıplak kolunun ekseni
+export const ARM = { y: 1.451, z: -0.074, from: 0.2, to: 0.72 }; // mankenin çıplak kolunun ekseni
 // Kol dar ve düzdür: bilekte mankenin ön kolunu 1,2 cm payla sarar, omuza doğru hafifçe kalınlaşır.
 // Mankenin kabarık gömlek kolu bundan geniştir; ceket onu izlemez (gömlek kolu ceketin içinde
 // kalmaz, mankenle birlikte gösterilirse yer yer dışarı taşar).
@@ -109,7 +109,7 @@ function ceketField(x, y, z) {
   return Math.min(body, tube) - t * t * k * 0.25;
 }
 // origin'den dir yönünde giderken ceketin yüzeyinin lift kadar dışına çıkılan ilk nokta.
-function castToCeket(origin, dir, lift) {
+export function castToCeket(origin, dir, lift) {
   let r0 = 0;
   for (let r = 0.01; r < 0.7; r += 0.005) {
     const p = origin.clone().addScaledVector(dir, r);
@@ -136,16 +136,18 @@ function inCeket(x, y, z) {
   return y < 1.59 ? 1 : 0;
 }
 // Eteğin, orta eksenden a yönündeki yarıçapı (pantolonun dışında kalacak kadar pay ile).
-function skirtRadius(y, a, gap) {
+export function skirtRadius(y, a, gap) {
   let r = 0;
   for (let d = -0.02; d <= 0.0201; d += 0.02) r = Math.max(r, reach(M.body, y + d, CEKET.cx, CEKET.cz, Math.cos(a), Math.sin(a)));
   return r + gap + 0.004 * Math.max(0, Math.cos(5 * a + 0.4)) ** 2 * S(1.06, 0.96, y); // birkaç dikey kıvrım
 }
 // Ceketin göğüs yüzeyinde, (x, y) hizasında, kumaşın lift kadar üstünde nokta.
-function onChest(x, y, lift) {
+export function onChest(x, y, lift) {
   return castToCeket(v3(x, y, -0.03), v3(0, 0, 1), lift);
 }
-function buildCeket() {
+// Ceketin kumaşı: gövde kabuğu, düz kollar ve etek. skirt: [yükseklik, pay] satırları.
+const SKIRT = [[1.1, 0.018], [1.06, 0.019], [1.01, 0.02], [0.965, 0.021], [CEKET.hem, 0.022], [CEKET.hem - 0.003, 0.017]];
+export function jacketFabric(skirt = SKIRT) {
   const { positions, indices } = meshField(ceketField, [-0.75, 1.03, -0.2, 0.75, 1.615, 0.14], 0.026);
   sharpenBoundaries(ceketField, inCeket, positions, indices);
   const keep = new Int32Array(positions.length / 3).fill(-1);
@@ -165,7 +167,7 @@ function buildCeket() {
   // Etek: belden kalçanın üstüne; aşağı doğru hafif açılır, ucunda içe dönen ince bir kenar
   const SEG = 40;
   let previous = null;
-  for (const [y, gap] of [[1.1, 0.018], [1.06, 0.019], [1.01, 0.02], [0.965, 0.021], [CEKET.hem, 0.022], [CEKET.hem - 0.003, 0.017]]) {
+  for (const [y, gap] of skirt) {
     const ring = Array.from({ length: SEG }, (_, k) => {
       const a = (k / SEG) * TAU;
       const r = skirtRadius(y, a, gap);
@@ -174,6 +176,10 @@ function buildCeket() {
     if (previous) fabric.strip(previous, ring, true, awayFromAxis(CEKET.cx, CEKET.cz));
     previous = ring;
   }
+  return fabric;
+}
+function buildCeket() {
+  const fabric = jacketFabric();
 
   const metal = new Surface(), trim = new Surface();
   // Altı pirinç düğme: boyundan etek ucuna, önde orta çizgide (beşi belin üstünde, biri etekte)

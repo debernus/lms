@@ -14,6 +14,7 @@ import { createFes } from './fes.js';
 import { createOutfit2 } from './outfit2.js';
 import { createEfeTakke } from './baslik.js';
 import { createSoldierOutfit } from './outfit3.js';
+import { createCavalryOutfit } from './outfit4.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 const scene = new THREE.Scene();
@@ -106,6 +107,13 @@ const models = {
     distance: 4.8,
     extras: loadMannequin,
   },
+  suvari: {
+    create: createCavalryOutfit,
+    file: 'suvari_kiyafet.glb',
+    target: new THREE.Vector3(0, 0.95, 0),
+    distance: 4.8,
+    extras: loadMannequin,
+  },
   asker: {
     create: createSoldierOutfit,
     file: 'asker_kiyafet.glb',
@@ -176,7 +184,7 @@ function showModel(key) {
   }
   for (const o of active.objects) o.visible = true;
   document.querySelectorAll('[data-model]').forEach((b) => b.classList.toggle('active', b.dataset.model === key));
-  setView(['character', 'bandit', 'outfit', 'outfit2', 'asker'].includes(key) ? 'front' : 'iso');
+  setView(['character', 'bandit', 'outfit', 'outfit2', 'asker', 'suvari'].includes(key) ? 'front' : 'iso');
 }
 
 function exportGLB() {
