@@ -81,16 +81,83 @@ function keepLargestPiece(s) {
 }
 
 // ---------- Ceket ----------
-// Belden yukarısı mankenin gövde, kol ve boyun yüzeyinin 1,3 cm dışında örülen kabuktur; belden
+// Belden yukarısı mankenin gövde ve boyun yüzeyinin 1,3 cm dışında örülen kabuk ile düz kol
+// borularının birleşimidir; belden
 // aşağı etek, kalça kesitlerini saran halkalardır. İkisinin birleştiği yer palaskanın altında kalır.
 const CEKET = { waist: 1.085, hem: 0.93, cuff: 0.715, collar: 1.6, cx: 0, cz: -0.03 };
-function ceketOffset(x, y, z) {
-  const ax = Math.abs(x);
-  // Kolda birkaç geniş kıvrım; mankenin kıvrık gömlek manşeti (dirsekte) kabardığı için orada biraz pay
-  const sleeve = S(0.26, 0.32, ax) * (0.5 + 0.5 * Math.sin(ax * 34 + 0.5));
-  return 0.013 + 0.004 * sleeve * S(1.17, 1.24, y) + 0.004 * S(0.4, 0.45, ax) * (1 - S(0.53, 0.57, ax));
+const ceketOffset = () => 0.013;
+// Kol: mankenin gömleği omuzda ve dirsekte kabarıktır; ceketin kolu bu kabarıklıkları izlemez,
+// omuzdan bileğe düz incelen tek bir borudur. Borunun yarıçapı, kol ekseni boyunca ölçülen
+// (manken + pay) yarıçaplarının üstünden geçen en dar dışbükey çizgidir: her yerde mankenin dışında.
+const ARM = { y: 1.452, z: -0.066, from: 0.2, to: 0.72 }; // bilekte biter: el ölçüye girmez
+// Üst dışbükey zarf: ölçülerin üstünden, çukurları düz geçerek giden çizgi.
+function majorant(points) {
+  const hull = [];
+  for (const p of points) {
+    while (hull.length >= 2) {
+      const [a, b] = [hull[hull.length - 2], hull[hull.length - 1]];
+      if ((b[0] - a[0]) * (p[1] - a[1]) - (b[1] - a[1]) * (p[0] - a[0]) >= 0) hull.pop();
+      else break;
+    }
+    hull.push(p);
+  }
+  return (x) => {
+    for (let i = 1; i < hull.length; i++) {
+      if (x <= hull[i][0]) return hull[i - 1][1] + ((hull[i][1] - hull[i - 1][1]) * (x - hull[i - 1][0])) / (hull[i][0] - hull[i - 1][0]);
+    }
+    return hull[hull.length - 1][1];
+  };
 }
-const ceketField = (x, y, z) => bodyDistance(x, y, z) - ceketOffset(x, y, z);
+// Borunun kesiti ovaldir (kol önden arkaya daha geniştir): her istasyonda, mankenin kolunu 1,3 cm
+// payla içine alan en küçük oval; yarıçaplar eksen boyunca düz çizgilerle birleştirilir.
+const sleeve = (() => {
+  const ry = [], rz = [];
+  for (let x = ARM.from; x <= ARM.to + 1e-9; x += 0.02) {
+    const hits = [];
+    for (const side of [-1, 1]) {
+      for (let k = 0; k < 24; k++) {
+        const a = (k / 24) * TAU;
+        const origin = v3(side * x, ARM.y, ARM.z);
+        const hit = castOut(origin, v3(0, Math.cos(a), Math.sin(a)), 0.013);
+        if (hit) hits.push([hit.y - ARM.y, hit.z - ARM.z]);
+      }
+    }
+    const my = Math.max(...hits.map(([dy]) => Math.abs(dy))), mz = Math.max(...hits.map(([, dz]) => Math.abs(dz)));
+    const grow = Math.max(...hits.map(([dy, dz]) => Math.hypot(dy / my, dz / mz)));
+    ry.push([x, my * grow]);
+    rz.push([x, mz * grow]);
+  }
+  return { ry: majorant(ry), rz: majorant(rz) };
+})();
+function ceketField(x, y, z) {
+  const body = bodyDistance(x, y, z) - ceketOffset();
+  const ax = Math.abs(x);
+  if (ax < ARM.from || ax > ARM.to + 0.04) return body;
+  const ry = sleeve.ry(Math.min(ax, ARM.to)), rz = sleeve.rz(Math.min(ax, ARM.to));
+  const tube = (Math.hypot((y - ARM.y) / ry, (z - ARM.z) / rz) - 1) * Math.min(ry, rz);
+  // Yumuşak birleşim: kol gövdeye omuzda keskin bir kenar yapmadan bağlanır
+  const k = 0.02, t = Math.max(k - Math.abs(body - tube), 0) / k;
+  return Math.min(body, tube) - t * t * k * 0.25;
+}
+// origin'den dir yönünde giderken ceketin yüzeyinin lift kadar dışına çıkılan ilk nokta.
+function castToCeket(origin, dir, lift) {
+  let r0 = 0;
+  for (let r = 0.01; r < 0.7; r += 0.005) {
+    const p = origin.clone().addScaledVector(dir, r);
+    if (ceketField(p.x, p.y, p.z) > lift) {
+      let lo = r0, hi = r;
+      for (let i = 0; i < 12; i++) {
+        const m = (lo + hi) / 2;
+        const q = origin.clone().addScaledVector(dir, m);
+        if (ceketField(q.x, q.y, q.z) > lift) hi = m;
+        else lo = m;
+      }
+      return origin.clone().addScaledVector(dir, hi);
+    }
+    r0 = r;
+  }
+  return null;
+}
 function inCeket(x, y, z) {
   if (Math.abs(x) > CEKET.cuff || y < CEKET.waist) return 0;
   const neck = Math.hypot(x, z + 0.045) < 0.11;
@@ -107,9 +174,7 @@ function skirtRadius(y, a, gap) {
 }
 // Ceketin göğüs yüzeyinde, (x, y) hizasında, kumaşın lift kadar üstünde nokta.
 function onChest(x, y, lift) {
-  let p = castOut(v3(x, y, -0.03), v3(0, 0, 1), 0.02);
-  p = castOut(v3(x, y, -0.03), v3(0, 0, 1), ceketOffset(p.x, p.y, p.z) + lift);
-  return p;
+  return castToCeket(v3(x, y, -0.03), v3(0, 0, 1), lift);
 }
 function buildCeket() {
   const { positions, indices } = meshField(ceketField, [-0.75, 1.03, -0.2, 0.75, 1.615, 0.14], 0.026);
@@ -161,11 +226,7 @@ function buildCeket() {
 
     // Apolet: omzun üstünde, yakadan kola uzanan düz şerit; yaka ucunda düğmesi
     const up = () => [0, 1, 0];
-    const strap = (x, z, lift) => {
-      let p = castOut(v3(x, 1.4, z), v3(0, 1, 0), 0.02);
-      p = castOut(v3(x, 1.4, z), v3(0, 1, 0), ceketOffset(p.x, p.y, p.z) + lift);
-      return p;
-    };
+    const strap = (x, z, lift) => castToCeket(v3(x, 1.4, z), v3(0, 1, 0), lift);
     patchOf(trim, [-0.022, 0, 0.022].map((dz) => [0.1, 0.13, 0.16, 0.19, 0.215].map((x) => strap(side * x, -0.055 + dz, 0.005))), up);
     const e = strap(side * 0.112, -0.055, 0.005);
     button(metal, e, v3(0, 1, 0), 0.006);
@@ -173,11 +234,11 @@ function buildCeket() {
     // Kol ağzındaki dikiş çizgisi: bileğin biraz gerisinde kolu dolanan ince şerit
     const rings = [0.662, 0.67].map((x) => Array.from({ length: 16 }, (_, k) => {
       const a = (k / 16) * TAU;
-      const origin = v3(side * x, 1.447, -0.062);
-      const p = castOut(origin, v3(0, Math.cos(a), Math.sin(a)), ceketOffset(origin.x, 1.447, -0.062) + 0.003);
+      const origin = v3(side * x, ARM.y, ARM.z);
+      const p = castToCeket(origin, v3(0, Math.cos(a), Math.sin(a)), 0.003);
       return trim.point(p.x, p.y, p.z);
     }));
-    trim.strip(rings[0], rings[1], true, (x, y, z) => [0, y - 1.447, z + 0.062]);
+    trim.strip(rings[0], rings[1], true, (x, y, z) => [0, y - ARM.y, z - ARM.z]);
   }
   return assemble('ceket', [[fabric, cloth('ceket', KHAKI)], [trim, cloth('ceket_cep_apolet', 0x4f462f)], [metal, brass()]]);
 }
