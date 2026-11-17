@@ -23,7 +23,7 @@ function rng(seed) {
   return () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296);
 }
 // Yıpranmış mermer: kirli beyaz zemin, benekler, aşağı akan koyu izler, dipte yosun ve toprak
-function paintStone(g, w, h, seed, ground = 0, worn = false) {
+export function paintStone(g, w, h, seed, ground = 0, worn = false) {
   const rand = rng(seed);
   g.fillStyle = '#c9c2b2';
   g.fillRect(0, 0, w, h);
@@ -97,7 +97,13 @@ function worldUV(geometry) {
 
 // ---------- Kitabe: çerçeveli altı pano, kabartma yazı ----------
 const PLATE = { x: 0.158, y0: 0.265, y1: 0.975, w: 512, h: 1152 };
-function inscription(worn = false) {
+const inscriptions = new Map();
+function inscription(worn = false, lines = LINES, key = '') {
+  const id = `${worn}/${key}`;
+  if (!inscriptions.has(id)) inscriptions.set(id, paintInscription(worn, lines, key));
+  return inscriptions.get(id);
+}
+function paintInscription(worn, lines, key) {
   const { w, h } = PLATE;
   const height = document.createElement('canvas');
   height.width = w;
@@ -120,10 +126,10 @@ function inscription(worn = false) {
     if (i) g.fillRect(16, y - 4, w - 32, 8);
     let size = ph * 0.82;
     g.font = `700 ${size}px Amiri`;
-    const wide = g.measureText(LINES[i]).width;
+    const wide = g.measureText(lines[i]).width;
     if (wide > w - 56) size *= (w - 56) / wide;
     g.font = `700 ${size}px Amiri`;
-    g.fillText(LINES[i], w / 2, y + ph / 2 + size * 0.04);
+    g.fillText(lines[i], w / 2, y + ph / 2 + size * 0.04);
     y += ph;
   });
   // Eskimiş kitabe: yazı yer yer aşınıp silinmiş, levhayı boydan boya bir çatlak kesiyor
@@ -155,7 +161,7 @@ function inscription(worn = false) {
   sg.drawImage(height, 0, 0);
   const H = sg.getImageData(0, 0, w, h).data;
 
-  const map = canvasTexture(worn ? 'kitabe_eski' : 'kitabe', w, h, (c) => {
+  const map = canvasTexture((worn ? 'kitabe_eski' : 'kitabe') + key, w, h, (c) => {
     paintStone(c, w, h, 31, 0, worn);
     // Zemin (oyuk) kirli ve koyu, yazı ve çerçeve açık
     c.globalCompositeOperation = 'multiply';
@@ -171,7 +177,7 @@ function inscription(worn = false) {
       c.stroke();
     }
   });
-  const normalMap = canvasTexture(worn ? 'kitabe_eski_kabartma' : 'kitabe_kabartma', w, h, (c) => {
+  const normalMap = canvasTexture((worn ? 'kitabe_eski_kabartma' : 'kitabe_kabartma') + key, w, h, (c) => {
     const out = c.createImageData(w, h);
     const at = (x, yy) => H[(Math.min(h - 1, Math.max(0, yy)) * w + Math.min(w - 1, Math.max(0, x))) * 4] / 255;
     for (let yy = 0; yy < h; yy++) for (let x = 0; x < w; x++) {
@@ -186,7 +192,7 @@ function inscription(worn = false) {
   });
   normalMap.colorSpace = THREE.NoColorSpace;
   map.wrapS = map.wrapT = normalMap.wrapS = normalMap.wrapT = THREE.ClampToEdgeWrapping;
-  return new THREE.MeshStandardMaterial({ name: worn ? 'kitabe_eski' : 'kitabe', map, normalMap, normalScale: new THREE.Vector2(1.4, 1.4), roughness: worn ? 0.96 : 0.9, metalness: 0 });
+  return new THREE.MeshStandardMaterial({ name: (worn ? 'kitabe_eski' : 'kitabe') + key, map, normalMap, normalScale: new THREE.Vector2(1.4, 1.4), roughness: worn ? 0.96 : 0.9, metalness: 0 });
 }
 
 // Ağı bir düzlemle keser: düzlemin önünde (normal yönünde) kalan parça atılır, kesik yüz pürüzlü bir
@@ -297,10 +303,15 @@ export const createMezarTasiEski = () => build(true);
 // Eskimiş sürümün eşi: her şey aynı, ama başlığın öbür yanı kırıktır (ilk taşta sağ üst, bunda sol üst kopuk);
 // yan yana gelince biri ötekinin eksiğini tamamlıyormuş gibi durur.
 export const createMezarTasiEski2 = () => build(true, true);
+// Özel başlıklı eskimiş mezar taşı (kırıksız). custom: { name, head (konum + normal içeren geometri),
+// headMaterial (isteğe bağlı), neck (false: boyun yok), lines (kitabe satırları), key (kitabe dokusunun adı) }
+export const createMezarOzel = (custom) => build(true, false, custom);
+export const eskiTas = () => (stones.eski ??= stoneMaterial('mermer_eski', 7, true));
+const stones = {};
 
-function build(worn, otherHalf = false) {
+function build(worn, otherHalf = false, custom = null) {
   const root = new THREE.Group();
-  root.name = otherHalf ? 'mezar_tasi_eski_2' : worn ? 'mezar_tasi_eski' : 'mezar_tasi';
+  root.name = custom ? custom.name : otherHalf ? 'mezar_tasi_eski_2' : worn ? 'mezar_tasi_eski' : 'mezar_tasi';
   const DEPTH = 0.085, BEVEL = 0.005;
 
   // ---------- Gövde: dar sap, çentikli dip, düz levha, basamaklı omuz; üstünde boyun ----------
@@ -329,10 +340,12 @@ function build(worn, otherHalf = false) {
     out.setIndex(idx);
     return out;
   };
-  const stone = worn ? stoneMaterial('mermer_eski', 7, true) : stoneMaterial('mermer', 7);
+  const stone = custom ? eskiTas() : worn ? stoneMaterial('mermer_eski', 7, true) : stoneMaterial('mermer', 7);
   const fracture = new THREE.MeshStandardMaterial({ name: 'kirik_yuzey', color: 0x8b8676, roughness: 1, metalness: 0 });
   const V = (x, y, z) => new THREE.Vector3(x, y, z);
-  const body = worn
+  const body = custom
+    ? new THREE.Mesh(worldUV(merge(custom.neck === false ? [slab] : [slab, neck])), stone)
+    : worn
     ? new THREE.Mesh(worldUV(weather(merge([slab, neck]), [
       [V(-0.167, 0.99, 0.03), V(-1, 0.5, 0.9)], // sol omuz köşesi (ön)
       [V(0.165, 1.0, 0.03), V(1, 0.3, 0.6)], // sağ omuz köşesi (ön)
@@ -347,7 +360,7 @@ function build(worn, otherHalf = false) {
   // ---------- Kitabe: ön yüzün hemen önünde, yazılı ve kabartmalı levha ----------
   const plate = new THREE.PlaneGeometry(PLATE.x * 2, PLATE.y1 - PLATE.y0);
   plate.translate(0, (PLATE.y0 + PLATE.y1) / 2, DEPTH / 2 + 0.0012);
-  const kitabe = new THREE.Mesh(plate, inscription(worn));
+  const kitabe = new THREE.Mesh(plate, custom ? inscription(true, custom.lines, custom.key) : inscription(worn));
   kitabe.name = 'mezar_kitabe';
   root.add(kitabe);
 
@@ -390,7 +403,9 @@ function build(worn, otherHalf = false) {
   cap.setIndex(idx);
   cap.computeVertexNormals();
   // Eskimiş sürümde başlığın üst yarısı eğik bir kırıkla kopmuştur (kavuğun çoğu ve bir lob gitmiş); eşinde kırık ayna simetriğidir
-  const head = worn
+  const head = custom
+    ? new THREE.Mesh(custom.headMaterial ? custom.head : worldUV(custom.head), custom.headMaterial ?? stone)
+    : worn
     ? new THREE.Mesh(worldUV(weather(cap, otherHalf ? [[V(-0.015, 1.3, 0), V(-0.8, 0.62, 0.22)], [V(0.16, 1.2, 0.06), V(1, -0.5, 0.9)]] : [[V(0.015, 1.3, 0), V(0.8, 0.62, 0.22)], [V(-0.16, 1.2, 0.06), V(-1, -0.5, 0.9)]])), [stone, fracture])
     : new THREE.Mesh(worldUV(cap), stone);
   head.name = 'mezar_baslik';

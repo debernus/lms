@@ -37,6 +37,10 @@ import { createArapCamii } from './arapcami.js';
 import { createAyasofya } from './ayasofya.js';
 import { createTunelGirisi } from './tunel.js';
 import { createMadenTuneli } from './maden.js';
+import { createMezarSeti, createMezarTek, MEZAR_ADLARI } from './mezar_basliklar.js';
+
+// ?tas=<1-25>: 'Mezar taşı (tek)' modelinde gösterilecek taş
+const TAS = Math.min(24, Math.max(0, (Number(new URLSearchParams(location.search).get('tas')) || 1) - 1));
 import { createSakal, createYasliSakal, createYasliKisaSakal, createUzunSacSakal } from './sakal.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
@@ -211,6 +215,18 @@ const models = {
     file: 'arap_camii.glb',
     target: new THREE.Vector3(0, 9, 0),
     distance: 95,
+  },
+  mezarSeti: {
+    create: createMezarSeti,
+    file: 'mezar_taslari.glb',
+    target: new THREE.Vector3(0, 0.7, 0),
+    distance: 9,
+  },
+  mezarTek: {
+    create: () => createMezarTek(TAS),
+    file: `${MEZAR_ADLARI[TAS]}.glb`,
+    target: new THREE.Vector3(0, 0.75, 0),
+    distance: 2.6,
   },
   mezarEski2: {
     create: createMezarTasiEski2,
