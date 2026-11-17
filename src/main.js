@@ -36,6 +36,7 @@ import { createMezarTasi } from './mezar.js';
 import { createArapCamii } from './arapcami.js';
 import { createAyasofya } from './ayasofya.js';
 import { createTunelGirisi } from './tunel.js';
+import { createMadenTuneli } from './maden.js';
 import { createSakal, createYasliSakal, createYasliKisaSakal, createUzunSacSakal } from './sakal.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
@@ -186,6 +187,12 @@ const models = {
     target: new THREE.Vector3(0, 0.95, 0),
     distance: 4.8,
     extras: loadMannequin,
+  },
+  maden: {
+    create: createMadenTuneli,
+    file: 'maden_tuneli.glb',
+    target: new THREE.Vector3(0, 1.6, 0),
+    distance: 30,
   },
   tunel: {
     create: createTunelGirisi,
