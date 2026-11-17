@@ -35,6 +35,7 @@ import { createKaput } from './kaput.js';
 import { createMezarTasi } from './mezar.js';
 import { createArapCamii } from './arapcami.js';
 import { createAyasofya } from './ayasofya.js';
+import { createTunelGirisi } from './tunel.js';
 import { createSakal, createYasliSakal, createYasliKisaSakal, createUzunSacSakal } from './sakal.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
@@ -185,6 +186,12 @@ const models = {
     target: new THREE.Vector3(0, 0.95, 0),
     distance: 4.8,
     extras: loadMannequin,
+  },
+  tunel: {
+    create: createTunelGirisi,
+    file: 'tunel_girisi.glb',
+    target: new THREE.Vector3(0, 4, 3),
+    distance: 34,
   },
   ayasofya: {
     create: createAyasofya,
