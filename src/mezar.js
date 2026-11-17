@@ -23,7 +23,7 @@ function rng(seed) {
   return () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296);
 }
 // Yıpranmış mermer: kirli beyaz zemin, benekler, aşağı akan koyu izler, dipte yosun ve toprak
-function paintStone(g, w, h, seed, ground = 0) {
+function paintStone(g, w, h, seed, ground = 0, worn = false) {
   const rand = rng(seed);
   g.fillStyle = '#c9c2b2';
   g.fillRect(0, 0, w, h);
@@ -49,6 +49,28 @@ function paintStone(g, w, h, seed, ground = 0) {
     g.ellipse(rand() * w, rand() * h, 8 + rand() * 30, 6 + rand() * 22, rand() * 3, 0, TAU);
     g.fill();
   }
+  if (worn) {
+    // Eskimiş taş: genel kararma, koyu akıntılar, sarı-yeşil ve siyah liken lekeleri
+    g.fillStyle = 'rgba(58,54,42,0.3)';
+    g.fillRect(0, 0, w, h);
+    g.filter = 'blur(4px)';
+    for (let i = 0; i < 70; i++) {
+      const x = rand() * w, y = rand() * h, len = 60 + rand() * 300;
+      const grad = g.createLinearGradient(0, y, 0, y + len);
+      grad.addColorStop(0, `rgba(30,28,22,${0.18 + rand() * 0.22})`);
+      grad.addColorStop(1, 'rgba(30,28,22,0)');
+      g.fillStyle = grad;
+      g.fillRect(x, y, 4 + rand() * 16, len);
+    }
+    g.filter = 'blur(7px)';
+    for (let i = 0; i < 70; i++) {
+      g.fillStyle = i % 3 === 0 ? `rgba(34,36,30,${0.25 + rand() * 0.3})` : i % 3 === 1 ? `rgba(150,142,70,${0.18 + rand() * 0.22})` : `rgba(86,98,62,${0.2 + rand() * 0.25})`;
+      g.beginPath();
+      g.ellipse(rand() * w, rand() * h, 10 + rand() * 40, 8 + rand() * 30, rand() * 3, 0, TAU);
+      g.fill();
+    }
+    g.filter = 'none';
+  }
   if (ground) {
     const grad = g.createLinearGradient(0, h, 0, h - ground);
     grad.addColorStop(0, 'rgba(62,56,42,0.75)');
@@ -58,8 +80,8 @@ function paintStone(g, w, h, seed, ground = 0) {
     g.fillRect(0, h - ground, w, ground);
   }
 }
-const stoneMaterial = (name, seed) => new THREE.MeshStandardMaterial({
-  name, map: canvasTexture(name, 512, 512, (g) => paintStone(g, 512, 512, seed)), roughness: 0.9, metalness: 0,
+const stoneMaterial = (name, seed, worn = false) => new THREE.MeshStandardMaterial({
+  name, map: canvasTexture(name, 512, 512, (g) => paintStone(g, 512, 512, seed, 0, worn)), roughness: worn ? 0.96 : 0.9, metalness: 0,
 });
 // Köşe konumundan doku koordinatı: 1 doku = 0,6 m
 function worldUV(geometry) {
@@ -75,7 +97,7 @@ function worldUV(geometry) {
 
 // ---------- Kitabe: çerçeveli altı pano, kabartma yazı ----------
 const PLATE = { x: 0.158, y0: 0.265, y1: 0.975, w: 512, h: 1152 };
-function inscription() {
+function inscription(worn = false) {
   const { w, h } = PLATE;
   const height = document.createElement('canvas');
   height.width = w;
@@ -104,25 +126,52 @@ function inscription() {
     g.fillText(LINES[i], w / 2, y + ph / 2 + size * 0.04);
     y += ph;
   });
+  // Eskimiş kitabe: yazı yer yer aşınıp silinmiş, levhayı boydan boya bir çatlak kesiyor
+  const crack = [];
+  if (worn) {
+    const rand = rng(77);
+    g.filter = 'blur(9px)';
+    g.fillStyle = 'rgba(0,0,0,0.9)';
+    for (let i = 0; i < 16; i++) {
+      g.beginPath();
+      g.ellipse(rand() * w, rand() * h, 22 + rand() * 60, 16 + rand() * 44, rand() * 3, 0, TAU);
+      g.fill();
+    }
+    g.filter = 'none';
+    let cx = 70 + rand() * 60;
+    for (let cy = 0; cy <= h + 40; cy += 40) crack.push([(cx += (rand() - 0.32) * 46), cy]);
+    g.strokeStyle = '#000';
+    g.lineWidth = 6;
+    g.beginPath();
+    crack.forEach(([x, yy], i) => (i ? g.lineTo(x, yy) : g.moveTo(x, yy)));
+    g.stroke();
+  }
   // Yumuşatılmış yükseklik
   const soft = document.createElement('canvas');
   soft.width = w;
   soft.height = h;
   const sg = soft.getContext('2d');
-  sg.filter = 'blur(1.6px)';
+  sg.filter = worn ? 'blur(2.8px)' : 'blur(1.6px)';
   sg.drawImage(height, 0, 0);
   const H = sg.getImageData(0, 0, w, h).data;
 
-  const map = canvasTexture('kitabe', w, h, (c) => {
-    paintStone(c, w, h, 31);
+  const map = canvasTexture(worn ? 'kitabe_eski' : 'kitabe', w, h, (c) => {
+    paintStone(c, w, h, 31, 0, worn);
     // Zemin (oyuk) kirli ve koyu, yazı ve çerçeve açık
     c.globalCompositeOperation = 'multiply';
-    c.globalAlpha = 0.3;
+    c.globalAlpha = worn ? 0.5 : 0.3;
     c.drawImage(soft, 0, 0);
     c.globalAlpha = 1;
     c.globalCompositeOperation = 'source-over';
+    if (crack.length) {
+      c.strokeStyle = 'rgba(14,12,10,0.9)';
+      c.lineWidth = 3.5;
+      c.beginPath();
+      crack.forEach(([x, yy], i) => (i ? c.lineTo(x, yy) : c.moveTo(x, yy)));
+      c.stroke();
+    }
   });
-  const normalMap = canvasTexture('kitabe_kabartma', w, h, (c) => {
+  const normalMap = canvasTexture(worn ? 'kitabe_eski_kabartma' : 'kitabe_kabartma', w, h, (c) => {
     const out = c.createImageData(w, h);
     const at = (x, yy) => H[(Math.min(h - 1, Math.max(0, yy)) * w + Math.min(w - 1, Math.max(0, x))) * 4] / 255;
     for (let yy = 0; yy < h; yy++) for (let x = 0; x < w; x++) {
@@ -137,12 +186,118 @@ function inscription() {
   });
   normalMap.colorSpace = THREE.NoColorSpace;
   map.wrapS = map.wrapT = normalMap.wrapS = normalMap.wrapT = THREE.ClampToEdgeWrapping;
-  return new THREE.MeshStandardMaterial({ name: 'kitabe', map, normalMap, normalScale: new THREE.Vector2(1.4, 1.4), roughness: 0.9, metalness: 0 });
+  return new THREE.MeshStandardMaterial({ name: worn ? 'kitabe_eski' : 'kitabe', map, normalMap, normalScale: new THREE.Vector2(1.4, 1.4), roughness: worn ? 0.96 : 0.9, metalness: 0 });
 }
 
-export function createMezarTasi() {
+// Ağı bir düzlemle keser: düzlemin önünde (normal yönünde) kalan parça atılır, kesik yüz pürüzlü bir
+// kırık yüzeyiyle kapatılır. Girdi: indekssiz, konum + normal. Çıktı: { kept, cap } indekssiz geometriler.
+function breakOff(geometry, point, normal) {
+  const P = geometry.attributes.position, Nn = geometry.attributes.normal, n = normal.clone().normalize();
+  const pos = [], nor = [], segments = [];
+  const hash = (v) => {
+    const t = Math.sin(v.x * 311.7 + v.y * 157.3 + v.z * 271.9) * 43758.5453;
+    return t - Math.floor(t);
+  };
+  const ragged = (v) => v.clone().addScaledVector(n, (hash(v) - 0.65) * 0.006); // kırık kenarı düz bir çizgi olmasın
+  for (let t = 0; t < P.count; t += 3) {
+    const tri = [0, 1, 2].map((k) => ({ p: new THREE.Vector3().fromBufferAttribute(P, t + k), n: new THREE.Vector3().fromBufferAttribute(Nn, t + k) }));
+    const d = tri.map((v) => v.p.clone().sub(point).dot(n));
+    if (d.every((x) => x > 0)) continue;
+    const out = [], cut = [];
+    for (let k = 0; k < 3; k++) {
+      const a = tri[k], b = tri[(k + 1) % 3], da = d[k], db = d[(k + 1) % 3];
+      if (da <= 0) out.push(a);
+      if (da <= 0 !== db <= 0) {
+        const f = da / (da - db), p = ragged(a.p.clone().lerp(b.p, f));
+        out.push({ p, n: a.n.clone().lerp(b.n, f).normalize() });
+        cut.push(p);
+      }
+    }
+    for (let k = 1; k + 1 < out.length; k++) for (const v of [out[0], out[k], out[k + 1]]) {
+      pos.push(v.p.x, v.p.y, v.p.z);
+      nor.push(v.n.x, v.n.y, v.n.z);
+    }
+    if (cut.length === 2) segments.push(cut);
+  }
+  // Kırık yüzeyi: kesik kenarından ortaya doğru iki kademeli, pürüzlü
+  const capPos = [];
+  // Kesik kenarları bağlı halkalara ayrılır; her halka kendi ortasına doğru kapatılır
+  const key = (v) => `${Math.round(v.x * 5000)},${Math.round(v.y * 5000)},${Math.round(v.z * 5000)}`;
+  const group = new Map(), find = (k) => {
+    while (group.get(k) !== k) k = group.get(k);
+    return k;
+  };
+  for (const [a, b] of segments) {
+    for (const k of [key(a), key(b)]) if (!group.has(k)) group.set(k, k);
+    group.set(find(key(a)), find(key(b)));
+  }
+  const loops = new Map();
+  for (const seg of segments) {
+    const k = find(key(seg[0]));
+    if (!loops.has(k)) loops.set(k, []);
+    loops.get(k).push(seg);
+  }
+  for (const loop of loops.values()) {
+    const centre = new THREE.Vector3();
+    loop.forEach(([a, b]) => centre.add(a).add(b));
+    centre.multiplyScalar(1 / (loop.length * 2)).addScaledVector(n, -0.006);
+    const inner = (v) => {
+      const m = v.clone().lerp(centre, 0.5);
+      return m.addScaledVector(n, (hash(m) - 0.5) * 0.008);
+    };
+    const push = (a, b, c) => {
+      const face = b.clone().sub(a).cross(c.clone().sub(a));
+      for (const v of face.dot(n) < 0 ? [a, c, b] : [a, b, c]) capPos.push(v.x, v.y, v.z);
+    };
+    for (const [a, b] of loop) {
+      const ia = inner(a), ib = inner(b);
+      push(a, b, ib);
+      push(a, ib, ia);
+      push(centre, ia, ib);
+    }
+  }
+  const kept = new THREE.BufferGeometry();
+  kept.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  kept.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
+  const cap = new THREE.BufferGeometry();
+  cap.setAttribute('position', new THREE.Float32BufferAttribute(capPos, 3));
+  cap.computeVertexNormals();
+  return { kept, cap };
+}
+// Sırayla birkaç kırık uygular; ana yüzey ve kırık yüzeyleri iki malzeme grubu olarak tek geometride döner
+function weather(geometry, breaks) {
+  let current = geometry.index ? geometry.toNonIndexed() : geometry;
+  const caps = [];
+  for (const [point, normal] of breaks) {
+    const next = [];
+    for (const c of caps) next.push(breakOff(c, point, normal)); // önceki kırık yüzeyleri de kesilir
+    const { kept, cap } = breakOff(current, point, normal);
+    current = kept;
+    caps.length = 0;
+    for (const r of next) caps.push(r.kept, r.cap);
+    caps.push(cap);
+  }
+  const pos = [...current.attributes.position.array], nor = [...current.attributes.normal.array], first = pos.length / 3;
+  for (const c of caps) {
+    if (!c.attributes.position.count) continue;
+    pos.push(...c.attributes.position.array);
+    nor.push(...c.attributes.normal.array);
+  }
+  const out = new THREE.BufferGeometry();
+  out.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  out.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
+  out.addGroup(0, first, 0);
+  out.addGroup(first, pos.length / 3 - first, 1);
+  return out;
+}
+
+export const createMezarTasi = () => build(false);
+// Eskimiş sürüm: kirli ve yosunlu taş, aşınmış ve çatlak kitabe, kırık köşeler, başlığın yarısı kopuk
+export const createMezarTasiEski = () => build(true);
+
+function build(worn) {
   const root = new THREE.Group();
-  root.name = 'mezar_tasi';
+  root.name = worn ? 'mezar_tasi_eski' : 'mezar_tasi';
   const DEPTH = 0.085, BEVEL = 0.005;
 
   // ---------- Gövde: dar sap, çentikli dip, düz levha, basamaklı omuz; üstünde boyun ----------
@@ -171,15 +326,25 @@ export function createMezarTasi() {
     out.setIndex(idx);
     return out;
   };
-  const stone = stoneMaterial('mermer', 7);
-  const body = new THREE.Mesh(worldUV(merge([slab, neck])), stone);
+  const stone = worn ? stoneMaterial('mermer_eski', 7, true) : stoneMaterial('mermer', 7);
+  const fracture = new THREE.MeshStandardMaterial({ name: 'kirik_yuzey', color: 0x8b8676, roughness: 1, metalness: 0 });
+  const V = (x, y, z) => new THREE.Vector3(x, y, z);
+  const body = worn
+    ? new THREE.Mesh(worldUV(weather(merge([slab, neck]), [
+      [V(-0.167, 0.99, 0.03), V(-1, 0.5, 0.9)], // sol omuz köşesi (ön)
+      [V(0.165, 1.0, 0.03), V(1, 0.3, 0.6)], // sağ omuz köşesi (ön)
+      [V(0.07, 0.07, 0.01), V(1, -0.7, 0.9)], // dipte ön sağ köşe
+      [V(-0.175, 0.62, -0.03), V(-1, 0.1, -1.2)], // sol kenarın arka yüzünde kopma
+      [V(0.175, 0.5, -0.035), V(1, -0.25, -1.4)], // sağ kenarın arka yüzünde kopma
+    ])), [stone, fracture])
+    : new THREE.Mesh(worldUV(merge([slab, neck])), stone);
   body.name = 'mezar_govde';
   root.add(body);
 
   // ---------- Kitabe: ön yüzün hemen önünde, yazılı ve kabartmalı levha ----------
   const plate = new THREE.PlaneGeometry(PLATE.x * 2, PLATE.y1 - PLATE.y0);
   plate.translate(0, (PLATE.y0 + PLATE.y1) / 2, DEPTH / 2 + 0.0012);
-  const kitabe = new THREE.Mesh(plate, inscription());
+  const kitabe = new THREE.Mesh(plate, inscription(worn));
   kitabe.name = 'mezar_kitabe';
   root.add(kitabe);
 
@@ -221,7 +386,10 @@ export function createMezarTasi() {
   cap.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
   cap.setIndex(idx);
   cap.computeVertexNormals();
-  const head = new THREE.Mesh(worldUV(cap), stone);
+  // Eskimiş sürümde başlığın üst yarısı eğik bir kırıkla kopmuştur (kavuğun çoğu ve bir lob gitmiş)
+  const head = worn
+    ? new THREE.Mesh(worldUV(weather(cap, [[V(0.015, 1.3, 0), V(0.8, 0.62, 0.22)], [V(-0.16, 1.2, 0.06), V(-1, -0.5, 0.9)]])), [stone, fracture])
+    : new THREE.Mesh(worldUV(cap), stone);
   head.name = 'mezar_baslik';
   root.add(head);
 
