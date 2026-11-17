@@ -191,7 +191,7 @@ function inscription(worn = false) {
 
 // Ağı bir düzlemle keser: düzlemin önünde (normal yönünde) kalan parça atılır, kesik yüz pürüzlü bir
 // kırık yüzeyiyle kapatılır. Girdi: indekssiz, konum + normal. Çıktı: { kept, cap } indekssiz geometriler.
-function breakOff(geometry, point, normal) {
+function breakOff(geometry, point, normal, side = 1) {
   const P = geometry.attributes.position, Nn = geometry.attributes.normal, n = normal.clone().normalize();
   const pos = [], nor = [], segments = [];
   const hash = (v) => {
@@ -201,7 +201,7 @@ function breakOff(geometry, point, normal) {
   const ragged = (v) => v.clone().addScaledVector(n, (hash(v) - 0.65) * 0.006); // kırık kenarı düz bir çizgi olmasın
   for (let t = 0; t < P.count; t += 3) {
     const tri = [0, 1, 2].map((k) => ({ p: new THREE.Vector3().fromBufferAttribute(P, t + k), n: new THREE.Vector3().fromBufferAttribute(Nn, t + k) }));
-    const d = tri.map((v) => v.p.clone().sub(point).dot(n));
+    const d = tri.map((v) => side * v.p.clone().sub(point).dot(n)); // side = -1: düzlemin öbür yanı atılır (aynı kırığın karşı parçası)
     if (d.every((x) => x > 0)) continue;
     const out = [], cut = [];
     for (let k = 0; k < 3; k++) {
@@ -247,7 +247,7 @@ function breakOff(geometry, point, normal) {
     };
     const push = (a, b, c) => {
       const face = b.clone().sub(a).cross(c.clone().sub(a));
-      for (const v of face.dot(n) < 0 ? [a, c, b] : [a, b, c]) capPos.push(v.x, v.y, v.z);
+      for (const v of face.dot(n) * side < 0 ? [a, c, b] : [a, b, c]) capPos.push(v.x, v.y, v.z);
     };
     for (const [a, b] of loop) {
       const ia = inner(a), ib = inner(b);
@@ -268,10 +268,10 @@ function breakOff(geometry, point, normal) {
 function weather(geometry, breaks) {
   let current = geometry.index ? geometry.toNonIndexed() : geometry;
   const caps = [];
-  for (const [point, normal] of breaks) {
+  for (const [point, normal, side = 1] of breaks) {
     const next = [];
-    for (const c of caps) next.push(breakOff(c, point, normal)); // önceki kırık yüzeyleri de kesilir
-    const { kept, cap } = breakOff(current, point, normal);
+    for (const c of caps) next.push(breakOff(c, point, normal, side)); // önceki kırık yüzeyleri de kesilir
+    const { kept, cap } = breakOff(current, point, normal, side);
     current = kept;
     caps.length = 0;
     for (const r of next) caps.push(r.kept, r.cap);
@@ -294,10 +294,13 @@ function weather(geometry, breaks) {
 export const createMezarTasi = () => build(false);
 // Eskimiş sürüm: kirli ve yosunlu taş, aşınmış ve çatlak kitabe, kırık köşeler, başlığın yarısı kopuk
 export const createMezarTasiEski = () => build(true);
+// Eskimiş sürümün eşi: her şey aynı, ama başlıkta öbür yarı durur. Kırık düzlemi ve pürüzü birebir aynıdır;
+// iki başlık parçası bir araya getirilince tam başlığı oluşturur.
+export const createMezarTasiEski2 = () => build(true, true);
 
-function build(worn) {
+function build(worn, otherHalf = false) {
   const root = new THREE.Group();
-  root.name = worn ? 'mezar_tasi_eski' : 'mezar_tasi';
+  root.name = otherHalf ? 'mezar_tasi_eski_2' : worn ? 'mezar_tasi_eski' : 'mezar_tasi';
   const DEPTH = 0.085, BEVEL = 0.005;
 
   // ---------- Gövde: dar sap, çentikli dip, düz levha, basamaklı omuz; üstünde boyun ----------
@@ -326,11 +329,14 @@ function build(worn) {
     out.setIndex(idx);
     return out;
   };
+  // Öbür yarıda boynun başlığa giren ucu açıkta kalır: kopan parçanın oturduğu kısa kütük
+  const stump = new THREE.CylinderGeometry(0.07, 0.05, 0.056, 16, 1, false);
+  stump.translate(0, 1.216 + 0.028, 0);
   const stone = worn ? stoneMaterial('mermer_eski', 7, true) : stoneMaterial('mermer', 7);
   const fracture = new THREE.MeshStandardMaterial({ name: 'kirik_yuzey', color: 0x8b8676, roughness: 1, metalness: 0 });
   const V = (x, y, z) => new THREE.Vector3(x, y, z);
   const body = worn
-    ? new THREE.Mesh(worldUV(weather(merge([slab, neck]), [
+    ? new THREE.Mesh(worldUV(weather(merge(otherHalf ? [slab, neck, stump] : [slab, neck]), [
       [V(-0.167, 0.99, 0.03), V(-1, 0.5, 0.9)], // sol omuz köşesi (ön)
       [V(0.165, 1.0, 0.03), V(1, 0.3, 0.6)], // sağ omuz köşesi (ön)
       [V(0.07, 0.07, 0.01), V(1, -0.7, 0.9)], // dipte ön sağ köşe
@@ -388,7 +394,7 @@ function build(worn) {
   cap.computeVertexNormals();
   // Eskimiş sürümde başlığın üst yarısı eğik bir kırıkla kopmuştur (kavuğun çoğu ve bir lob gitmiş)
   const head = worn
-    ? new THREE.Mesh(worldUV(weather(cap, [[V(0.015, 1.3, 0), V(0.8, 0.62, 0.22)], [V(-0.16, 1.2, 0.06), V(-1, -0.5, 0.9)]])), [stone, fracture])
+    ? new THREE.Mesh(worldUV(weather(cap, otherHalf ? [[V(0.015, 1.3, 0), V(0.8, 0.62, 0.22), -1]] : [[V(0.015, 1.3, 0), V(0.8, 0.62, 0.22)], [V(-0.16, 1.2, 0.06), V(-1, -0.5, 0.9)]])), [stone, fracture])
     : new THREE.Mesh(worldUV(cap), stone);
   head.name = 'mezar_baslik';
   root.add(head);

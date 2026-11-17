@@ -32,7 +32,7 @@ import { createGemi } from './gemi.js';
 import { createSirmaliUniforma, createSirmaliCeket } from './sirmali.js';
 import { createKalpak } from './kalpak.js';
 import { createKaput } from './kaput.js';
-import { createMezarTasi, createMezarTasiEski } from './mezar.js';
+import { createMezarTasi, createMezarTasiEski, createMezarTasiEski2 } from './mezar.js';
 import { createArapCamii } from './arapcami.js';
 import { createAyasofya } from './ayasofya.js';
 import { createTunelGirisi } from './tunel.js';
@@ -211,6 +211,12 @@ const models = {
     file: 'arap_camii.glb',
     target: new THREE.Vector3(0, 9, 0),
     distance: 95,
+  },
+  mezarEski2: {
+    create: createMezarTasiEski2,
+    file: 'mezar_tasi_eski_2.glb',
+    target: new THREE.Vector3(0, 0.75, 0),
+    distance: 2.6,
   },
   mezarEski: {
     create: createMezarTasiEski,
