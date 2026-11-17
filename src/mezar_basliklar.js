@@ -113,7 +113,12 @@ function crown(name, cy, outline, draw) {
     paintStone(c, 512, (H * 512) / W, 5 + name.length, 0, true);
     c.restore();
     c.globalCompositeOperation = 'multiply';
-    c.globalAlpha = 0.38;
+    // Oyuklar yalnızca hafifçe gölgelenir: taş gövdeyle aynı açık mermer kalır; kabartmayı normal haritası verir
+    c.globalCompositeOperation = 'source-over';
+    c.fillStyle = 'rgba(40,36,28,0.08)';
+    c.fillRect(0, 0, W, H);
+    c.globalCompositeOperation = 'lighter';
+    c.globalAlpha = 0.14;
     c.drawImage(soft, 0, 0);
     c.globalAlpha = 1;
     c.globalCompositeOperation = 'source-over';
@@ -228,16 +233,8 @@ const CROWNS = [
     g.strokeRect(-0.03, -0.04, 0.06, 0.025);
     scrolls(g, -0.215, 0.03, 0.01);
   }],
-  ['hanim_basligi_uc_sarmal', 1.23, (t) => 0.14 + 0.03 * Math.cos(3 * (t - Math.PI / 2)) + 0.006 * Math.cos(18 * t), (g) => {
-    for (const [x, y] of [[0, 0.085], [-0.065, -0.02], [0.065, -0.02]]) {
-      spiral(g, x, y, 0.05, 3, 0.011);
-      disc(g, 0.012, x, y);
-    }
-    g.lineWidth = 0.01;
-    g.beginPath();
-    g.arc(0, -0.09, 0.07, Math.PI * 1.15, Math.PI * 1.85);
-    g.stroke();
-    scrolls(g, -0.17, 0.03, 0.01);
+  ['hanim_basligi_sade', 1.23, (t) => 0.14 + 0.03 * Math.cos(3 * (t - Math.PI / 2)) + 0.006 * Math.cos(18 * t), () => {
+    // (yüzü sade: sarmal bezeme kaldırıldı)
   }],
 ];
 
