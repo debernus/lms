@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import M from './manken_olcu.js';
-import { Surface, cloth, reach, sliceCenter, buildTrousers, S, TAU } from './outfit.js';
+import { Surface, cloth, bodyDistance, reach, sliceCenter, buildTrousers, S, TAU } from './outfit.js';
 import { bodyNormal, castOut } from './outfit2.js';
 import { jacketFabric, collarTop, button, patchOf, castToCeket, onChest, skirtRadius, ARM, CEKET } from './outfit3.js';
 import { buildAyakkabi } from './outfit5.js';
@@ -16,11 +16,11 @@ const HEM = 0.56; // etek ucu: dizin hemen üstü
 const BLACK = 0x121214;
 
 // Sırma nakış: siyah zemin üstünde kıvrık dallar ve yapraklar (her yönde döşenebilir)
-function embroidery() {
-  const map = canvasTexture('sirma_nakis', 512, 512, (g) => {
+function embroidery(ground = '#141414', name = 'sirma_nakis') {
+  const map = canvasTexture(name, 512, 512, (g) => {
     let seed = 77;
     const rand = () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296);
-    g.fillStyle = '#141414';
+    g.fillStyle = ground;
     g.fillRect(0, 0, 512, 512);
     g.lineCap = 'round';
     const leaf = (x, y, a, len) => {
@@ -59,15 +59,15 @@ function embroidery() {
       }
     }
   });
-  return new THREE.MeshStandardMaterial({ name: 'sirma_nakis', map, roughness: 0.5, metalness: 0.55, side: THREE.DoubleSide });
+  return new THREE.MeshStandardMaterial({ name, map, roughness: 0.5, metalness: 0.55, side: THREE.DoubleSide });
 }
 
 // Pantolon (dış yanında sırma şerit) ve ayakkabı: iki üst için ortak
-function addLower(root) {
+function addLower(root, color = BLACK, gold = embroidery) {
   // --- Pantolon: siyah, dış yanında sırma şerit ---
   const EASE = [[0.075, 0.022], [0.2, 0.018], [0.4, 0.016], [0.5, 0.012], [0.66, 0.011], [0.76, 0.012], [0.96, 0.015], [1.0, 0.013], [1.04, 0.013]];
   root.add(buildTrousers({
-    name: 'salvar', color: BLACK, top: 1.04, crotch: 0.84, cx: 0, cz: -0.04, ease: EASE,
+    name: 'salvar', color, top: 1.04, crotch: 0.84, cx: 0, cz: -0.04, ease: EASE,
     legRows: [0.075, 0.078, 0.13, 0.2, 0.28, 0.36, 0.43, 0.48, 0.52, 0.56, 0.6, 0.65, 0.7, 0.755, 0.8, 0.84],
     hipRows: [0.88, 0.92, 0.96, 0.98, 1.0, 1.02, 1.04], legFold: 0.002, hipFold: 0.002,
   }));
@@ -84,7 +84,7 @@ function addLower(root) {
     }
     patchOf(stripe, rows, () => [side, 0, 0]);
   }
-  root.add(build('pantolon_seridi', [[stripe, embroidery(), (x, y, z) => [z * 5, y * 5]]]));
+  root.add(build('pantolon_seridi', [[stripe, gold(), (x, y, z) => [z * 5, y * 5]]]));
   root.add(buildAyakkabi());
 }
 
@@ -169,39 +169,56 @@ export function createSirmaliUniforma() {
   return root;
 }
 
-// Alternatif: vücuda yapışmayan, önü açık, bol kesim ceket. Altında beyaz gömlek, kırmızı nişan
-// kuşağı ve gümüş kemer; ceketin ön kenarları ve kol ağızları sırma işlemeli.
+// Alternatif: aynı üniformanın bedene yapışmayan, bol kesim hali. Önü baştan sona kapalı, dik yakalı,
+// düğmeli; gövdeden 4 cm açıkta durur, kolları geniştir. Kuşak ve kemer ceketin üstündedir.
 export function createSirmaliCeket() {
   const root = new THREE.Group();
   root.name = 'sirmali_ceket';
-  const clamp01 = (v) => Math.min(1, Math.max(0, v));
-  // İç gömlek: dik yakalı, bele oturan; eteği ceketin altında kalır
-  root.add(build('gomlek', [[jacketFabric([[1.1, 0.018], [1.04, 0.019], [0.97, 0.02]], { drop: 0.04, from: -0.03, to: 0.05 }), cloth('gomlek', 0xc9c3b4), null]]));
-  root.add(buildNisanKusagi(0x8a1a1c));
-  root.add(buildKemer(new THREE.MeshStandardMaterial({ name: 'kemer_gumus', color: 0x8d8c84, roughness: 0.5, metalness: 0.6, side: THREE.DoubleSide })));
-
-  // Ceket: gövdeden 4,5 cm açıkta duran bol kabuk, geniş kollar, önü yukarıdan aşağı açık
-  const OFFSET = 0.045, GAP = 0.5, CHEM = 0.6, SLEEVE = 0.092;
-  const edge = (y) => 0.075 + 0.07 * clamp01((y - 1.25) / 0.3); // ön açıklığın yarısı: yukarıda yaka gibi genişler
-  const ROWS = [[1.1, 0.05], [1.04, 0.054], [0.96, 0.06], [0.86, 0.068], [0.74, 0.076], [CHEM, 0.084]];
+  const GREEN = 0x16301f, gold = () => embroidery('#1a3a25', 'sirma_nakis_yesil');
+  const OFFSET = 0.04, CHEM = 0.58, SLEEVE = 0.088, NECK = { z: -0.045, r: 0.084, cut: 0.128 };
+  const neckline = (z) => 1.55 - 0.055 * S(-0.1, 0.06, z); // yaka oyuğu: arkada yüksek, önde çenenin epey altında
+  const ROWS = [[1.1, 0.05], [1.04, 0.053], [0.96, 0.058], [0.86, 0.064], [0.74, 0.07], [CHEM, 0.076], [CHEM - 0.003, 0.07]];
   const shell = robe({
     offset: OFFSET, sleeveDrop: 0.012, sleeve: () => SLEEVE,
-    inside: (x, y, z) => Math.abs(x) < 0.69 && !(y > 1.5 && Math.hypot(x, z + 0.045) < 0.125) && !(z > 0 && Math.abs(x) < edge(y)),
-    rows: ROWS, gapAngle: GAP,
+    inside: (x, y, z) => Math.abs(x) < 0.69 && !(y > neckline(z) + 0.9 * Math.max(0, Math.hypot(x, z - NECK.z) - 0.1)),
+    rows: ROWS,
   });
-  root.add(build('ceket', [[shell, cloth('ceket', BLACK), null]]));
-
-  // Sırma: ön kenarlar boyunca yakadan etek ucuna şerit ve kol ağızlarında bant
+  // Dik yaka: boyun açıklığından yükselen bant (arkada yüksek, önde alçak); sırma işlemeli
   const trim = new Surface();
+  const collar = [0, 0.5, 1].map((u) => Array.from({ length: 24 }, (_, k) => {
+    const a = (k / 24) * TAU, dir = v3(Math.cos(a), 0, Math.sin(a)), front = S(-0.2, 0.9, Math.sin(a));
+    // Oyuğun kenarını bul: kumaşın yüksekliği kesim konisinin altına indiği ilk yarıçap
+    let rim = 0.09, y0 = 1.5;
+    for (; rim < 0.2; rim += 0.004) {
+      const bx = dir.x * rim, bz = NECK.z + dir.z * rim, cone = neckline(bz) + 0.9 * Math.max(0, rim - 0.1);
+      let h = 1.4;
+      while (h < 1.64 && bodyDistance(bx, h, bz) < OFFSET) h += 0.004;
+      y0 = Math.min(h, cone);
+      if (h <= cone) break;
+    }
+    const r = rim + 0.006 - 0.026 * u;
+    return trim.point(dir.x * r, y0 - 0.012 + (0.036 - 0.012 * front) * u ** 0.8, NECK.z + dir.z * r);
+  }));
+  const fromNeck = (x, y, z) => [x, 0, z - NECK.z];
+  trim.strip(collar[0], collar[1], true, fromNeck);
+  trim.strip(collar[1], collar[2], true, fromNeck);
+  root.add(build('ceket', [[shell, cloth('ceket', GREEN), null]]));
+
+  // Sırma: göğüste iki pano, ön ortadan etek ucuna inen çift şerit, kol ağızlarında bant
+  const chest = (x, y, lift) => castOut(v3(x, y, -0.03), v3(0, 0, 1), OFFSET + lift);
+  const front = () => [0, 0, 1];
   for (const side of [-1, 1]) {
-    const upper = [];
-    for (let y = 1.5; y > 1.11; y -= 0.03) upper.push([0.004, 0.03, 0.058].map((dx) => castOut(v3(side * (edge(y) + dx), y, -0.03), v3(0, 0, 1), OFFSET + 0.004)));
-    patchOf(trim, upper, () => [0, 0, 1]);
-    patchOf(trim, ROWS.map(([y, pay]) => [0.01, 0.1, 0.19].map((da) => {
-      const a = Math.PI / 2 - side * (GAP + da), r = skirtRadius(y, a, pay + 0.004);
-      return v3(CEKET.cx + Math.cos(a) * r, y, CEKET.cz + Math.sin(a) * r);
-    })), () => [0, 0, 1]);
-    const rings = [0.6, 0.645, 0.688].map((x) => Array.from({ length: 16 }, (_, k) => {
+    const rows = [];
+    for (let y = 1.47; y > 1.1; y -= 0.03) {
+      const wide = 0.055 + 0.105 * S(1.12, 1.45, y);
+      rows.push([0, 0.25, 0.5, 0.75, 1].map((t) => chest(side * (0.012 + (wide - 0.012) * t), y, 0.004)));
+    }
+    patchOf(trim, rows, front);
+    patchOf(trim, ROWS.slice(0, 6).map(([y, pay]) => [0.035, 0.11, 0.185].map((da) => {
+      const a = Math.PI / 2 - side * da, r = skirtRadius(y, a, pay + 0.005);
+      return v3(CEKET.cx + Math.cos(a) * r, y + (y === CHEM ? 0.004 : 0), CEKET.cz + Math.sin(a) * r);
+    })), front);
+    const rings = [0.6, 0.645, 0.689].map((x) => Array.from({ length: 16 }, (_, k) => {
       const a = (k / 16) * TAU;
       return trim.point(side * x, ARM.y - 0.012 + Math.cos(a) * (SLEEVE + 0.004), ARM.z + Math.sin(a) * (SLEEVE + 0.004));
     }));
@@ -210,8 +227,44 @@ export function createSirmaliCeket() {
     trim.strip(rings[1], rings[2], true, away);
   }
   const uv = (x, y, z) => (Math.abs(x) > 0.3 ? [(Math.atan2(y - ARM.y, z - ARM.z) / TAU) * 2, x * 5] : [x * 5 + z * 2, y * 5]);
-  root.add(build('sirma_isleme', [[trim, embroidery(), uv]]));
-  addLower(root);
+  root.add(build('sirma_isleme', [[trim, gold(), uv]]));
+
+  // Ön ortada pirinç düğme sırası (yakadan bele, kemerin altından eteğe)
+  const buttons = new Surface();
+  for (const y of [1.45, 1.39, 1.33, 1.26, 1.19, 1.13]) {
+    const c = chest(0, y, 0.004);
+    button(buttons, c, bodyNormal(c), 0.01);
+  }
+  for (const y of [1.0, 0.92, 0.84]) {
+    const r = skirtRadius(y, Math.PI / 2, 0.062 + 0.02 * S(1.04, CHEM, y));
+    button(buttons, v3(CEKET.cx, y, CEKET.cz + r), v3(0, 0, 1), 0.01);
+  }
+  root.add(build('dugmeler', [[buttons, new THREE.MeshStandardMaterial({ name: 'pirinc_dugme', color: 0x8f7430, roughness: 0.5, metalness: 0.7 }), null]]));
+
+  // Kırmızı nişan kuşağı ve gümüş kemer: ceketin üstünde
+  root.add(buildNisanKusagi(0x8a1a1c, OFFSET + 0.01));
+  root.add(buildKemer(new THREE.MeshStandardMaterial({ name: 'kemer_gumus', color: 0x8d8c84, roughness: 0.5, metalness: 0.6, side: THREE.DoubleSide }), 0.053));
+
+  // Nişanlar: sol göğüste iki gümüş yıldız
+  const silver = new Surface(), centre = new Surface();
+  for (const [x, y, radius] of [[0.105, 1.445, 0.03], [0.125, 1.365, 0.033]]) {
+    const c = chest(x, y, 0.011), n = bodyNormal(c);
+    const u = v3(1, 0, 0).addScaledVector(n, -n.x).normalize(), w = n.clone().cross(u);
+    const pts = Array.from({ length: 16 }, (_, k) => {
+      const a = (k / 16) * TAU, r = k % 2 ? radius * 0.55 : radius;
+      const p = c.clone().addScaledVector(u, Math.cos(a) * r).addScaledVector(w, Math.sin(a) * r);
+      return silver.point(p.x, p.y, p.z);
+    });
+    const tip = c.clone().addScaledVector(n, 0.008);
+    silver.fan(silver.point(tip.x, tip.y, tip.z), pts, () => n.toArray());
+    button(centre, c.clone().addScaledVector(n, 0.007), n, radius * 0.3);
+  }
+  root.add(build('nisanlar', [
+    [silver, new THREE.MeshStandardMaterial({ name: 'gumus', color: 0xa3a39c, roughness: 0.4, metalness: 0.8, side: THREE.DoubleSide }), null],
+    [centre, new THREE.MeshStandardMaterial({ name: 'nisan_gobegi', color: 0x8c1c1c, roughness: 0.5, metalness: 0.3 }), null],
+  ]));
+
+  addLower(root, GREEN, gold);
   root.traverse((o) => {
     if (o.isMesh) o.castShadow = o.receiveShadow = true;
   });

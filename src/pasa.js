@@ -107,9 +107,9 @@ function buildKordon() {
 
 // ---------- Nişan kuşağı ----------
 // Sağ omuzdan sol kalçaya çapraz inen geniş koyu kurdele; ceketin üstünde yassı durur.
-export function buildNisanKusagi(color = 0x1b2420) {
+export function buildNisanKusagi(color = 0x1b2420, OFFSET = 0.013 + 0.007) {
   const s = new Surface();
-  const WIDTH = 0.085, OFFSET = 0.013 + 0.007;
+  const WIDTH = 0.085;
   const shoulder = v3(-0.135, 1.53, -0.045), hip = v3(0.165, 1.14, -0.03);
   const along = hip.clone().sub(shoulder).normalize(), depth = v3(0, 0, 1);
   const across = along.clone().cross(depth).normalize(), center = shoulder.clone().lerp(hip, 0.5);
@@ -158,9 +158,9 @@ function buildNisanlar() {
 }
 
 // ---------- Kemer ----------
-export function buildKemer(material = gold('kemer_sirma')) {
+export function buildKemer(material = gold('kemer_sirma'), gap = 0.03) {
   const belt = new Surface(), metal = new Surface();
-  const B = { bottom: 1.055, width: 0.05, gap: 0.03 };
+  const B = { bottom: 1.055, width: 0.05, gap };
   const radius = (a) => {
     let r = 0;
     for (let y = B.bottom - 0.02; y <= B.bottom + B.width + 0.0201; y += 0.02) r = Math.max(r, reach(M.body, y, CEKET.cx, CEKET.cz, Math.cos(a), Math.sin(a)));
