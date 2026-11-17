@@ -38,6 +38,10 @@ import { createAyasofya } from './ayasofya.js';
 import { createTunelGirisi } from './tunel.js';
 import { createMadenTuneli } from './maden.js';
 import { createMakamMezari } from './makam.js';
+import { createSiperHatti, createSiperKiti, createSiperParca, SIPER_PARCALARI } from './siper.js';
+
+// ?siper=<ad>: 'Siper parçası' modelinde gösterilecek parça
+const SIPER = SIPER_PARCALARI.includes(new URLSearchParams(location.search).get('siper')) ? new URLSearchParams(location.search).get('siper') : SIPER_PARCALARI[0];
 import { createEvKiti, createOrnekEvler, createEvParca, EV_PARCALARI } from './evkit.js';
 
 // ?parca=<ad>: 'Ev parçası' modelinde gösterilecek kit parçası
@@ -220,6 +224,24 @@ const models = {
     file: 'arap_camii.glb',
     target: new THREE.Vector3(0, 9, 0),
     distance: 95,
+  },
+  siperHatti: {
+    create: createSiperHatti,
+    file: 'siper_hatti.glb',
+    target: new THREE.Vector3(0, -1, 0),
+    distance: 30,
+  },
+  siperKiti: {
+    create: createSiperKiti,
+    file: 'siper_kiti.glb',
+    target: new THREE.Vector3(0, -1, 0),
+    distance: 20,
+  },
+  siperParca: {
+    create: () => createSiperParca(SIPER),
+    file: `${SIPER}.glb`,
+    target: new THREE.Vector3(0, -1, 0),
+    distance: 9,
   },
   evOrnek: {
     create: createOrnekEvler,
