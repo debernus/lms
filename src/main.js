@@ -37,6 +37,7 @@ import { createArapCamii } from './arapcami.js';
 import { createAyasofya } from './ayasofya.js';
 import { createTunelGirisi } from './tunel.js';
 import { createMadenTuneli } from './maden.js';
+import { createMakamMezari } from './makam.js';
 import { createMezarSeti, createMezarTek, MEZAR_ADLARI } from './mezar_basliklar.js';
 
 // ?tas=<1-25>: 'Mezar taşı (tek)' modelinde gösterilecek taş
@@ -215,6 +216,12 @@ const models = {
     file: 'arap_camii.glb',
     target: new THREE.Vector3(0, 9, 0),
     distance: 95,
+  },
+  makam: {
+    create: createMakamMezari,
+    file: 'makam_mezari.glb',
+    target: new THREE.Vector3(0, 0.6, 0),
+    distance: 9,
   },
   mezarSeti: {
     create: createMezarSeti,
