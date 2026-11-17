@@ -38,23 +38,47 @@ export function createKaput() {
   patchOf(seam, lower, () => [1, 0, 0.3]);
   root.add(build('kaput', [[fabric, cloth('kaput_cuha', HAKI), null], [cuffs, cloth('kaput_kol_kapagi', 0x454b32), null], [seam, cloth('kaput_kat', 0x454b32), null]]));
 
-  // --- Yaka: boynu saran dik bant ve üstünden dışa devrilen bordo yaka; önde iki sivri uç ---
-  const down = new THREE.Raycaster();
-  const fabricTop = (x, z) => {
-    down.set(v3(x, 1.75, z), v3(0, -1, 0));
-    const hit = down.intersectObject(probe)[0];
-    return hit ? hit.point.y : 1.5;
+  // --- Yaka: büyük devrik kaput yakası. Boynu yüksekten saran dik bölüm, üstünden dışa devrilip omuzlara
+  // ve göğse yayılan geniş bordo kanatlar; önde iki sivri uç, boğazda V biçiminde açıklık ---
+  const ray = new THREE.Raycaster();
+  // Kaputun yüzeyinde, (açı, yarıçap, yükseklik) hedefine dışarıdan bakınca görülen nokta
+  const onCoat = (a, rho, y, lift) => {
+    const eye = v3(Math.cos(a) * 0.5, 1.8, NZ + Math.sin(a) * 0.5), target = v3(Math.cos(a) * rho, y, NZ + Math.sin(a) * rho);
+    ray.set(eye, target.clone().sub(eye).normalize());
+    const hit = ray.intersectObject(probe)[0];
+    if (!hit) return target;
+    const n = hit.face.normal.clone();
+    if (n.dot(ray.ray.direction) > 0) n.negate();
+    return hit.point.clone().addScaledVector(n, lift);
   };
-  const collar = new Surface();
-  const rows = [[0.002, -0.006, 0], [0.001, 0.016, 0], [-0.001, 0.03, 0], [0.006, 0.033, 0], [0.016, 0.024, 0], [0.026, 0, 1]].map(([dr, h, lay]) => angles.map((a) => {
-    const dz = Math.sin(a), tip = S(0.55, 1, dz), r = R + dr + (lay ? 0.014 * tip : 0.004 * tip * (dr > 0.005 ? 1 : 0));
-    const x = Math.cos(a) * r, z = NZ + dz * r;
-    const y = lay ? Math.max(fabricTop(x, z) + 0.007, neckline(dz) - 0.012 - 0.012 * tip) : neckline(dz) + h * (h > 0 ? 1 - 0.14 * dz : 1);
-    return collar.point(x, y, z);
-  }));
-  const fromNeck = (x, y, z) => [x, 0.6, z - NZ];
-  for (let j = 1; j < rows.length; j++) collar.strip(rows[j - 1], rows[j], true, fromNeck);
-  root.add(build('yaka', [[collar, cloth('yaka_bordo', BORDO), null]]));
+  const collar = new Surface(), COLS = 44, GAP = 0.07;
+  const grid = Array.from({ length: COLS + 1 }, (_, k) => {
+    const a = Math.PI / 2 + GAP + ((TAU - 2 * GAP) * k) / COLS, dz = Math.sin(a);
+    const theta = Math.min(k, COLS - k) * ((TAU - 2 * GAP) / COLS) + GAP, side = k < COLS / 2 ? 1 : -1; // ön ortadan açısal uzaklık
+    const wing = Math.max(0, 1 - theta / 1.45) ** 1.1; // öne doğru büyüyen kanat
+    const base = neckline(dz), top = base + 0.036 - 0.01 * S(0.3, 1, dz);
+    const at3 = (r, y) => v3(Math.cos(a) * r, y, NZ + dz * r);
+    const column = [at3(R + 0.002, base - 0.006), at3(R, top - 0.012), at3(R + 0.001, top), at3(R + 0.008, top + 0.003)];
+    // Kanat: devrim çizgisinden uca; öne yakın sütunlar yana doğru açılarak sivri ucu oluşturur
+    const tipAngle = a + side * 0.3 * wing, tipRho = R + 0.046 + 0.08 * wing, tipY = base - 0.026 - 0.072 * wing;
+    for (const f of [0.16, 0.38, 0.68, 1]) {
+      const g = f ** 1.2, aa = a + (tipAngle - a) * g, rho = R + 0.008 + (tipRho - R - 0.008) * f, y = top + (tipY - top) * f;
+      // Devrim çizgisine yakın sıra havada kalır; sonrakiler kaputun yüzeyine yatar
+      column.push(f < 0.2 ? v3(Math.cos(aa) * (rho + 0.004), y + 0.004, NZ + Math.sin(aa) * (rho + 0.004)) : onCoat(aa, rho, y, 0.005 + 0.016 * (1 - f) ** 1.5));
+    }
+    return column;
+  });
+  for (let j = 1; j < grid[0].length; j++) {
+    collar.strip(grid.map((c) => collar.point(c[j - 1].x, c[j - 1].y, c[j - 1].z)), grid.map((c) => collar.point(c[j].x, c[j].y, c[j].z)), false, (x, y, z) => [x, 0.8, z - NZ]);
+  }
+  // Kanatlarda küçük gümüş rütbe işareti
+  const pips = new Surface();
+  for (const k of [3, COLS - 3]) {
+    const c = grid[k], p = c[6].clone().lerp(c[7], 0.3), n = c[7].clone().sub(c[6]).cross(grid[k + 1][6].clone().sub(c[6])).normalize();
+    if (n.z < 0) n.negate();
+    button(pips, p.addScaledVector(n, 0.002), n, 0.008);
+  }
+  root.add(build('yaka', [[collar, cloth('yaka_bordo', BORDO), null], [pips, new THREE.MeshStandardMaterial({ name: 'gumus_isaret', color: 0x9a9a94, roughness: 0.5, metalness: 0.7 }), null]]));
 
   // --- Düğmeler: ön kapama boyunca tek sıra pirinç düğme ---
   const buttons = new Surface();
