@@ -30,6 +30,7 @@ import { createKoylu } from './koylu.js';
 import { createKayik } from './kayik.js';
 import { createGemi } from './gemi.js';
 import { createSirmaliUniforma, createSirmaliCeket } from './sirmali.js';
+import { createKalpak } from './kalpak.js';
 import { createSakal, createYasliSakal, createYasliKisaSakal, createUzunSacSakal } from './sakal.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
@@ -179,6 +180,13 @@ const models = {
     file: 'koylu_3.glb',
     target: new THREE.Vector3(0, 0.95, 0),
     distance: 4.8,
+    extras: loadMannequin,
+  },
+  kalpak: {
+    create: createKalpak,
+    file: 'kalpak.glb',
+    target: new THREE.Vector3(0, 1.85, 0.023),
+    distance: 0.9,
     extras: loadMannequin,
   },
   sirmaliCeket: {
