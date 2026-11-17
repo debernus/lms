@@ -15,6 +15,7 @@
   },
   "homepage": "https://github.com/debernus/lms#readme",
   "dependencies": {
+    "@fontsource/amiri": "^5.3.0",
     "three": "^0.187.0"
   },
   "devDependencies": {

@@ -32,6 +32,7 @@ import { createGemi } from './gemi.js';
 import { createSirmaliUniforma, createSirmaliCeket } from './sirmali.js';
 import { createKalpak } from './kalpak.js';
 import { createKaput } from './kaput.js';
+import { createMezarTasi } from './mezar.js';
 import { createSakal, createYasliSakal, createYasliKisaSakal, createUzunSacSakal } from './sakal.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
@@ -182,6 +183,12 @@ const models = {
     target: new THREE.Vector3(0, 0.95, 0),
     distance: 4.8,
     extras: loadMannequin,
+  },
+  mezar: {
+    create: createMezarTasi,
+    file: 'mezar_tasi.glb',
+    target: new THREE.Vector3(0, 0.75, 0),
+    distance: 2.6,
   },
   kaput: {
     create: createKaput,
