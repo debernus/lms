@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import M from './manken_olcu.js';
 import { Surface, cloth, bodyDistance, reach, sliceCenter, buildTrousers, S, TAU } from './outfit.js';
-import { bodyNormal, castOut } from './outfit2.js';
+import { bodyNormal, castOut, settle } from './outfit2.js';
 import { jacketFabric, collarTop, button, patchOf, castToCeket, onChest, skirtRadius, ARM, CEKET } from './outfit3.js';
 import { buildAyakkabi } from './outfit5.js';
 import { canvasTexture, build, robe } from './halk2.js';
@@ -175,42 +175,56 @@ export function createSirmaliCeket() {
   const root = new THREE.Group();
   root.name = 'sirmali_ceket';
   const GREEN = 0x16301f, gold = () => embroidery('#1a3a25', 'sirma_nakis_yesil');
-  const OFFSET = 0.04, CHEM = 0.58, SLEEVE = 0.088, NECK = { z: -0.045, r: 0.084, cut: 0.128 };
-  const neckline = (z) => 1.55 - 0.055 * S(-0.1, 0.06, z); // yaka oyuğu: arkada yüksek, önde çenenin epey altında
+  const OFFSET = 0.04, CHEM = 0.58, SLEEVE = 0.088, NECK = { z: -0.045, hole: 0.16 };
   const ROWS = [[1.1, 0.05], [1.04, 0.053], [0.96, 0.058], [0.86, 0.064], [0.74, 0.07], [CHEM, 0.076], [CHEM - 0.003, 0.07]];
+  // Gövde kabuğu boynun çevresinde geniş bir daire olarak kesilir; aradaki bölüm aşağıda düzgün
+  // halkalarla örülür (omuz parçası) ve boğazda dar, tam yuvarlak bir dik yakayla biter.
   const shell = robe({
     offset: OFFSET, sleeveDrop: 0.012, sleeve: () => SLEEVE,
-    inside: (x, y, z) => Math.abs(x) < 0.69 && !(y > neckline(z) + 0.9 * Math.max(0, Math.hypot(x, z - NECK.z) - 0.1)),
+    inside: (x, y, z) => Math.abs(x) < 0.69 && !(y > 1.475 && Math.hypot(x, z - NECK.z) < NECK.hole),
     rows: ROWS,
   });
-  // Dik yaka: boyun açıklığından yükselen bant (arkada yüksek, önde alçak); sırma işlemeli
-  const trim = new Surface();
-  const collar = [0, 0.5, 1].map((u) => Array.from({ length: 24 }, (_, k) => {
-    const a = (k / 24) * TAU, dir = v3(Math.cos(a), 0, Math.sin(a)), front = S(-0.2, 0.9, Math.sin(a));
-    // Oyuğun kenarını bul: kumaşın yüksekliği kesim konisinin altına indiği ilk yarıçap
-    let rim = 0.09, y0 = 1.5;
-    for (; rim < 0.2; rim += 0.004) {
-      const bx = dir.x * rim, bz = NECK.z + dir.z * rim, cone = neckline(bz) + 0.9 * Math.max(0, rim - 0.1);
-      let h = 1.4;
-      while (h < 1.64 && bodyDistance(bx, h, bz) < OFFSET) h += 0.004;
-      y0 = Math.min(h, cone);
-      if (h <= cone) break;
-    }
-    const r = rim + 0.006 - 0.026 * u;
-    return trim.point(dir.x * r, y0 - 0.012 + (0.036 - 0.012 * front) * u ** 0.8, NECK.z + dir.z * r);
-  }));
+  const SEGN = 32, dirs = Array.from({ length: SEGN }, (_, k) => v3(Math.cos((k / SEGN) * TAU), 0, Math.sin((k / SEGN) * TAU)));
+  const neckline = (dz) => 1.525 - 0.02 * dz; // yaka tabanı: arkada biraz yüksek, önde alçak (dz: +1 ön, -1 arka)
+  // Boyun yarıçapı: taban çizgisinde boynun en geniş yeri + 1,2 cm; yaka bu yarıçapta tam bir dairedir
+  let R = 0;
+  for (const d of dirs) R = Math.max(R, Math.min(0.074, castOut(v3(0, neckline(d.z), NECK.z), d, 0.004).distanceTo(v3(0, neckline(d.z), NECK.z))));
+  R += 0.012;
+  const yoke = new Surface(), trim = new Surface();
+  const ring = (s, f) => dirs.map((d) => {
+    const p = f(d);
+    return s.point(p.x, p.y, p.z);
+  });
+  const up = () => [0, 1, 0.2];
+  // Omuz parçası: boyun halkasından kabuğun kesik kenarına düz inen, hafif bombeli halkalar
+  const inner = dirs.map((d) => v3(d.x * R, neckline(d.z) - 0.004, NECK.z + d.z * R));
+  const anchor = (grow) => dirs.map((d) => settle(v3(d.x * (NECK.hole + grow), neckline(d.z) - 0.3 * (NECK.hole + grow - R), NECK.z + d.z * (NECK.hole + grow)), OFFSET + 0.0015));
+  const outer = anchor(0.004), skirt = anchor(0.024);
+  let before = ring(yoke, (d) => inner[dirs.indexOf(d)]);
+  for (const t of [0.25, 0.5, 0.75, 1]) {
+    const row = ring(yoke, (d) => {
+      const k = dirs.indexOf(d), p = inner[k].clone().lerp(outer[k], t);
+      p.y += 0.007 * Math.sin(Math.PI * t);
+      return p;
+    });
+    yoke.strip(before, row, true, up);
+    before = row;
+  }
+  yoke.strip(before, ring(yoke, (d) => skirt[dirs.indexOf(d)]), true, up);
+  root.add(build('ceket', [[shell, cloth('ceket', GREEN), null], [yoke, cloth('ceket_omuz', GREEN), null]]));
+  // Dik yaka: tam yuvarlak, dar bant; önde çenenin altında kalır
+  const stand = [[0.002, -0.006], [0.001, 0.014], [-0.002, 0.03]].map(([dr, h]) => ring(trim, (d) => v3(d.x * (R + dr), neckline(d.z) + h * (h > 0 ? 1 - 0.12 * d.z : 1), NECK.z + d.z * (R + dr))));
   const fromNeck = (x, y, z) => [x, 0, z - NECK.z];
-  trim.strip(collar[0], collar[1], true, fromNeck);
-  trim.strip(collar[1], collar[2], true, fromNeck);
-  root.add(build('ceket', [[shell, cloth('ceket', GREEN), null]]));
+  trim.strip(stand[0], stand[1], true, fromNeck);
+  trim.strip(stand[1], stand[2], true, fromNeck);
 
   // Sırma: göğüste iki pano, ön ortadan etek ucuna inen çift şerit, kol ağızlarında bant
   const chest = (x, y, lift) => castOut(v3(x, y, -0.03), v3(0, 0, 1), OFFSET + lift);
   const front = () => [0, 0, 1];
   for (const side of [-1, 1]) {
     const rows = [];
-    for (let y = 1.47; y > 1.1; y -= 0.03) {
-      const wide = 0.055 + 0.105 * S(1.12, 1.45, y);
+    for (let y = 1.43; y > 1.1; y -= 0.03) {
+      const wide = 0.055 + 0.105 * S(1.12, 1.42, y);
       rows.push([0, 0.25, 0.5, 0.75, 1].map((t) => chest(side * (0.012 + (wide - 0.012) * t), y, 0.004)));
     }
     patchOf(trim, rows, front);
@@ -231,7 +245,7 @@ export function createSirmaliCeket() {
 
   // Ön ortada pirinç düğme sırası (yakadan bele, kemerin altından eteğe)
   const buttons = new Surface();
-  for (const y of [1.45, 1.39, 1.33, 1.26, 1.19, 1.13]) {
+  for (const y of [1.41, 1.34, 1.27, 1.2, 1.135]) {
     const c = chest(0, y, 0.004);
     button(buttons, c, bodyNormal(c), 0.01);
   }
