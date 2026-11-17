@@ -34,6 +34,7 @@ import { createKalpak } from './kalpak.js';
 import { createKaput } from './kaput.js';
 import { createMezarTasi } from './mezar.js';
 import { createArapCamii } from './arapcami.js';
+import { createAyasofya } from './ayasofya.js';
 import { createSakal, createYasliSakal, createYasliKisaSakal, createUzunSacSakal } from './sakal.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
@@ -184,6 +185,12 @@ const models = {
     target: new THREE.Vector3(0, 0.95, 0),
     distance: 4.8,
     extras: loadMannequin,
+  },
+  ayasofya: {
+    create: createAyasofya,
+    file: 'ayasofya.glb',
+    target: new THREE.Vector3(0, 24, 8),
+    distance: 240,
   },
   arapCamii: {
     create: createArapCamii,
@@ -374,6 +381,11 @@ const views = {
 function setView(name) {
   const [x, y, z] = views[name];
   controls.target.copy(active.target);
+  // Büyük yapılarda kamera sınırları modelin ölçeğine uyar
+  camera.near = Math.max(0.1, active.distance / 150);
+  camera.far = Math.max(100, active.distance * 12);
+  camera.updateProjectionMatrix();
+  controls.maxDistance = Math.max(80, active.distance * 4);
   camera.position.set(x, y, z).normalize().multiplyScalar(active.distance).add(active.target);
   controls.update();
 }

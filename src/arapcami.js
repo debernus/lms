@@ -137,7 +137,7 @@ function lanternTexture() {
 }
 
 // ---------- Ağ kurucu: malzemeye göre gruplanan üçgenler ----------
-class Part {
+export class Part {
   constructor(name) {
     this.name = name;
     this.groups = new Map();
@@ -207,8 +207,8 @@ function archOutline(a, h, pointed) {
 }
 // Duvar yüzünde kemerli açıklık: içeri çekik yüzey (cam/kapı), çevresinde çıkıntılı çerçeve.
 // P: açıklığın alt orta noktası (duvar yüzünde), R: sağ yön, N: duvarın dış normali.
-function opening(part, { P, R, N, a, h, pointed = false, pane, frame = null, f = 0.22, sill = false, depth = 0.1 }) {
-  const at = (x, y, d) => P.clone().addScaledVector(R, x).addScaledVector(UP, y).addScaledVector(N, d);
+export function opening(part, { P, R, N, a, h, pointed = false, pane, frame = null, f = 0.22, sill = false, depth = 0.1, base = 0 }) {
+  const at = (x, y, d) => P.clone().addScaledVector(R, x).addScaledVector(UP, y).addScaledVector(N, d + base);
   const pts = archOutline(a, h, pointed), centre = at(0, h * 0.45, 0.03);
   part.tri(pane, [centre, at(-a, 0, 0.03), at(a, 0, 0.03)], [[0.5, 0.45], [0, 0], [1, 0]], N); // alt kenar
   for (let i = 0; i + 1 < pts.length; i++) {
