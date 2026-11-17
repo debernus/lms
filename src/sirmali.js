@@ -1,10 +1,10 @@
 import * as THREE from 'three';
 import M from './manken_olcu.js';
 import { Surface, cloth, bodyDistance, reach, sliceCenter, buildTrousers, S, TAU } from './outfit.js';
-import { bodyNormal, castOut, settle } from './outfit2.js';
+import { bodyNormal } from './outfit2.js';
 import { jacketFabric, collarTop, button, patchOf, castToCeket, onChest, skirtRadius, ARM, CEKET } from './outfit3.js';
 import { buildAyakkabi } from './outfit5.js';
-import { canvasTexture, build, robe } from './halk2.js';
+import { canvasTexture, build } from './halk2.js';
 import { buildNisanKusagi, buildKemer } from './pasa.js';
 
 // Sırma işlemeli Osmanlı devlet üniforması (vezir / sadrazam tören kıyafeti), 1900'lerin başı.
@@ -169,57 +169,124 @@ export function createSirmaliUniforma() {
   return root;
 }
 
-// Alternatif: aynı üniformanın bedene yapışmayan, bol kesim hali. Önü baştan sona kapalı, dik yakalı,
-// düğmeli; gövdeden 4 cm açıkta durur, kolları geniştir. Kuşak ve kemer ceketin üstündedir.
+// Alternatif: aynı üniformanın bedene yapışmayan, bol kesim hali; koyu yeşil. Önü boğaza kadar kapalı,
+// dar yuvarlak dik yakalı, düğmeli. Ceket tek parça düzgün bir ağdır: etek ucundan koltuk altına yatay
+// halkalar, oradan yakaya her yönde aynı sayıda adımla çıkan omuz halkaları, iki yanda düz kol boruları.
 export function createSirmaliCeket() {
   const root = new THREE.Group();
   root.name = 'sirmali_ceket';
   const GREEN = 0x16301f, gold = () => embroidery('#1a3a25', 'sirma_nakis_yesil');
-  const OFFSET = 0.04, CHEM = 0.58, SLEEVE = 0.088, NECK = { z: -0.045, hole: 0.16 };
-  const ROWS = [[1.1, 0.05], [1.04, 0.053], [0.96, 0.058], [0.86, 0.064], [0.74, 0.07], [CHEM, 0.076], [CHEM - 0.003, 0.07]];
-  // Gövde kabuğu boynun çevresinde geniş bir daire olarak kesilir; aradaki bölüm aşağıda düzgün
-  // halkalarla örülür (omuz parçası) ve boğazda dar, tam yuvarlak bir dik yakayla biter.
-  const shell = robe({
-    offset: OFFSET, sleeveDrop: 0.012, sleeve: () => SLEEVE,
-    inside: (x, y, z) => Math.abs(x) < 0.69 && !(y > 1.475 && Math.hypot(x, z - NECK.z) < NECK.hole),
-    rows: ROWS,
-  });
-  const SEGN = 32, dirs = Array.from({ length: SEGN }, (_, k) => v3(Math.cos((k / SEGN) * TAU), 0, Math.sin((k / SEGN) * TAU)));
-  const neckline = (dz) => 1.525 - 0.02 * dz; // yaka tabanı: arkada biraz yüksek, önde alçak (dz: +1 ön, -1 arka)
-  // Boyun yarıçapı: taban çizgisinde boynun en geniş yeri + 1,2 cm; yaka bu yarıçapta tam bir dairedir
-  let R = 0;
-  for (const d of dirs) R = Math.max(R, Math.min(0.074, castOut(v3(0, neckline(d.z), NECK.z), d, 0.004).distanceTo(v3(0, neckline(d.z), NECK.z))));
-  R += 0.012;
-  const yoke = new Surface(), trim = new Surface();
-  const ring = (s, f) => dirs.map((d) => {
-    const p = f(d);
-    return s.point(p.x, p.y, p.z);
-  });
-  const up = () => [0, 1, 0.2];
-  // Omuz parçası: boyun halkasından kabuğun kesik kenarına düz inen, hafif bombeli halkalar
-  const inner = dirs.map((d) => v3(d.x * R, neckline(d.z) - 0.004, NECK.z + d.z * R));
-  const anchor = (grow) => dirs.map((d) => settle(v3(d.x * (NECK.hole + grow), neckline(d.z) - 0.3 * (NECK.hole + grow - R), NECK.z + d.z * (NECK.hole + grow)), OFFSET + 0.0015));
-  const outer = anchor(0.004), skirt = anchor(0.024);
-  let before = ring(yoke, (d) => inner[dirs.indexOf(d)]);
-  for (const t of [0.25, 0.5, 0.75, 1]) {
-    const row = ring(yoke, (d) => {
-      const k = dirs.indexOf(d), p = inner[k].clone().lerp(outer[k], t);
-      p.y += 0.007 * Math.sin(Math.PI * t);
-      return p;
-    });
-    yoke.strip(before, row, true, up);
+  const SEG = 40, CX = 0, CZ = -0.03, OFFSET = 0.04, HEM_Y = 0.58, WAIST = 1.1, PIT = 1.36, XS = 0.2;
+  const lerp = (a, b, t) => a + (b - a) * t;
+
+  // Gövde yarıçapı (a yönünde, y yüksekliğinde): mankenin 4 cm dışı; yanlarda kol köküne kadar
+  const cache = new Map();
+  const sdfRadius = (a, y) => {
+    const key = a.toFixed(4) + '/' + y.toFixed(4);
+    if (cache.has(key)) return cache.get(key);
+    const dx = Math.cos(a), dz = Math.sin(a), limit = XS / Math.max(1e-3, Math.abs(dx));
+    let lo = 0.02, hi = 0.02;
+    while (hi < limit && bodyDistance(CX + dx * hi, y, CZ + dz * hi) < OFFSET) hi += 0.004;
+    lo = Math.max(0.02, hi - 0.004);
+    for (let i = 0; i < 10 && hi < limit; i++) {
+      const m = (lo + hi) / 2;
+      if (bodyDistance(CX + dx * m, y, CZ + dz * m) < OFFSET) lo = m;
+      else hi = m;
+    }
+    const r = Math.min(hi, limit);
+    cache.set(key, r);
+    return r;
+  };
+  // Belden aşağı etek: bel halkasından başlar, kalçayı sarar ve uca doğru hafifçe açılır
+  const hull = (a, y) => reach(M.body, y, CX, CZ, Math.cos(a), Math.sin(a));
+  const radius = (a, y) => {
+    if (y >= WAIST) return sdfRadius(a, y);
+    let grow = 0;
+    for (let yy = y; yy < WAIST; yy += 0.02) grow = Math.max(grow, hull(a, yy) - hull(a, WAIST));
+    return sdfRadius(a, WAIST) + grow + 0.04 * ((WAIST - y) / (WAIST - HEM_Y));
+  };
+  const at = (a, y, lift = 0) => v3(CX + Math.cos(a) * (radius(a, y) + lift), y, CZ + Math.sin(a) * (radius(a, y) + lift));
+
+  const fabric = new Surface();
+  const angles = Array.from({ length: SEG }, (_, k) => (k / SEG) * TAU);
+  const add = (pts) => pts.map((p) => fabric.point(p.x, p.y, p.z));
+  const outward = (x, y, z) => [x - CX, 0.25, z - CZ];
+  const ROW_Y = [HEM_Y, 0.66, 0.74, 0.82, 0.9, 0.98, 1.04, WAIST, 1.16, 1.22, 1.28, 1.32, PIT];
+  let before = add(angles.map((a) => at(a, HEM_Y, -0.007).setY(HEM_Y - 0.003)));
+  for (const y of ROW_Y) {
+    const row = add(angles.map((a) => at(a, y)));
+    fabric.strip(before, row, true, outward);
     before = row;
   }
-  yoke.strip(before, ring(yoke, (d) => skirt[dirs.indexOf(d)]), true, up);
-  root.add(build('ceket', [[shell, cloth('ceket', GREEN), null], [yoke, cloth('ceket_omuz', GREEN), null]]));
-  // Dik yaka: tam yuvarlak, dar bant; önde çenenin altında kalır
-  const stand = [[0.002, -0.006], [0.001, 0.014], [-0.002, 0.03]].map(([dr, h]) => ring(trim, (d) => v3(d.x * (R + dr), neckline(d.z) + h * (h > 0 ? 1 - 0.12 * d.z : 1), NECK.z + d.z * (R + dr))));
-  const fromNeck = (x, y, z) => [x, 0, z - NECK.z];
+  // Yaka tabanı: boynu saran tam daire
+  const NZ = -0.04, neckline = (dz) => 1.55 - 0.018 * dz;
+  let R = 0;
+  for (const a of angles) {
+    let r = 0.03;
+    while (r < 0.08 && bodyDistance(Math.cos(a) * r, neckline(Math.sin(a)), NZ + Math.sin(a) * r) < 0.004) r += 0.002;
+    R = Math.max(R, r);
+  }
+  R += 0.012;
+  const collarBase = angles.map((a) => v3(Math.cos(a) * R, neckline(Math.sin(a)), NZ + Math.sin(a) * R));
+  // Omuz: koltuk altı halkasından yakaya; her nokta yalnız yukarı kaydırılarak mankenin dışına alınır
+  const pit = angles.map((a) => at(a, PIT));
+  for (const t of [0.12, 0.25, 0.4, 0.55, 0.7, 0.85, 1]) {
+    const row = add(angles.map((a, k) => {
+      const s = t ** 1.15, p = v3(lerp(pit[k].x, collarBase[k].x, s), lerp(PIT, collarBase[k].y, 1 - (1 - t) ** 1.5), lerp(pit[k].z, collarBase[k].z, s));
+      const clear = 0.013 + 0.023 * (1 - t) ** 1.2;
+      if (t < 1) {
+        // Mankenin derinindeyse (kol kökü) önce yukarı çıkar, sonra yüzeyin dışına doğru itilir
+        while (p.y < 1.61 && bodyDistance(p.x, p.y, p.z) < -0.012) p.y += 0.003;
+        for (let i = 0; i < 4; i++) {
+          const d = bodyDistance(p.x, p.y, p.z);
+          if (d >= clear) break;
+          const n = bodyNormal(p);
+          if (!(n.lengthSq() > 0.5)) p.y += 0.004;
+          else p.addScaledVector(n, clear - d);
+        }
+      }
+      return p;
+    }));
+    fabric.strip(before, row, true, outward);
+    before = row;
+  }
+  // Kollar: gövdenin içinden başlayıp bileğe giden düz, bol borular
+  const AY = ARM.y - 0.006, sleeveR = (x) => 0.09 - 0.008 * S(0.3, 0.69, x) + 0.026 * S(0.34, 0.15, x);
+  const sleeveRing = (side, x, r) => Array.from({ length: 16 }, (_, k) => fabric.point(side * x, AY + Math.cos((k / 16) * TAU) * r, ARM.z + Math.sin((k / 16) * TAU) * r));
+  const fromArm = (x, y, z) => [0, y - AY, z - ARM.z];
+  for (const side of [-1, 1]) {
+    let ring = sleeveRing(side, 0.15, sleeveR(0.15));
+    for (const x of [0.21, 0.27, 0.34, 0.45, 0.57, 0.69]) {
+      const next = sleeveRing(side, x, sleeveR(x));
+      fabric.strip(ring, next, true, fromArm);
+      ring = next;
+    }
+    fabric.strip(ring, sleeveRing(side, 0.687, sleeveR(0.69) - 0.008), true, fromArm);
+  }
+  const cloak = cloth('ceket', GREEN);
+  root.add(build('ceket', [[fabric, cloak, null]]));
+
+  // Ceketin yüzeyinde, önden bakınca (x, y) hizasındaki nokta (lift kadar dışarıda)
+  const probe = new THREE.Mesh(fabric.geometry(), new THREE.MeshBasicMaterial({ side: THREE.DoubleSide }));
+  const caster = new THREE.Raycaster();
+  const onJacket = (x, y, lift) => {
+    caster.set(v3(x, y, 0.8), v3(0, 0, -1));
+    const hit = caster.intersectObject(probe)[0];
+    const n = hit.face.normal.clone();
+    if (n.z < 0) n.negate();
+    return { p: hit.point.clone().addScaledVector(n, lift), n };
+  };
+  const chest = (x, y, lift) => onJacket(x, y, lift).p;
+
+  // --- Sırma: dik yaka, göğüs panoları, ön ortadan eteğe inen çift şerit, kol ağzı bantları ---
+  const trim = new Surface();
+  const stand = [[0.002, -0.006], [0.001, 0.014], [-0.002, 0.03]].map(([dr, h]) => angles.map((a) => {
+    const dz = Math.sin(a);
+    return trim.point(Math.cos(a) * (R + dr), neckline(dz) + h * (h > 0 ? 1 - 0.12 * dz : 1), NZ + dz * (R + dr));
+  }));
+  const fromNeck = (x, y, z) => [x, 0, z - NZ];
   trim.strip(stand[0], stand[1], true, fromNeck);
   trim.strip(stand[1], stand[2], true, fromNeck);
-
-  // Sırma: göğüste iki pano, ön ortadan etek ucuna inen çift şerit, kol ağızlarında bant
-  const chest = (x, y, lift) => castOut(v3(x, y, -0.03), v3(0, 0, 1), OFFSET + lift);
   const front = () => [0, 0, 1];
   for (const side of [-1, 1]) {
     const rows = [];
@@ -228,50 +295,43 @@ export function createSirmaliCeket() {
       rows.push([0, 0.25, 0.5, 0.75, 1].map((t) => chest(side * (0.012 + (wide - 0.012) * t), y, 0.004)));
     }
     patchOf(trim, rows, front);
-    patchOf(trim, ROWS.slice(0, 6).map(([y, pay]) => [0.035, 0.11, 0.185].map((da) => {
-      const a = Math.PI / 2 - side * da, r = skirtRadius(y, a, pay + 0.005);
-      return v3(CEKET.cx + Math.cos(a) * r, y + (y === CHEM ? 0.004 : 0), CEKET.cz + Math.sin(a) * r);
-    })), front);
-    const rings = [0.6, 0.645, 0.689].map((x) => Array.from({ length: 16 }, (_, k) => {
-      const a = (k / 16) * TAU;
-      return trim.point(side * x, ARM.y - 0.012 + Math.cos(a) * (SLEEVE + 0.004), ARM.z + Math.sin(a) * (SLEEVE + 0.004));
+    patchOf(trim, [1.04, 0.96, 0.88, 0.8, 0.72, 0.64, HEM_Y + 0.004].map((y) => [0.035, 0.11, 0.185].map((da) => at(Math.PI / 2 - side * da, y, 0.005))), front);
+    const rings = [0.6, 0.645, 0.691].map((x) => Array.from({ length: 16 }, (_, k) => {
+      const a = (k / 16) * TAU, r = sleeveR(x) + 0.004;
+      return trim.point(side * x, AY + Math.cos(a) * r, ARM.z + Math.sin(a) * r);
     }));
-    const away = (x, y, z) => [0, y - ARM.y, z - ARM.z];
-    trim.strip(rings[0], rings[1], true, away);
-    trim.strip(rings[1], rings[2], true, away);
+    trim.strip(rings[0], rings[1], true, fromArm);
+    trim.strip(rings[1], rings[2], true, fromArm);
   }
-  const uv = (x, y, z) => (Math.abs(x) > 0.3 ? [(Math.atan2(y - ARM.y, z - ARM.z) / TAU) * 2, x * 5] : [x * 5 + z * 2, y * 5]);
+  const uv = (x, y, z) => (Math.abs(x) > 0.3 ? [(Math.atan2(y - AY, z - ARM.z) / TAU) * 2, x * 5] : [x * 5 + z * 2, y * 5]);
   root.add(build('sirma_isleme', [[trim, gold(), uv]]));
 
-  // Ön ortada pirinç düğme sırası (yakadan bele, kemerin altından eteğe)
+  // --- Ön ortada pirinç düğme sırası ---
   const buttons = new Surface();
-  for (const y of [1.41, 1.34, 1.27, 1.2, 1.135]) {
-    const c = chest(0, y, 0.004);
-    button(buttons, c, bodyNormal(c), 0.01);
+  for (const y of [1.44, 1.37, 1.3, 1.23, 1.165]) {
+    const { p, n } = onJacket(0, y, 0.003);
+    button(buttons, p, n, 0.01);
   }
-  for (const y of [1.0, 0.92, 0.84]) {
-    const r = skirtRadius(y, Math.PI / 2, 0.062 + 0.02 * S(1.04, CHEM, y));
-    button(buttons, v3(CEKET.cx, y, CEKET.cz + r), v3(0, 0, 1), 0.01);
-  }
+  for (const y of [1.0, 0.92, 0.84]) button(buttons, at(Math.PI / 2, y, 0.003), v3(0, 0, 1), 0.01);
   root.add(build('dugmeler', [[buttons, new THREE.MeshStandardMaterial({ name: 'pirinc_dugme', color: 0x8f7430, roughness: 0.5, metalness: 0.7 }), null]]));
 
-  // Kırmızı nişan kuşağı ve gümüş kemer: ceketin üstünde
-  root.add(buildNisanKusagi(0x8a1a1c, OFFSET + 0.01));
+  // --- Kırmızı nişan kuşağı ve gümüş kemer: ceketin üstünde ---
+  root.add(buildNisanKusagi(0x8a1a1c, OFFSET + 0.009));
   root.add(buildKemer(new THREE.MeshStandardMaterial({ name: 'kemer_gumus', color: 0x8d8c84, roughness: 0.5, metalness: 0.6, side: THREE.DoubleSide }), 0.053));
 
-  // Nişanlar: sol göğüste iki gümüş yıldız
+  // --- Nişanlar: sol göğüste iki gümüş yıldız ---
   const silver = new Surface(), centre = new Surface();
-  for (const [x, y, radius] of [[0.105, 1.445, 0.03], [0.125, 1.365, 0.033]]) {
-    const c = chest(x, y, 0.011), n = bodyNormal(c);
+  for (const [x, y, radiusStar] of [[0.105, 1.42, 0.03], [0.125, 1.34, 0.033]]) {
+    const { p: c, n } = onJacket(x, y, 0.011);
     const u = v3(1, 0, 0).addScaledVector(n, -n.x).normalize(), w = n.clone().cross(u);
     const pts = Array.from({ length: 16 }, (_, k) => {
-      const a = (k / 16) * TAU, r = k % 2 ? radius * 0.55 : radius;
-      const p = c.clone().addScaledVector(u, Math.cos(a) * r).addScaledVector(w, Math.sin(a) * r);
-      return silver.point(p.x, p.y, p.z);
+      const a = (k / 16) * TAU, r = k % 2 ? radiusStar * 0.55 : radiusStar;
+      const q = c.clone().addScaledVector(u, Math.cos(a) * r).addScaledVector(w, Math.sin(a) * r);
+      return silver.point(q.x, q.y, q.z);
     });
     const tip = c.clone().addScaledVector(n, 0.008);
     silver.fan(silver.point(tip.x, tip.y, tip.z), pts, () => n.toArray());
-    button(centre, c.clone().addScaledVector(n, 0.007), n, radius * 0.3);
+    button(centre, c.clone().addScaledVector(n, 0.007), n, radiusStar * 0.3);
   }
   root.add(build('nisanlar', [
     [silver, new THREE.MeshStandardMaterial({ name: 'gumus', color: 0xa3a39c, roughness: 0.4, metalness: 0.8, side: THREE.DoubleSide }), null],
