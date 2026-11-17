@@ -51,20 +51,26 @@ export function createKaput() {
     if (n.dot(ray.ray.direction) > 0) n.negate();
     return hit.point.clone().addScaledVector(n, lift);
   };
+  const coatTop = (x, z) => {
+    ray.set(v3(x, 1.75, z), v3(0, -1, 0));
+    const hit = ray.intersectObject(probe)[0];
+    return hit ? hit.point.y : 0;
+  };
   const collar = new Surface(), COLS = 44, GAP = 0.07;
   const grid = Array.from({ length: COLS + 1 }, (_, k) => {
     const a = Math.PI / 2 + GAP + ((TAU - 2 * GAP) * k) / COLS, dz = Math.sin(a);
     const theta = Math.min(k, COLS - k) * ((TAU - 2 * GAP) / COLS) + GAP, side = k < COLS / 2 ? 1 : -1; // ön ortadan açısal uzaklık
     const wing = Math.max(0, 1 - theta / 1.45) ** 1.1; // öne doğru büyüyen kanat
-    const base = neckline(dz), top = base + 0.036 - 0.01 * S(0.3, 1, dz);
+    const base = neckline(dz), top = base + 0.03 - 0.008 * S(0.3, 1, dz);
     const at3 = (r, y) => v3(Math.cos(a) * r, y, NZ + dz * r);
     const column = [at3(R + 0.002, base - 0.006), at3(R, top - 0.012), at3(R + 0.001, top), at3(R + 0.008, top + 0.003)];
     // Kanat: devrim çizgisinden uca; öne yakın sütunlar yana doğru açılarak sivri ucu oluşturur
-    const tipAngle = a + side * 0.3 * wing, tipRho = R + 0.046 + 0.08 * wing, tipY = base - 0.026 - 0.072 * wing;
-    for (const f of [0.16, 0.38, 0.68, 1]) {
-      const g = f ** 1.2, aa = a + (tipAngle - a) * g, rho = R + 0.008 + (tipRho - R - 0.008) * f, y = top + (tipY - top) * f;
-      // Devrim çizgisine yakın sıra havada kalır; sonrakiler kaputun yüzeyine yatar
-      column.push(f < 0.2 ? v3(Math.cos(aa) * (rho + 0.004), y + 0.004, NZ + Math.sin(aa) * (rho + 0.004)) : onCoat(aa, rho, y, 0.005 + 0.016 * (1 - f) ** 1.5));
+    const tipAngle = a + side * 0.2 * wing, tipRho = R + 0.023 + 0.04 * wing, tipY = base - 0.013 - 0.036 * wing;
+    // Yaprak devrim çizgisinden uca düz iner; hiçbir noktası kaputun yüzeyinin altına girmez
+    for (const f of [0.34, 0.67, 1]) {
+      const aa = a + (tipAngle - a) * f ** 1.2, rho = R + 0.008 + (tipRho - R - 0.008) * f;
+      const x = Math.cos(aa) * rho, z = NZ + Math.sin(aa) * rho;
+      column.push(v3(x, Math.max(top + 0.003 + (tipY - top - 0.003) * f, coatTop(x, z) + 0.006), z));
     }
     return column;
   });
@@ -74,9 +80,9 @@ export function createKaput() {
   // Kanatlarda küçük gümüş rütbe işareti
   const pips = new Surface();
   for (const k of [3, COLS - 3]) {
-    const c = grid[k], p = c[6].clone().lerp(c[7], 0.3), n = c[7].clone().sub(c[6]).cross(grid[k + 1][6].clone().sub(c[6])).normalize();
+    const c = grid[k], p = c[5].clone().lerp(c[6], 0.45), n = c[6].clone().sub(c[5]).cross(grid[k + 1][5].clone().sub(c[5])).normalize();
     if (n.z < 0) n.negate();
-    button(pips, p.addScaledVector(n, 0.002), n, 0.008);
+    button(pips, p.addScaledVector(n, 0.002), n, 0.006);
   }
   root.add(build('yaka', [[collar, cloth('yaka_bordo', BORDO), null], [pips, new THREE.MeshStandardMaterial({ name: 'gumus_isaret', color: 0x9a9a94, roughness: 0.5, metalness: 0.7 }), null]]));
 
