@@ -38,6 +38,10 @@ import { createAyasofya } from './ayasofya.js';
 import { createTunelGirisi } from './tunel.js';
 import { createMadenTuneli } from './maden.js';
 import { createMakamMezari } from './makam.js';
+import { createEvKiti, createOrnekEvler, createEvParca, EV_PARCALARI } from './evkit.js';
+
+// ?parca=<ad>: 'Ev parçası' modelinde gösterilecek kit parçası
+const PARCA = EV_PARCALARI.includes(new URLSearchParams(location.search).get('parca')) ? new URLSearchParams(location.search).get('parca') : EV_PARCALARI[0];
 import { createMezarSeti, createMezarTek, MEZAR_ADLARI } from './mezar_basliklar.js';
 
 // ?tas=<1-25>: 'Mezar taşı (tek)' modelinde gösterilecek taş
@@ -216,6 +220,24 @@ const models = {
     file: 'arap_camii.glb',
     target: new THREE.Vector3(0, 9, 0),
     distance: 95,
+  },
+  evOrnek: {
+    create: createOrnekEvler,
+    file: 'ornek_evler.glb',
+    target: new THREE.Vector3(0, 5, 0),
+    distance: 48,
+  },
+  evKiti: {
+    create: createEvKiti,
+    file: 'ev_kiti.glb',
+    target: new THREE.Vector3(0, 1.5, 2),
+    distance: 55,
+  },
+  evParca: {
+    create: () => createEvParca(PARCA),
+    file: `${PARCA}.glb`,
+    target: new THREE.Vector3(0, 1.5, 0),
+    distance: 9,
   },
   makam: {
     create: createMakamMezari,
