@@ -172,11 +172,11 @@ export function createSirmaliUniforma() {
 // Alternatif: aynı üniformanın bedene yapışmayan, bol kesim hali; koyu yeşil. Önü boğaza kadar kapalı,
 // dar yuvarlak dik yakalı, düğmeli. Ceket tek parça düzgün bir ağdır: etek ucundan koltuk altına yatay
 // halkalar, oradan yakaya her yönde aynı sayıda adımla çıkan omuz halkaları, iki yanda düz kol boruları.
-export function createSirmaliCeket() {
-  const root = new THREE.Group();
-  root.name = 'sirmali_ceket';
-  const GREEN = 0x16301f, gold = () => embroidery('#1a3a25', 'sirma_nakis_yesil');
-  const SEG = 40, CX = 0, CZ = -0.03, OFFSET = 0.04, HEM_Y = 0.58, WAIST = 1.1, PIT = 1.36, XS = 0.2;
+// Bol kesim, önü kapalı ceket/kaput gövdesi: tek parça düzgün ağ. Etek ucundan koltuk altına yatay
+// halkalar, oradan yakaya her yönde aynı sayıda adımla çıkan omuz halkaları, iki yanda düz kol boruları.
+// o: { offset (mankenden pay), rows (etek ucundan bele halka yükseklikleri), flare (etek açılması), sleeve (kol yarıçapı) }
+export function coatShell(o) {
+  const SEG = 40, CX = 0, CZ = -0.03, OFFSET = o.offset, HEM_Y = o.rows[0], WAIST = 1.1, PIT = 1.36, XS = 0.2;
   const lerp = (a, b, t) => a + (b - a) * t;
 
   // Gövde yarıçapı (a yönünde, y yüksekliğinde): mankenin 4 cm dışı; yanlarda kol köküne kadar
@@ -203,7 +203,7 @@ export function createSirmaliCeket() {
     if (y >= WAIST) return sdfRadius(a, y);
     let grow = 0;
     for (let yy = y; yy < WAIST; yy += 0.02) grow = Math.max(grow, hull(a, yy) - hull(a, WAIST));
-    return sdfRadius(a, WAIST) + grow + 0.04 * ((WAIST - y) / (WAIST - HEM_Y));
+    return sdfRadius(a, WAIST) + grow + o.flare * ((WAIST - y) / (WAIST - HEM_Y));
   };
   const at = (a, y, lift = 0) => v3(CX + Math.cos(a) * (radius(a, y) + lift), y, CZ + Math.sin(a) * (radius(a, y) + lift));
 
@@ -211,7 +211,7 @@ export function createSirmaliCeket() {
   const angles = Array.from({ length: SEG }, (_, k) => (k / SEG) * TAU);
   const add = (pts) => pts.map((p) => fabric.point(p.x, p.y, p.z));
   const outward = (x, y, z) => [x - CX, 0.25, z - CZ];
-  const ROW_Y = [HEM_Y, 0.66, 0.74, 0.82, 0.9, 0.98, 1.04, WAIST, 1.16, 1.22, 1.28, 1.32, PIT];
+  const ROW_Y = [...o.rows, WAIST, 1.16, 1.22, 1.28, 1.32, PIT];
   let before = add(angles.map((a) => at(a, HEM_Y, -0.007).setY(HEM_Y - 0.003)));
   for (const y of ROW_Y) {
     const row = add(angles.map((a) => at(a, y)));
@@ -251,7 +251,7 @@ export function createSirmaliCeket() {
     before = row;
   }
   // Kollar: gövdenin içinden başlayıp bileğe giden düz, bol borular
-  const AY = ARM.y - 0.006, sleeveR = (x) => 0.09 - 0.008 * S(0.3, 0.69, x) + 0.026 * S(0.34, 0.15, x);
+  const AY = ARM.y - 0.006, sleeveR = (x) => o.sleeve - 0.008 * S(0.3, 0.69, x) + 0.026 * S(0.34, 0.15, x);
   const sleeveRing = (side, x, r) => Array.from({ length: 16 }, (_, k) => fabric.point(side * x, AY + Math.cos((k / 16) * TAU) * r, ARM.z + Math.sin((k / 16) * TAU) * r));
   const fromArm = (x, y, z) => [0, y - AY, z - ARM.z];
   for (const side of [-1, 1]) {
@@ -263,8 +263,6 @@ export function createSirmaliCeket() {
     }
     fabric.strip(ring, sleeveRing(side, 0.687, sleeveR(0.69) - 0.008), true, fromArm);
   }
-  const cloak = cloth('ceket', GREEN);
-  root.add(build('ceket', [[fabric, cloak, null]]));
 
   // Ceketin yüzeyinde, önden bakınca (x, y) hizasındaki nokta (lift kadar dışarıda)
   const probe = new THREE.Mesh(fabric.geometry(), new THREE.MeshBasicMaterial({ side: THREE.DoubleSide }));
@@ -276,6 +274,16 @@ export function createSirmaliCeket() {
     if (n.z < 0) n.negate();
     return { p: hit.point.clone().addScaledVector(n, lift), n };
   };
+  return { fabric, at, onJacket, angles, R, NZ, neckline, sleeveR, AY, fromArm, probe };
+}
+
+export function createSirmaliCeket() {
+  const root = new THREE.Group();
+  root.name = 'sirmali_ceket';
+  const GREEN = 0x16301f, gold = () => embroidery('#1a3a25', 'sirma_nakis_yesil');
+  const { fabric, at, onJacket, angles, R, NZ, neckline, sleeveR, AY, fromArm } = coatShell({ offset: 0.04, rows: [0.58, 0.66, 0.74, 0.82, 0.9, 0.98, 1.04], flare: 0.04, sleeve: 0.09 });
+  const OFFSET = 0.04, HEM_Y = 0.58;
+  root.add(build('ceket', [[fabric, cloth('ceket', GREEN), null]]));
   const chest = (x, y, lift) => onJacket(x, y, lift).p;
 
   // --- Sırma: dik yaka, göğüs panoları, ön ortadan eteğe inen çift şerit, kol ağzı bantları ---
