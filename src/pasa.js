@@ -107,7 +107,7 @@ function buildKordon() {
 
 // ---------- Nişan kuşağı ----------
 // Sağ omuzdan sol kalçaya çapraz inen geniş koyu kurdele; ceketin üstünde yassı durur.
-function buildNisanKusagi() {
+export function buildNisanKusagi(color = 0x1b2420) {
   const s = new Surface();
   const WIDTH = 0.085, OFFSET = 0.013 + 0.007;
   const shoulder = v3(-0.135, 1.53, -0.045), hip = v3(0.165, 1.14, -0.03);
@@ -125,7 +125,7 @@ function buildNisanKusagi() {
   const out = (x, y, z) => [x - center.x, y - center.y, z - center.z];
   s.strip(rows.map((r) => r[0]), rows.map((r) => r[1]), true, out);
   s.strip(rows.map((r) => r[1]), rows.map((r) => r[2]), true, out);
-  return assemble('nisan_kusagi', [[s, cloth('nisan_kusagi', 0x1b2420)]]);
+  return assemble('nisan_kusagi', [[s, cloth('nisan_kusagi', color)]]);
 }
 
 // ---------- Nişanlar ----------
@@ -158,7 +158,7 @@ function buildNisanlar() {
 }
 
 // ---------- Kemer ----------
-function buildKemer() {
+export function buildKemer(material = gold('kemer_sirma')) {
   const belt = new Surface(), metal = new Surface();
   const B = { bottom: 1.055, width: 0.05, gap: 0.03 };
   const radius = (a) => {
@@ -182,7 +182,7 @@ function buildKemer() {
   const start = metal.indices.length;
   metal.indices.push(face[0], face[1], face[2], face[0], face[2], face[3]);
   metal.orient(start, () => [0, 0, 1]);
-  return assemble('kemer', [[belt, gold('kemer_sirma')], [metal, brass()]]);
+  return assemble('kemer', [[belt, material], [metal, brass()]]);
 }
 
 const PANTOLON = {
