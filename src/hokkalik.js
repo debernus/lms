@@ -1,9 +1,15 @@
 import * as THREE from 'three';
 import { canvasTexture } from './halk2.js';
 import { Part } from './arapcami.js';
+import fontUrl from '@fontsource/amiri/files/amiri-arabic-700-normal.woff2';
+
+// Etiket yazıları için Arap harfli font (Amiri, OFL)
+document.fonts.add(await new FontFace('AmiriHokka', `url(${fontUrl})`, { weight: '700' }).load());
+// Etiketler Osmanlıca: mavi, kırmızı, siyah
+const ETIKET = { mavi: 'ماوی', kirmizi: 'قرمزی', siyah: 'سیاه' };
 
 // Masa hokkalığı: önünde kalem oluğu olan ahşap tabla, arkada üç gözlü kutu. Soldaki iki gözün kapağı
-// kapalı (pirinç etiketler: BLUE, RED), sağdaki açık ve dik durur (BLACK); açık gözde seramik hokka ve
+// kapalı (pirinç etiketler Osmanlıca: mavi, kırmızı), sağdaki açık ve dik durur (siyah); açık gözde seramik hokka ve
 // tüy kalem. Eskimiş, çizik ahşap. 1 birim = 1 metre, Y yukarı, ön +Z, taban y = 0, merkezde.
 // Parçalar: hokkalik_govde, kapak_1, kapak_2, kapak_3 (açık), hokka, tuy_kalem.
 
@@ -46,7 +52,8 @@ export function createHokkalik() {
       g.stroke();
     }
   });
-  const label = (text) => canvasTexture('etiket_' + (text || 'bos'), 256, 72, (g) => {
+  const label = (key) => canvasTexture('etiket_' + (key || 'bos'), 256, 72, (g) => {
+    const text = ETIKET[key];
     const grad = g.createLinearGradient(0, 0, 0, 72);
     grad.addColorStop(0, '#b79a52');
     grad.addColorStop(0.5, '#8f7436');
@@ -61,14 +68,15 @@ export function createHokkalik() {
     g.lineWidth = 3;
     g.strokeRect(5, 5, 246, 62);
     g.fillStyle = 'rgba(40,28,10,0.85)';
-    g.font = 'bold 40px Georgia, "Times New Roman", serif';
+    g.font = '700 50px AmiriHokka';
+    g.direction = 'rtl';
     g.textAlign = 'center';
     g.textBaseline = 'middle';
-    if (text) g.fillText(text.split('').join(' '), 128, 38);
+    if (text) g.fillText(text, 128, 34);
   });
   const std = (name, o) => new THREE.MeshStandardMaterial({ name, roughness: 0.8, metalness: 0, ...o });
   const M = { ahsap: std('eski_ceviz', { map: wood }) };
-  for (const t of ['BLUE', 'RED', 'BLACK', '']) M['etiket_' + t] = std('pirinc_etiket_' + (t || 'bos'), { map: label(t), roughness: 0.5, metalness: 0.7 });
+  for (const t of ['mavi', 'kirmizi', 'siyah', '']) M['etiket_' + t] = std('pirinc_etiket_' + (t || 'bos'), { map: label(t), roughness: 0.5, metalness: 0.7 });
   const US = 0.16;
   const mesh = (part) => {
     const m = part.mesh(M);
@@ -108,7 +116,7 @@ export function createHokkalik() {
     const p = [c.clone().addScaledVector(right, -w / 2).addScaledVector(up, -h / 2), c.clone().addScaledVector(right, w / 2).addScaledVector(up, -h / 2), c.clone().addScaledVector(right, w / 2).addScaledVector(up, h / 2), c.clone().addScaledVector(right, -w / 2).addScaledVector(up, h / 2)];
     part.quad('etiket_' + text, p, [[0, 0], [1, 0], [1, 1], [0, 1]], normal);
   };
-  [['kapak_1', -HX - 0.004, -0.05, 'BLUE'], ['kapak_2', -0.047, 0.05, 'RED']].forEach(([name, x0, x1, text]) => {
+  [['kapak_1', -HX - 0.004, -0.05, 'mavi'], ['kapak_2', -0.047, 0.05, 'kirmizi']].forEach(([name, x0, x1, text]) => {
     const lid = new Part(name);
     lid.box('ahsap', x0, x1, TOP, TOP + 0.009, BACK - 0.005, 0.007, ALL, US, US);
     plate(lid, text, V((x0 + x1) / 2, TOP + 0.0098, -0.03), V(1, 0, 0), V(0, 0, -1), 0.056, 0.016, V(0, 1, 0));
@@ -117,7 +125,7 @@ export function createHokkalik() {
   // Açık kapak: arka kenarından menteşeli, dik durur; iç yüzü öne bakar
   const open = new Part('kapak_3');
   open.box('ahsap', 0.052, HX + 0.004, TOP - 0.004, TOP + 0.088, BACK - 0.01, BACK - 0.001, ALL, US, US);
-  plate(open, 'BLACK', V(0.103, TOP + 0.048, BACK - 0.0002), V(1, 0, 0), V(0, 1, 0), 0.062, 0.017, V(0, 0, 1));
+  plate(open, 'siyah', V(0.103, TOP + 0.048, BACK - 0.0002), V(1, 0, 0), V(0, 1, 0), 0.062, 0.017, V(0, 0, 1));
   plate(open, '', V(0.086, TOP + 0.012, BACK - 0.0002), V(1, 0, 0), V(0, 1, 0), 0.026, 0.012, V(0, 0, 1));
   mesh(open);
 
