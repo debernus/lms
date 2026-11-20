@@ -258,3 +258,141 @@ export function createKoltukBerjer() {
   root.add(wood.mesh(M), cloth.mesh(M));
   return root;
 }
+
+// ================= Makam koltuğu takımları (Osmanlı, 1900'ler) =================
+// Üç takım; her takımda bir yetkili subay koltuğu ve aynı deri ve ahşapla iki masa önü koltuğu.
+// Altı ayrı tasarım. Her koltuk kendi düğümünde ve kendi orijininde (taban y = 0, ön +Z).
+// o: { name, w (oturma yarı genişliği), d (derinlik), seat (kasa üstü), tilt, backH, width(v), top(u), buttons,
+//      arms: 'acik' | 'kapali' | 'yok', pad (kol üstü deri), legs: 'torna' | 'lule' | 'kare', arma (ay-yıldız madalyon) }
+const tufts = (v0, v1, n, wide = 0.5) => Array.from({ length: n }, (_, k) => [lerp(v0, v1, k / (n - 1)), k % 2 ? [-wide / 2, wide / 2] : [-wide, 0, wide]]);
+let armaMaterial = null;
+function arma() {
+  armaMaterial ??= new THREE.MeshStandardMaterial({
+    name: 'ay_yildiz_madalyon', roughness: 0.5, metalness: 0.75,
+    map: canvasTexture('ay_yildiz_madalyon', 128, 128, (g) => {
+      g.fillStyle = '#8f7436';
+      g.fillRect(0, 0, 128, 128);
+      g.strokeStyle = '#4a3a18';
+      g.lineWidth = 6;
+      g.beginPath();
+      g.arc(64, 64, 56, 0, TAU);
+      g.stroke();
+      // Hilal ve yıldız (kabartma görünümlü koyu-açık çift çizim)
+      for (const [dx, color] of [[1.5, '#3c2c10'], [0, '#d9c078']]) {
+        g.fillStyle = color;
+        g.beginPath();
+        g.arc(56 + dx, 64 + dx, 30, 0, TAU);
+        g.arc(66 + dx, 64 + dx, 24, 0, TAU, true);
+        g.fill('evenodd');
+        g.beginPath();
+        for (let k = 0; k < 10; k++) {
+          const a = (k / 10) * TAU - Math.PI / 2 + 0.3, r = k % 2 ? 5 : 12.5;
+          g.lineTo(84 + dx + Math.cos(a) * r, 64 + dx + Math.sin(a) * r);
+        }
+        g.fill();
+      }
+    }),
+  });
+  return armaMaterial;
+}
+function chair(o) {
+  const root = new THREE.Group();
+  root.name = o.name;
+  const M = { ...materials(o.leather, o.wood, o.seed), arma: arma() }, wood = new Part('koltuk_ahsap'), cloth = new Part('koltuk_doseme');
+  const W = o.w, ZB = -o.d / 2, ZF = o.d / 2, SH = o.seat, closed = o.arms === 'kapali';
+  const FW = closed ? W + 0.08 : W, legX = closed ? W + 0.023 : W - 0.035, legTop = SH - (closed ? 0.03 : 0.07);
+  // Kasa, minder, ön etekte çivi dizisi
+  wood.box('ahsap', -FW, FW, SH - 0.08, SH, ZB, ZF, ['+x', '-x', '+z', '-z', '+y', '-y'], 0.5, 0.25);
+  wood.box('ahsap', -FW - 0.008, FW + 0.008, SH - 0.018, SH + 0.002, ZB - 0.008, ZF + 0.008, ['+x', '-x', '+z', '-z', '+y', '-y'], 0.5, 0.25);
+  const inner = closed ? W - 0.024 : W - 0.015;
+  cushion(cloth, 'deri', -inner, inner, ZB + 0.06, ZF + 0.005, SH, SH + (closed ? 0.06 : 0.03), SH + (closed ? 0.13 : 0.09));
+  cloth.quad('civi', [V(-FW + 0.02, SH - 0.05, ZF + 0.0015), V(FW - 0.02, SH - 0.05, ZF + 0.0015), V(FW - 0.02, SH - 0.028, ZF + 0.0015), V(-FW + 0.02, SH - 0.028, ZF + 0.0015)], [[0, 0], [Math.round((FW - 0.02) / 0.011), 0], [Math.round((FW - 0.02) / 0.011), 1], [0, 1]], V(0, 0, 1));
+  // Ayaklar
+  for (const s of [-1, 1]) {
+    const x = s * legX, z = ZF - 0.04, k = legTop / 0.372;
+    if (o.legs === 'torna') lathe(wood, 'ahsap', x, z, [[0.004, 0], [0.019, 0.004], [0.025, 0.022], [0.015, 0.05], [0.02, 0.075], [0.03, 0.255], [0.021, 0.285], [0.035, 0.305], [0.021, 0.33], [0.031, 0.345], [0.031, 0.372]].map(([r, y]) => [r, y * k]));
+    else if (o.legs === 'lule') sweep(wood, 'ahsap', [[0, 1, 0], [0.023, 0.8, 0.023], [0.017, 0.48, 0.015], [-0.007, 0.19, -0.007], [-0.005, 0.065, 0.001], [0.003, 0, 0.011]].map(([dx, f, dz]) => V(x + s * dx, legTop * f, z + dz)), (t) => { const r = lerp(0.042, 0.017, S(0.1, 0.85, t)) + 0.006 * S(0.85, 1, t); return [r, r]; }, 6);
+    else sweep(wood, 'ahsap', [V(x, legTop, z), V(x, legTop * 0.5, z), V(x, 0, z)], (t) => [0.03 - 0.011 * t, 0.03 - 0.011 * t], 4);
+    sweep(wood, 'ahsap', [V(x, legTop, ZB + 0.035), V(x, legTop * 0.7, ZB + 0.015), V(x + s * 0.006, legTop * 0.35, ZB - 0.04), V(x + s * 0.015, 0, ZB - 0.115)], (t) => [0.03 - 0.009 * t, 0.03 - 0.009 * t], 4);
+  }
+  // Sırt
+  const b = back(wood, cloth, M, { origin: [SH + (closed ? 0.06 : 0), ZB + 0.06], tilt: o.tilt, H: o.backH, frame: 0.03, width: o.width, top: o.top, buttons: o.buttons });
+  if (o.arma) {
+    const cs = Math.cos(o.tilt), sn = Math.sin(o.tilt), c = b.at(0, 1, 0.04), n = V(0, sn, cs), r = 0.034;
+    const pt = (a) => c.clone().add(V(Math.cos(a) * r, Math.sin(a) * r * cs, -Math.sin(a) * r * sn));
+    for (let q = 0; q < 16; q++) {
+      const a0 = (q / 16) * TAU, a1 = ((q + 1) / 16) * TAU;
+      wood.tri('arma', [c, pt(a0), pt(a1)], [[0.5, 0.5], [0.5 + 0.5 * Math.cos(a0), 0.5 + 0.5 * Math.sin(a0)], [0.5 + 0.5 * Math.cos(a1), 0.5 + 0.5 * Math.sin(a1)]], n);
+      wood.quad('ahsap', [pt(a0), pt(a1), pt(a1).addScaledVector(n, -0.012), pt(a0).addScaledVector(n, -0.012)], [[0, 0], [0.1, 0], [0.1, 0.1], [0, 0.1]], V(Math.cos((a0 + a1) / 2), Math.sin((a0 + a1) / 2), 0));
+    }
+  }
+  // Kollar
+  if (o.arms === 'acik') {
+    const armY = SH + 0.24;
+    for (const s of [-1, 1]) {
+      const post = ZF - 0.17, a = SH + 0.02, e = armY - 0.025;
+      wood.box('ahsap', s * W - 0.033, s * W + 0.033, SH - 0.09, a, post - 0.035, post + 0.035, ['+x', '-x', '+z', '-z', '+y', '-y'], 0.3, 0.3);
+      lathe(wood, 'ahsap', s * W, post, [[0.022, a], [0.03, a + 0.02], [0.016, a + 0.045], [0.026, a + 0.075], [0.015, a + 0.13], [0.017, e]]);
+      const x = s * (W + 0.012);
+      sweep(wood, 'ahsap', [b.at(s, 0.25 / o.backH, 0.01), V(s * (W + 0.005), armY, ZB + 0.21), V(x, armY - 0.002, ZF - 0.18), V(x, armY - 0.01, ZF - 0.08), V(x, armY - 0.028, ZF - 0.038), V(x, armY - 0.058, ZF - 0.024), V(x, armY - 0.086, ZF - 0.038), V(x, armY - 0.092, ZF - 0.064), V(x, armY - 0.078, ZF - 0.078)], (t) => [0.03 - 0.006 * S(0.75, 1, t), 0.018 - 0.004 * S(0.75, 1, t)], 6);
+      if (o.pad) cushion(cloth, 'deri', x - 0.03, x + 0.03, ZB + 0.2, ZF - 0.1, armY + 0.012, armY + 0.02, armY + 0.04);
+    }
+  } else if (closed) {
+    const dx = W - 0.03 - 0.262, dy = SH - 0.34, z0 = ZB + 0.035, z1 = ZF - 0.013;
+    const SECTION = [[0.262, 0.34], [0.262, 0.56], [0.272, 0.615], [0.305, 0.648], [0.355, 0.645], [0.393, 0.615], [0.402, 0.57], [0.38, 0.535], [0.366, 0.44], [0.362, 0.34]];
+    const STATIONS = [[0, 0, 1], [0.26, 0.004, 1], [0.62, 0.008, 1], [0.9, 0.014, 1.02], [1, 0.016, 1.03]];
+    for (const s of [-1, 1]) {
+      const rows = STATIONS.map(([t, out, grow]) => SECTION.map(([x, y]) => V(s * (0.33 + dx + (x - 0.33) * grow + out), dy + 0.34 + (y - 0.34) * (y > 0.5 ? grow : 1), lerp(z0, z1, t))));
+      grid(cloth, 'deri', SECTION.map((_, i) => rows.map((r) => r[i])), (p) => V(p.x - s * (0.33 + dx), p.y > dy + 0.6 ? 1 : 0, 0), 2);
+      for (const [row, n] of [[rows[0], V(0, 0, -1)], [rows[rows.length - 1], V(0, 0, 1)]]) {
+        const c = row.reduce((acc, p) => acc.add(p), V(0, 0, 0)).multiplyScalar(1 / row.length);
+        for (let q = 0; q < row.length; q++) cloth.tri('deri', [c, row[q], row[(q + 1) % row.length]], [[0.5, 0.5], [0, 0], [1, 0]], n);
+      }
+      const front = rows[rows.length - 1].map((p) => p.clone().setZ(z1 + 0.01)), curl = front[3].clone().lerp(front[5], 0.5);
+      sweep(wood, 'ahsap', [front[1].clone().setY(SH - 0.04), ...front.slice(1, 7), curl.clone().add(V(s * 0.012, -0.03, 0)), curl.clone().add(V(-s * 0.012, -0.026, 0)), curl.clone().add(V(-s * 0.014, -0.006, 0))], (t) => [0.016 - 0.005 * S(0.8, 1, t), 0.018], 4, V(0, 0, 1));
+      sweep(wood, 'ahsap', [...front.slice(6), front[front.length - 1].clone().setY(SH - 0.04)], () => [0.014, 0.018], 4, V(0, 0, 1));
+      const lowA = rows[0][SECTION.length - 1], lowB = rows[rows.length - 1][SECTION.length - 1], len = lowA.distanceTo(lowB), x = s * 0.0015;
+      cloth.quad('civi', [lowA.clone().add(V(x, 0.004, 0)), lowB.clone().add(V(x, 0.004, 0)), lowB.clone().add(V(x, 0.026, 0)), lowA.clone().add(V(x, 0.026, 0))], [[0, 0], [len / 0.022, 0], [len / 0.022, 1], [0, 1]], V(s, 0, 0));
+    }
+  }
+  root.add(wood.mesh(M), cloth.mesh(M));
+  return root;
+}
+const TAKIMLAR = [
+  { // 1) Bordo deri, koyu ceviz: açık kollu, torna ayaklı
+    leather: '#5a1a1a', wood: '#3c2a1e', seed: 21,
+    subay: { w: 0.31, d: 0.58, seat: 0.44, tilt: 0.17, backH: 0.8, arms: 'acik', pad: true, legs: 'torna', arma: true, width: (v) => 0.25 + 0.045 * v - 0.035 * S(0.9, 1, v), top: (u) => 0.76 + 0.04 * Math.exp(-((u / 0.35) ** 2)) - 0.05 * Math.abs(u) ** 8, buttons: tufts(0.26, 0.86, 6) },
+    on: { w: 0.26, d: 0.5, seat: 0.44, tilt: 0.16, backH: 0.5, arms: 'acik', legs: 'torna', width: (v) => 0.21 + 0.03 * v - 0.03 * S(0.88, 1, v), top: (u) => 0.48 + 0.02 * Math.exp(-((u / 0.35) ** 2)) - 0.04 * Math.abs(u) ** 8, buttons: tufts(0.4, 0.8, 3) },
+  },
+  { // 2) Koyu yeşil deri, maun: subay koltuğu kapalı kollu berjer, lüle ayaklı
+    leather: '#1c3526', wood: '#55281a', seed: 22,
+    subay: { w: 0.3, d: 0.6, seat: 0.36, tilt: 0.16, backH: 0.8, arms: 'kapali', legs: 'lule', arma: true, width: (v) => 0.2 + 0.11 * Math.sin(Math.PI * 0.74 * v ** 1.5), top: (u) => 0.77 + 0.03 * Math.exp(-((u / 0.3) ** 2)) - 0.075 * Math.abs(u) ** 2.4 - 0.05 * Math.abs(u) ** 10, buttons: tufts(0.3, 0.88, 6, 0.55) },
+    on: { w: 0.25, d: 0.5, seat: 0.43, tilt: 0.16, backH: 0.52, arms: 'acik', legs: 'lule', width: (v) => 0.15 + 0.085 * Math.sin(Math.PI * 0.8 * v ** 1.2), top: (u) => 0.52 - 0.07 * Math.abs(u) ** 2.2 - 0.04 * Math.abs(u) ** 10, buttons: tufts(0.4, 0.8, 3, 0.45) },
+  },
+  { // 3) Taba deri, abanoz siyahı ahşap: dik ve yüksek sırtlı, köşeli ayaklı; ön koltuklar kolsuz
+    leather: '#6a4424', wood: '#1c1512', seed: 23,
+    subay: { w: 0.3, d: 0.56, seat: 0.44, tilt: 0.12, backH: 0.88, arms: 'acik', pad: true, legs: 'kare', arma: true, width: () => 0.255, top: (u) => 0.88 - 0.07 * Math.abs(u) ** 2 - 0.03 * Math.abs(u) ** 12, buttons: tufts(0.24, 0.84, 7) },
+    on: { w: 0.24, d: 0.48, seat: 0.45, tilt: 0.12, backH: 0.5, arms: 'yok', legs: 'kare', width: () => 0.2, top: (u) => 0.5 - 0.045 * Math.abs(u) ** 2 - 0.03 * Math.abs(u) ** 12, buttons: tufts(0.4, 0.8, 3) },
+  },
+];
+export function createKoltukTakimlari() {
+  const root = new THREE.Group();
+  root.name = 'koltuk_takimlari';
+  TAKIMLAR.forEach((t, i) => {
+    const set = new THREE.Group(), common = { leather: t.leather, wood: t.wood };
+    set.name = `takim_${i + 1}`;
+    set.position.x = (i - 1) * 2.3;
+    const officer = chair({ ...common, ...t.subay, seed: t.seed, name: `takim_${i + 1}_subay_koltugu` });
+    officer.position.z = -0.75;
+    const front = chair({ ...common, ...t.on, seed: t.seed + 40, name: `takim_${i + 1}_on_koltuk_a` }), second = front.clone();
+    second.name = `takim_${i + 1}_on_koltuk_b`;
+    // Ön koltuklar masanın önünde, subay koltuğuna dönük
+    front.position.set(-0.55, 0, 0.8);
+    front.rotation.y = Math.PI - 0.3;
+    second.position.set(0.55, 0, 0.8);
+    second.rotation.y = Math.PI + 0.3;
+    set.add(officer, front, second);
+    root.add(set);
+  });
+  return root;
+}

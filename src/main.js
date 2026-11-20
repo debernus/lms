@@ -41,7 +41,7 @@ import { createMadenTuneli } from './maden.js';
 import { createMakamMezari } from './makam.js';
 import { createHokkalik } from './hokkalik.js';
 import { createGazLambasi } from './gaz_lambasi.js';
-import { createKoltukAcikKollu, createKoltukBerjer } from './koltuk.js';
+import { createKoltukAcikKollu, createKoltukBerjer, createKoltukTakimlari } from './koltuk.js';
 import { createSiperHatti, createSiperKiti, createSiperParca, SIPER_PARCALARI } from './siper.js';
 
 // ?siper=<ad>: 'Siper parçası' modelinde gösterilecek parça
@@ -263,6 +263,12 @@ const models = {
     create: () => createEvParca(PARCA),
     file: `${PARCA}.glb`,
     target: new THREE.Vector3(0, 1.5, 0),
+    distance: 9,
+  },
+  koltukTakim: {
+    create: createKoltukTakimlari,
+    file: 'koltuk_takimlari.glb',
+    target: new THREE.Vector3(0, 0.55, 0),
     distance: 9,
   },
   koltuk1: {
