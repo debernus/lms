@@ -36,6 +36,7 @@ import { createIhram } from './ihram.js';
 import { createMezarTasi, createMezarTasiEski, createMezarTasiEski2 } from './mezar.js';
 import { createArapCamii } from './arapcami.js';
 import { createAyasofya } from './ayasofya.js';
+import { createYildizSarayi } from './yildiz.js';
 import { createTunelGirisi } from './tunel.js';
 import { createMadenTuneli } from './maden.js';
 import { createMakamMezari } from './makam.js';
@@ -216,6 +217,12 @@ const models = {
     file: 'tunel_girisi.glb',
     target: new THREE.Vector3(0, 4, 3),
     distance: 34,
+  },
+  yildiz: {
+    create: createYildizSarayi,
+    file: 'yildiz_sarayi.glb',
+    target: new THREE.Vector3(0, 9, 0),
+    distance: 110,
   },
   ayasofya: {
     create: createAyasofya,

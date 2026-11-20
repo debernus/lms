@@ -179,8 +179,8 @@ export class Part {
     const g = new THREE.BufferGeometry();
     for (const [mat, data] of this.groups) {
       g.addGroup(pos.length / 3, data.pos.length / 3, mats.length);
-      pos.push(...data.pos);
-      uv.push(...data.uv);
+      for (const v of data.pos) pos.push(v); // (yayma işleci büyük dizilerde yığını taşırır)
+      for (const v of data.uv) uv.push(v);
       mats.push(materials[mat]);
     }
     g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
