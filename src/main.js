@@ -40,6 +40,7 @@ import { createYildizSarayi } from './yildiz.js';
 import { createTunelGirisi } from './tunel.js';
 import { createMadenTuneli } from './maden.js';
 import { createMakamMezari } from './makam.js';
+import { createSatranc } from './satranc.js';
 import { createHokkalik } from './hokkalik.js';
 import { createGazLambasi } from './gaz_lambasi.js';
 import { createKoltukAcikKollu, createKoltukBerjer, createKoltukTakimlari } from './koltuk.js';
@@ -301,6 +302,12 @@ const models = {
     file: 'hokkalik.glb',
     target: new THREE.Vector3(0, 0.06, 0),
     distance: 0.8,
+  },
+  satranc: {
+    create: createSatranc,
+    file: 'satranc_takimi.glb',
+    target: new THREE.Vector3(0, 0.04, 0),
+    distance: 1.3,
   },
   makam: {
     create: createMakamMezari,
