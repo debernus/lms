@@ -39,6 +39,7 @@ import { createAyasofya } from './ayasofya.js';
 import { createTunelGirisi } from './tunel.js';
 import { createMadenTuneli } from './maden.js';
 import { createMakamMezari } from './makam.js';
+import { createGazLambasi } from './gaz_lambasi.js';
 import { createKoltukAcikKollu, createKoltukBerjer } from './koltuk.js';
 import { createSiperHatti, createSiperKiti, createSiperParca, SIPER_PARCALARI } from './siper.js';
 
@@ -274,6 +275,12 @@ const models = {
     file: 'koltuk_berjer.glb',
     target: new THREE.Vector3(0, 0.55, 0),
     distance: 3.2,
+  },
+  gazLambasi: {
+    create: createGazLambasi,
+    file: 'gaz_lambasi.glb',
+    target: new THREE.Vector3(0, 0.2, 0),
+    distance: 1.3,
   },
   makam: {
     create: createMakamMezari,
