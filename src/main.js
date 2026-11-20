@@ -39,6 +39,7 @@ import { createAyasofya } from './ayasofya.js';
 import { createTunelGirisi } from './tunel.js';
 import { createMadenTuneli } from './maden.js';
 import { createMakamMezari } from './makam.js';
+import { createKoltukAcikKollu, createKoltukBerjer } from './koltuk.js';
 import { createSiperHatti, createSiperKiti, createSiperParca, SIPER_PARCALARI } from './siper.js';
 
 // ?siper=<ad>: 'Siper parçası' modelinde gösterilecek parça
@@ -261,6 +262,18 @@ const models = {
     file: `${PARCA}.glb`,
     target: new THREE.Vector3(0, 1.5, 0),
     distance: 9,
+  },
+  koltuk1: {
+    create: createKoltukAcikKollu,
+    file: 'koltuk_acik_kollu.glb',
+    target: new THREE.Vector3(0, 0.55, 0),
+    distance: 3.2,
+  },
+  koltuk2: {
+    create: createKoltukBerjer,
+    file: 'koltuk_berjer.glb',
+    target: new THREE.Vector3(0, 0.55, 0),
+    distance: 3.2,
   },
   makam: {
     create: createMakamMezari,
