@@ -29,7 +29,35 @@ function shapeOf(points, holes = []) {
   }
   return s;
 }
-const crease = (g) => toCreasedNormals(g, 0.7);
+const crease = (g0) => {
+  const g = toCreasedNormals(g0, 0.7), uv = g.attributes.uv;
+  for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * 25, uv.getY(i) * 25); // doku ölçüsü: 1 karo = 4 cm
+  return g;
+};
+// Yükseklik çizimi (beyaz = yüksek) → normal haritası
+function normalMapOf(name, w, h, draw, strength = 2) {
+  const c = document.createElement('canvas');
+  c.width = w;
+  c.height = h;
+  const g = c.getContext('2d');
+  g.fillStyle = '#808080';
+  g.fillRect(0, 0, w, h);
+  draw(g);
+  const src = g.getImageData(0, 0, w, h).data, out = g.createImageData(w, h);
+  const at = (x, y) => src[(((y + h) % h) * w + ((x + w) % w)) * 4] / 255;
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const dx = (at(x + 1, y) - at(x - 1, y)) * strength, dy = (at(x, y - 1) - at(x, y + 1)) * strength, len = Math.hypot(dx, dy, 1), i = (y * w + x) * 4;
+    out.data[i] = (-dx / len * 0.5 + 0.5) * 255;
+    out.data[i + 1] = (-dy / len * 0.5 + 0.5) * 255;
+    out.data[i + 2] = (1 / len * 0.5 + 0.5) * 255;
+    out.data[i + 3] = 255;
+  }
+  g.putImageData(out, 0, 0);
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.name = name;
+  return t;
+}
 // Yan görünüşten (z, y) kalınlığı t olan, kenarları yuvarlatılmış parça; X boyunca ortalı
 function plate(points, t, bevel, holes = []) {
   const g = new THREE.ExtrudeGeometry(shapeOf(points, holes), { depth: t - 2 * bevel, bevelEnabled: true, bevelSize: bevel, bevelThickness: bevel, bevelSegments: 3, curveSegments: 1 });
@@ -78,9 +106,111 @@ export function createRevolverCelik() {
       g.fillRect(rand() * 256, rand() * 256, 30 + rand() * 120, 1);
     }
   });
-  const steel = new THREE.MeshStandardMaterial({ name: 'mat_paslanmaz', map: steelMap, roughness: 0.48, metalness: 0.5 });
+  let seed2 = 17;
+  const rnd = () => ((seed2 = (seed2 * 1664525 + 1013904223) >>> 0) / 4294967296);
+  // Kumlanmış çelik: çok ince pütür
+  const blast = normalMapOf('kumlama', 256, 256, (g) => {
+    for (let i = 0; i < 9000; i++) {
+      const v = 90 + rnd() * 76;
+      g.fillStyle = `rgb(${v},${v},${v})`;
+      g.fillRect(rnd() * 256, rnd() * 256, 1.6, 1.6);
+    }
+  }, 1.2);
+  // Baklava tırtıl (horoz mahmuzu, tetik)
+  const knurl = normalMapOf('tirtil', 64, 64, (g) => {
+    g.strokeStyle = '#ffffff';
+    g.lineWidth = 3;
+    for (let i = -64; i < 128; i += 8) {
+      g.beginPath();
+      g.moveTo(i, 0);
+      g.lineTo(i + 64, 64);
+      g.moveTo(i + 64, 0);
+      g.lineTo(i, 64);
+      g.stroke();
+    }
+  }, 3);
+  knurl.repeat.set(4, 4);
+  // Kabza: yanlarda pütürlü paneller, üstte madalyon (u: çevre, v: boy)
+  const panel = (g, fill, dots) => {
+    for (const u of [0.25, 0.75]) {
+      g.save();
+      g.beginPath();
+      g.ellipse(u * 256, 300, 44, 150, 0, 0, TAU);
+      g.clip();
+      if (fill) {
+        g.fillStyle = fill;
+        g.fillRect(0, 0, 256, 512);
+      }
+      for (let i = 0; i < 2600; i++) {
+        g.fillStyle = dots();
+        g.beginPath();
+        g.arc(u * 256 - 46 + rnd() * 92, 148 + rnd() * 304, 1.4 + rnd() * 1.2, 0, TAU);
+        g.fill();
+      }
+      g.restore();
+    }
+  };
+  const gripMap = canvasTexture('kabza_kaucuk', 256, 512, (g) => {
+    g.fillStyle = '#131314';
+    g.fillRect(0, 0, 256, 512);
+    panel(g, '#0c0c0d', () => `rgba(60,60,64,${0.25 + rnd() * 0.35})`);
+    for (const u of [0.25, 0.75]) {
+      g.strokeStyle = '#2e2f33';
+      g.lineWidth = 2.5;
+      g.beginPath();
+      g.ellipse(u * 256, 300, 46, 152, 0, 0, TAU);
+      g.stroke();
+      const grad = g.createRadialGradient(u * 256 - 4, 92, 2, u * 256, 96, 15);
+      grad.addColorStop(0, '#c4c7cc');
+      grad.addColorStop(1, '#6e7278');
+      g.fillStyle = grad;
+      g.beginPath();
+      g.arc(u * 256, 96, 14, 0, TAU);
+      g.fill();
+      g.strokeStyle = '#3a3c40';
+      g.lineWidth = 2;
+      g.stroke();
+      g.beginPath();
+      g.arc(u * 256, 96, 8, 0, TAU);
+      g.stroke();
+    }
+  });
+  const gripNormal = normalMapOf('kabza_kabartma', 256, 512, (g) => {
+    panel(g, '#606060', () => '#d8d8d8');
+    for (const u of [0.25, 0.75]) {
+      g.fillStyle = '#c0c0c0';
+      g.beginPath();
+      g.arc(u * 256, 96, 14, 0, TAU);
+      g.fill();
+    }
+  }, 3);
+  gripNormal.wrapS = gripNormal.wrapT = gripMap.wrapS = gripMap.wrapT = THREE.ClampToEdgeWrapping;
+  const steel = new THREE.MeshStandardMaterial({ name: 'mat_paslanmaz', map: steelMap, normalMap: blast, normalScale: new THREE.Vector2(0.35, 0.35), roughness: 0.48, metalness: 0.5 });
   const black = new THREE.MeshStandardMaterial({ name: 'siyah_celik', color: 0x17181a, roughness: 0.5, metalness: 0.45 });
-  const rubber = new THREE.MeshStandardMaterial({ name: 'siyah_kaucuk', color: 0x101011, roughness: 0.92, metalness: 0 });
+  const knurled = new THREE.MeshStandardMaterial({ name: 'siyah_tirtilli', color: 0x17181a, normalMap: knurl, normalScale: new THREE.Vector2(1.2, 1.2), roughness: 0.55, metalness: 0.45 });
+  const rubber = new THREE.MeshStandardMaterial({ name: 'siyah_kaucuk', map: gripMap, normalMap: gripNormal, normalScale: new THREE.Vector2(1.4, 1.4), roughness: 0.9, metalness: 0 });
+  // Kazıma yazı: saydam zeminli (maskeli) çıkartma
+  const engraving = (text) => {
+    const map = canvasTexture('kazima_' + text.replace(/[^A-Za-z0-9]/g, ''), 512, 48, (g) => {
+      g.clearRect(0, 0, 512, 48);
+      g.font = 'italic 700 34px Arial, Helvetica, sans-serif';
+      g.textAlign = 'center';
+      g.textBaseline = 'middle';
+      g.fillStyle = 'rgba(235,238,242,0.9)';
+      g.fillText(text, 257, 26.5);
+      g.fillStyle = '#2a2c30';
+      g.fillText(text, 256, 25);
+    });
+    return new THREE.MeshStandardMaterial({ name: map.name, map, transparent: false, alphaTest: 0.4, roughness: 0.6, metalness: 0.3, side: THREE.DoubleSide });
+  };
+  const decal = (text, w, h, x, y, z) => {
+    const g = new THREE.BufferGeometry(), s = Math.sign(x);
+    g.setAttribute('position', new THREE.Float32BufferAttribute([x, y - h / 2, z + s * w / 2, x, y - h / 2, z - s * w / 2, x, y + h / 2, z - s * w / 2, x, y + h / 2, z + s * w / 2], 3));
+    g.setAttribute('uv', new THREE.Float32BufferAttribute([0, 0, 1, 0, 1, 1, 0, 1], 2));
+    g.setIndex([0, 1, 2, 0, 2, 3]);
+    g.computeVertexNormals();
+    return [g, engraving(text)];
+  };
   const hole = new THREE.MeshStandardMaterial({ name: 'delik', color: 0x030303, roughness: 1 });
   const add = (name, geometry, material) => {
     const m = new THREE.Mesh(geometry, material);
@@ -142,6 +272,43 @@ export function createRevolverCelik() {
     new THREE.CircleGeometry(0.018, 24).toNonIndexed().translate(0, 0, 0.03), // göz dipleri
   ]), hole);
 
+  // ---------- Yüzey ayrıntıları: vidalar, pimler, top çentikleri, nişan çizgileri, kazıma yazılar ----------
+  const screws = [], slots = [];
+  const screw = (side, z, y, r = 0.0021) => {
+    screws.push(new THREE.CylinderGeometry(r, r * 1.04, 0.0011, 14).toNonIndexed().rotateZ(Math.PI / 2).translate(side * 0.0088, y, z));
+    slots.push(new THREE.BoxGeometry(0.0003, 0.00045, r * 1.75).toNonIndexed().rotateX(rnd() * 3).translate(side * 0.00936, y, z));
+  };
+  const pin = (z, y, r = 0.0012) => {
+    for (const side of [-1, 1]) slots.push(new THREE.CylinderGeometry(r, r, 0.0003, 10).toNonIndexed().rotateZ(Math.PI / 2).translate(side * 0.0085, y, z));
+  };
+  // Sağ yan kapak vidaları, sol yanda top kolu vidası
+  screw(-1, -0.028, 0.012);
+  screw(-1, -0.03, -0.022);
+  screw(-1, 0.036, -0.0245, 0.0018);
+  screw(-1, 0.05, 0.026, 0.0016);
+  screw(1, 0.05, -0.0235, 0.0019);
+  screw(1, -0.03, -0.018, 0.0017);
+  pin(-0.021, 0.019); // horoz mili
+  pin(0.008, -0.026); // tetik mili
+  pin(-0.006, -0.0245, 0.0009);
+  // Gez vidaları (üstte ve yanda)
+  screws.push(new THREE.CylinderGeometry(0.0017, 0.0017, 0.0008, 12).toNonIndexed().translate(0, 0.038, -0.004));
+  slots.push(new THREE.BoxGeometry(0.003, 0.0003, 0.0004).toNonIndexed().translate(0, 0.0385, -0.004));
+  // Üst bantta yansıma kesici enine çizgiler
+  for (let k = 0; k < 26; k++) slots.push(new THREE.BoxGeometry(0.0098, 0.0002, 0.0005).toNonIndexed().translate(0, 0.0339, 0.012 + k * 0.0017));
+  // Namlu ağzında içe pahlı taç
+  slots.push(new THREE.RingGeometry(0.0048, 0.0062, 20).toNonIndexed().translate(0, BY, Z1 + 0.00005));
+  add('revolver_vidalar', merge(screws), steel);
+  add('revolver_ayrintilar', merge(slots), hole);
+  // Top kilit çentikleri: gözlerin hizasında, arka kuşakta
+  const notches = [];
+  for (let k = 0; k < 6; k++) notches.push(new THREE.BoxGeometry(0.0034, 0.0008, 0.0052).toNonIndexed().translate(0.0016, 0.0191, 0.0072).rotateZ((k / 6) * TAU + TAU / 12));
+  add('revolver_top_centikleri', merge(notches), hole);
+  for (const [text, w, h, x, y, z] of [['.38 SPECIAL', 0.046, 0.0043, R1 + 0.00012, BY + 0.0005, 0.12], ['MADE IN TÜRKİYE', 0.034, 0.0032, 0.00846, -0.0252, 0.022]]) {
+    const [g, m] = decal(text, w, h, x, y, z);
+    add('revolver_yazi_' + (text.startsWith('.') ? 'kalibre' : 'mensei'), g, m);
+  }
+
   // ---------- Nişangâh: ayarlı gez, rampalı arpacık ----------
   add('revolver_nisangah', merge([
     box(0.012, 0.0045, 0.03, 0.0355, -0.006),
@@ -152,8 +319,8 @@ export function createRevolverCelik() {
   ]), black);
 
   // ---------- Horoz ve tetik ----------
-  add('revolver_horoz', plate(smooth([[-0.019, 0.02], [-0.013, 0.033], [-0.02, 0.04], [-0.034, 0.047], [-0.045, 0.046], [-0.046, 0.04], [-0.036, 0.036], [-0.034, 0.02]], 48), 0.0085, 0.0018), black);
-  add('revolver_tetik', plate(smooth([[0.003, -0.03], [0.014, -0.03], [0.0125, -0.042], [0.0165, -0.056], [0.0125, -0.0585], [0.0055, -0.046]], 40), 0.0072, 0.002), black);
+  add('revolver_horoz', plate(smooth([[-0.019, 0.02], [-0.013, 0.033], [-0.02, 0.04], [-0.034, 0.047], [-0.045, 0.046], [-0.046, 0.04], [-0.036, 0.036], [-0.034, 0.02]], 48), 0.0085, 0.0018), knurled);
+  add('revolver_tetik', plate(smooth([[0.003, -0.03], [0.014, -0.03], [0.0125, -0.042], [0.0165, -0.056], [0.0125, -0.0585], [0.0055, -0.046]], 40), 0.0072, 0.002), knurled);
 
   // ---------- Kabza: parmak oluklu kauçuk; kesitler eğik bir eksen boyunca dizilir ----------
   const A = [-0.04, -0.018], B = [-0.07, -0.128], len = Math.hypot(B[0] - A[0], B[1] - A[1]);
@@ -168,7 +335,7 @@ export function createRevolverCelik() {
       const a = (k / RING) * TAU, co = Math.cos(a), si = Math.sin(a), ru = (co > 0 ? front : back) * close;
       const e = Math.sign(co) * Math.abs(co) ** 0.85, w = Math.sign(si) * Math.abs(si) ** 0.8; // köşeleri dolgun kesit
       pos.push(w * half * close, c[1] + u[1] * e * ru, c[0] + u[0] * e * ru);
-      uv.push(k / RING, t);
+      uv.push(k / RING, 1 - t); // doku üstten alta
     }
   }
   for (let j = 0; j < ROWS; j++) for (let k = 0; k < RING; k++) {
