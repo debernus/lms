@@ -6,7 +6,8 @@ import { Part, opening } from './arapcami.js';
 // sekizgen balkon ve fener katı, dilimli kurşun külah, bayrak direği; kulenin önünde ve yanında kiremit
 // çatılı iki yapı, sütunlu giriş, arkada mazgallı avlu duvarı. Su yoktur.
 // 1 birim = 1 metre, Y yukarı, giriş cephesi +Z, taban (su düzeyi) y = 0, rıhtım merkezde.
-// Parçalar: rihtim, kayalar, kule, kule_kulahi, yapilar, avlu_duvari, bayrak.
+// Önde L biçimli ahşap iskele, arka sağ köşede kayalık üstünde kırmızı-beyaz küçük deniz feneri.
+// Parçalar: rihtim, kayalar, kule, kule_kulahi, yapilar, avlu_duvari, bayrak, iskele, deniz_feneri, fener_kayaliklari.
 
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
 const TAU = Math.PI * 2, Y0 = 1.5; // rıhtım üstü
@@ -130,7 +131,11 @@ export function createKizKulesi() {
     pencere: std('kepenkli_pencere', { map: T.windowMap }),
     fener: std('fener_penceresi', { map: T.lantern }),
     kapi: std('kapi_ahsap', { color: 0x5a3018 }),
-    kursun: std('kursun', { color: 0x767a80, roughness: 0.6, metalness: 0.3 }),
+    kursun: std('kursun', { color: 0xaeb2b6, roughness: 0.6, metalness: 0.25 }),
+    iskele: std('iskele_tahtasi', { map: T.blocks('iskele_tahtasi', '#2e2a26', 1, 14, 70, 100, [8, 0, -10]) }),
+    fener_beyaz: std('fener_beyaz', { color: 0xe8e4da }),
+    fener_kirmizi: std('fener_kirmizi', { color: 0xb02a22 }),
+    fener_cam: std('fener_cami', { color: 0xf2e6a8, emissive: 0x8a7a30, roughness: 0.3 }),
     korkuluk: std('demir_korkuluk', { map: T.rail, alphaTest: 0.5 }),
     bayrak: std('bayrak', { map: T.flag }),
     karanlik: std('karanlik', { color: 0x15130f }),
@@ -238,11 +243,11 @@ export function createKizKulesi() {
   // ---------- Yapılar: kiremit beşik çatılı iki kanat, sütunlu giriş ----------
   const house = new Part('yapilar');
   // Beşik çatılı kanat: mahya X boyunca
-  const wing = (x0, x1, z0, z1, h, rise) => {
+  const wing = (x0, x1, z0, z1, h, rise, wall = 'siva') => {
     const y1 = Y0 + h, zm = (z0 + z1) / 2, ov = 0.55, slope = rise / ((z1 - z0) / 2), ye = y1 - ov * slope, top = y1 + rise, len = Math.hypot((z1 - z0) / 2 + ov, top - ye);
-    house.box('siva', x0, x1, Y0, y1, z0, z1, ['+x', '-x', '+z', '-z'], 3, 3);
+    house.box(wall, x0, x1, Y0, y1, z0, z1, ['+x', '-x', '+z', '-z'], 3, 3);
     house.box('tas', x0 - 0.06, x1 + 0.06, Y0, Y0 + 0.5, z0 - 0.06, z1 + 0.06, ['+x', '-x', '+z', '-z', '+y'], 3, 3);
-    for (const x of [x0, x1]) house.tri('siva', [V(x, y1, z0), V(x, y1, z1), V(x, top, zm)], [[0, 0], [1, 0], [0.5, 1]], V(x === x0 ? -1 : 1, 0, 0));
+    for (const x of [x0, x1]) house.tri(wall, [V(x, y1, z0), V(x, y1, z1), V(x, top, zm)], [[z0 / 3, y1 / 3], [z1 / 3, y1 / 3], [zm / 3, top / 3]], V(x === x0 ? -1 : 1, 0, 0));
     for (const s of [-1, 1]) {
       const ze = s < 0 ? z0 - ov : z1 + ov;
       house.quad('kiremit', [V(x0 - ov, ye, ze), V(x1 + ov, ye, ze), V(x1 + ov, top, zm), V(x0 - ov, top, zm)], [[x0 / 2, 0], [x1 / 2, 0], [x1 / 2, len / 2], [x0 / 2, len / 2]], V(0, 1, s));
@@ -255,7 +260,7 @@ export function createKizKulesi() {
   // Ön kanat (giriş), arka kanat (daha yüksek)
   const F = { x0: -12.5, x1: 9.5, z0: 3, z1: 9.5 }, R2 = { x0: -4.6, x1: 12, z0: -5, z1: 3 };
   wing(F.x0, F.x1, F.z0, F.z1, 3.9, 1.7);
-  wing(R2.x0, R2.x1, R2.z0, R2.z1, 5.4, 2.0);
+  wing(R2.x0, R2.x1, R2.z0, R2.z1, 5.4, 2.0, 'tas'); // arka yapı taş duvarlı
   for (const x of [-10.2, -7.2, 1.8, 4.6, 7.4]) win(V(x, Y0 + 1.15, F.z1), X, Z);
   for (const z of [4.6, 7.9]) {
     win(V(F.x1, Y0 + 1.15, z), nZ, X);
@@ -296,5 +301,48 @@ export function createKizKulesi() {
   wallRun(CW.x1 - TK, CW.x1, CW.z0 + TK, CW.z1);
   opening(court, { P: V(CW.x0, Y0, -9.5), R: Z, N: nX, a: 0.7, h: 2.3, pane: 'karanlik', frame: 'tas', f: 0.2, depth: 0.08 });
   add(court);
+
+  // ---------- İskele: ön sol köşeden denize uzanan L biçimli ahşap iskele, kazıklar üstünde ----------
+  const pier = new Part('iskele'), PZ0 = QZ[1] + 1.3, DECK = [0.75, 1.0];
+  const deck = (x0, x1, z0, z1) => {
+    pier.box('iskele', x0, x1, DECK[0], DECK[1], z0, z1, ALL, 2.5, 2.5);
+    for (let x = x0 + 0.4; x <= x1 - 0.3; x += 2.4) for (const z of z1 - z0 > 4 ? [z0 + 0.5, (z0 + z1) / 2, z1 - 0.5] : [z0 + 0.4, z1 - 0.4]) pier.box('karanlik', x - 0.2, x + 0.2, 0, DECK[0], z - 0.2, z + 0.2, ['+x', '-x', '+z', '-z'], 1, 1);
+  };
+  deck(-15, -11.4, PZ0, PZ0 + 9.5);
+  deck(-15, -4.5, PZ0 + 6.2, PZ0 + 9.5);
+  for (const [x, z] of [[-15, PZ0 + 9.5], [-4.5, PZ0 + 9.5], [-4.5, PZ0 + 6.2], [-11.4, PZ0 + 3]]) pier.box('karanlik', x - 0.16, x + 0.16, DECK[1], DECK[1] + 0.7, z - 0.16, z + 0.16, ALL, 1, 1); // babalar
+  add(pier);
+
+  // ---------- Küçük deniz feneri: arka sağ köşede kayalık üstünde, kırmızı-beyaz kuşaklı ----------
+  const light = new Part('deniz_feneri'), LX = QX[1] + 5.5, LZ = QZ[0] + 1.5;
+  const circle = (r, y, n = 10) => Array.from({ length: n }, (_, k) => V(LX + Math.cos((k / n) * TAU) * r, y, LZ + Math.sin((k / n) * TAU) * r));
+  const shell = (mat, r0, y0, r1, y1, n = 10) => {
+    const a = circle(r0, y0, n), b = circle(r1, y1, n);
+    for (let k = 0; k < n; k++) light.quad(mat, [a[k], a[(k + 1) % n], b[(k + 1) % n], b[k]], flat, V(a[k].x + a[(k + 1) % n].x - 2 * LX, y1 === y0 ? (r1 < r0 ? 4 : -4) : 0.3, a[k].z + a[(k + 1) % n].z - 2 * LZ));
+  };
+  const G = 1.1; // kayalığın üstü
+  shell('kaldirim', 1.5, 0, 1.4, G);
+  shell('kaldirim', 1.4, G, 0, G);
+  const levels = [[0.95, G, 'fener_beyaz'], [0.88, G + 1.1, 'fener_kirmizi'], [0.8, G + 2.2, 'fener_beyaz'], [0.72, G + 3.3, 'fener_kirmizi'], [0.66, G + 4.2]];
+  for (let j = 0; j + 1 < levels.length; j++) shell(levels[j][2], levels[j][0], levels[j][1], levels[j + 1][0], levels[j + 1][1]);
+  const GY = G + 4.2;
+  shell('fener_beyaz', 0.66, GY, 1.0, GY + 0.12); // sahanlık
+  shell('fener_beyaz', 1.0, GY + 0.12, 0.5, GY + 0.12);
+  shell('korkuluk', 0.98, GY + 0.12, 0.98, GY + 0.6);
+  shell('fener_cam', 0.5, GY + 0.12, 0.5, GY + 0.95, 8); // ışık odası
+  shell('fener_kirmizi', 0.62, GY + 0.95, 0.5, GY + 0.95, 8);
+  shell('fener_kirmizi', 0.62, GY + 0.95, 0.06, GY + 1.5, 8);
+  shell('fener_kirmizi', 0.06, GY + 1.5, 0.01, GY + 1.9, 6);
+  add(light);
+  // Fenerin çevresinde ve rıhtıma bağlanan dilde kayalar
+  const extra = new Part('fener_kayaliklari'), saved = rocks.groups;
+  rocks.groups = extra.groups;
+  for (let k = 0; k < 16; k++) {
+    const a = (k / 16) * TAU + rand() * 0.3, d = 1.9 + rand() * 1.6;
+    rock(LX + Math.cos(a) * d, LZ + Math.sin(a) * d, 0.7 + rand() * 0.8);
+  }
+  for (let k = 0; k < 6; k++) rock(QX[1] + 1.6 + k * 0.7 + rand() * 0.5, LZ + (rand() - 0.5) * 2.2, 0.8 + rand() * 0.6);
+  rocks.groups = saved;
+  add(extra);
   return root;
 }
