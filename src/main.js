@@ -43,6 +43,7 @@ import * as kit_ahsap from './kit_ahsap.js';
 import * as kit_kerpic from './kit_kerpic.js';
 import * as kit_ahir from './kit_ahir.js';
 import * as kit_sokak from './kit_sokak.js';
+import * as sebil from './sebil.js';
 import { createDuvarFeneri, createTavanFeneri } from './fener.js';
 import { createGemi as createGemiGezilir, createKayik as createKayikGezilir } from './tekne.js';
 import { createTunelGirisi } from './tunel.js';
@@ -300,6 +301,18 @@ const models = {
     file: 'tavan_feneri.glb',
     target: new THREE.Vector3(0, -0.5, 0),
     distance: 2.0,
+  },
+  sebil: {
+    create: sebil.createSebil,
+    file: 'sebil.glb',
+    target: new THREE.Vector3(0, 3.5, 0),
+    distance: 26,
+  },
+  sebilOrnek: {
+    create: sebil.createOrnek,
+    file: 'ornek_sebil.glb',
+    target: new THREE.Vector3(0, 3, 0),
+    distance: 42,
   },
   sultanahmet: {
     create: createSultanahmet,
