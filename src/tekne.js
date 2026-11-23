@@ -4,8 +4,8 @@ const { V, ALL, SIDES, PAINT, TAU, box, quad, tri, beam, cyl, lathe } = K;
 
 // Gezilebilir tekneler (Osmanlı, 1900'ler): yelkenli yük gemisi (kamaralı) ve balıkçı kayığı.
 // 1 birim = 1 metre, Y yukarı, pruva +Z, su hattı y = 0, tekne boyca ortalı.
-// Gemi: güverte y = 1,2; sancak (+X) bordasında borda kapısı ve iskele tahtası; kıç güvertede kamara
-// (kapısı gerçek açıklık, içinde ranza, masa, sandık). Kayık: döşeme tahtası y = 0,1, üç oturak.
+// Gemi: güverte y = 1,2; sancak (+X) bordasında borda kapısı ve gövdeye yaslı borda merdiveni; kıç güvertede kamara
+// (kapısı gerçek açıklık, içinde ranza, masa, sandık). Kayık: döşeme tahtası y = 0,1, üç oturak; biniş için ek parça yok.
 // Gövde kabuğu çift taraflıdır (içeriden de görünür). Çarpışma eklenmemiştir.
 
 const M = K.materials('tekne', {
@@ -121,14 +121,16 @@ export function createGemi() {
   beam(rig, 'kereste', V(0, 2.5, -8.4), V(0, 2.25, -7.0), 0.07, 0.07); // yeke
   add(rig);
 
-  // ---------- İskele tahtası: borda kapısından rıhtıma ----------
-  const plank = new K.Part('iskele_tahtasi'), gz = (H.st(15).z + H.st(17).z) / 2, gx = H.half(gz);
-  beam(plank, 'guverte', V(gx - 0.2, D + 0.03, gz), V(gx + 3.6, 0.75, gz), 0.05, 0.75);
-  for (let k = 1; k < 8; k++) {
-    const p0 = V(gx - 0.2, D + 0.03, gz).lerp(V(gx + 3.6, 0.75, gz), k / 8);
-    box(plank, 'kereste', p0.x - 0.02, p0.x + 0.02, p0.y + 0.02, p0.y + 0.05, gz - 0.36, gz + 0.36, ['+x', '-x', '+y'], 1);
+  // ---------- Borda merdiveni: borda kapısının altında, gövdeye yaslı (dışarı taşmaz) ----------
+  const ladder = new K.Part('borda_merdiveni'), gz = (H.st(15).z + H.st(17).z) / 2, sg = H.st(16);
+  const side = (y) => sg.b * Math.max(0.05, (y - sg.keel) / (D - sg.keel)) ** 0.4 + 0.045; // gövde yüzeyinin hemen dışı
+  const YS = [D + 0.05, 0.95, 0.7, 0.45, 0.2, -0.05];
+  for (const dz of [-0.24, 0.24]) for (let k = 0; k + 1 < YS.length; k++) beam(ladder, 'kereste', V(side(YS[k]), YS[k], gz + dz), V(side(YS[k + 1]), YS[k + 1], gz + dz), 0.05, 0.04, k === 0 || k === YS.length - 2);
+  for (let k = 0; k < 6; k++) {
+    const y = D - 0.08 - k * 0.22;
+    box(ladder, 'kereste', side(y) - 0.02, side(y) + 0.045, y - 0.02, y + 0.02, gz - 0.24, gz + 0.24, ['+x', '+y', '-y'], 1);
   }
-  add(plank);
+  add(ladder);
   root.traverse((o) => { if (o.isMesh) o.castShadow = o.receiveShadow = true; });
   return root;
 }
@@ -154,10 +156,6 @@ export function createKayik() {
     const zo = -0.2, yo = H.st(Math.round(((zo / P.L + 1) * P.N) / 2)).sheer;
     cyl(fit, 'kereste', V(s * w(zo, yo), yo, zo), V(s * w(zo, yo), yo + 0.12, zo), 0.02, 4);
   }
-  // Rıhtıma uzanan binme tahtası ve iç basamak
-  const zg = -1.4, yg = H.st(Math.round(((zg / P.L + 1) * P.N) / 2)).sheer + 0.02, xg = w(zg, yg);
-  beam(fit, 'guverte', V(xg - 0.15, yg + 0.02, zg), V(xg + 1.9, yg + 0.15, zg), 0.04, 0.5);
-  box(fit, 'guverte', xg - 0.55, xg - 0.12, D, 0.36, zg - 0.25, zg + 0.25, ['+x', '-x', '+z', '-z', '+y'], 1);
   lathe(fit, 'halat', -0.3, 2.0, [[0.2, D], [0.2, D + 0.08], [0.08, D + 0.08], [0.08, D]], 8);
   lathe(fit, 'kereste', 0.3, -2.9, [[0.11, D], [0.14, D + 0.25], [0.12, D + 0.25, 'karanlik'], [0, D + 0.2]], 8); // kova
   add(H.deck);
