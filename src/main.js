@@ -47,6 +47,7 @@ import * as sebil from './sebil.js';
 import * as kit_meydan from './kit_meydan.js';
 import * as kit_araba from './kit_araba.js';
 import * as sehir_halki from './sehir_halki.js';
+import * as kit_siper from './kit_siper.js';
 import { createDuvarFeneri, createTavanFeneri } from './fener.js';
 import { createGemi as createGemiGezilir, createKayik as createKayikGezilir } from './tekne.js';
 import { createTunelGirisi } from './tunel.js';
@@ -330,6 +331,18 @@ const models = {
     target: new THREE.Vector3(0, 0.95, 0),
     distance: 4.8,
     extras: loadMannequin,
+  },
+  kitSiper2: {
+    create: kit_siper.createKit,
+    file: 'siper_kiti.glb',
+    target: new THREE.Vector3(0, 0.5, 0),
+    distance: 60,
+  },
+  ornekSiper2: {
+    create: kit_siper.createOrnek,
+    file: 'ornek_siper.glb',
+    target: new THREE.Vector3(7, 0.8, 0),
+    distance: 32,
   },
   kitAraba: {
     create: kit_araba.createKit,
