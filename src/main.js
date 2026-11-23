@@ -43,6 +43,7 @@ import * as kit_ahsap from './kit_ahsap.js';
 import * as kit_kerpic from './kit_kerpic.js';
 import * as kit_ahir from './kit_ahir.js';
 import * as kit_sokak from './kit_sokak.js';
+import { createGemi as createGemiGezilir, createKayik as createKayikGezilir } from './tekne.js';
 import { createTunelGirisi } from './tunel.js';
 import { createMadenTuneli } from './maden.js';
 import { createMakamMezari } from './makam.js';
@@ -274,6 +275,18 @@ const models = {
     file: 'kit_sokak_ornekler.glb',
     target: new THREE.Vector3(0, 2, 0),
     distance: 50,
+  },
+  gemiGezilir: {
+    create: createGemiGezilir,
+    file: 'gemi_gezilebilir.glb',
+    target: new THREE.Vector3(0, 3, 0),
+    distance: 40,
+  },
+  kayikGezilir: {
+    create: createKayikGezilir,
+    file: 'kayik_gezilebilir.glb',
+    target: new THREE.Vector3(0, 0.4, 0),
+    distance: 14,
   },
   sultanahmet: {
     create: createSultanahmet,
