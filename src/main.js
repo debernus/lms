@@ -39,6 +39,9 @@ import { createAyasofya } from './ayasofya.js';
 import { createYildizSarayi } from './yildiz.js';
 import { createKizKulesi } from './kizkulesi.js';
 import { createSultanahmet } from './sultanahmet.js';
+import * as kit_ahsap from './kit_ahsap.js';
+import * as kit_kerpic from './kit_kerpic.js';
+import * as kit_ahir from './kit_ahir.js';
 import { createTunelGirisi } from './tunel.js';
 import { createMadenTuneli } from './maden.js';
 import { createMakamMezari } from './makam.js';
@@ -222,6 +225,42 @@ const models = {
     file: 'tunel_girisi.glb',
     target: new THREE.Vector3(0, 4, 3),
     distance: 34,
+  },
+  kitAhsap: {
+    create: kit_ahsap.createKit,
+    file: 'kit_ahsap.glb',
+    target: new THREE.Vector3(0, 1.5, 0),
+    distance: 60,
+  },
+  ornekAhsap: {
+    create: kit_ahsap.createOrnekler,
+    file: 'kit_ahsap_ornekler.glb',
+    target: new THREE.Vector3(0, 4, 0),
+    distance: 50,
+  },
+  kitKerpic: {
+    create: kit_kerpic.createKit,
+    file: 'kit_kerpic.glb',
+    target: new THREE.Vector3(0, 1.5, 0),
+    distance: 60,
+  },
+  ornekKerpic: {
+    create: kit_kerpic.createOrnekler,
+    file: 'kit_kerpic_ornekler.glb',
+    target: new THREE.Vector3(0, 4, 0),
+    distance: 50,
+  },
+  kitAhir: {
+    create: kit_ahir.createKit,
+    file: 'kit_ahir.glb',
+    target: new THREE.Vector3(0, 1.5, 0),
+    distance: 60,
+  },
+  ornekAhir: {
+    create: kit_ahir.createOrnekler,
+    file: 'kit_ahir_ornekler.glb',
+    target: new THREE.Vector3(0, 4, 0),
+    distance: 50,
   },
   sultanahmet: {
     create: createSultanahmet,
