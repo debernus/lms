@@ -46,6 +46,7 @@ import * as kit_sokak from './kit_sokak.js';
 import * as sebil from './sebil.js';
 import * as kit_meydan from './kit_meydan.js';
 import * as kit_araba from './kit_araba.js';
+import * as sehir_halki from './sehir_halki.js';
 import { createDuvarFeneri, createTavanFeneri } from './fener.js';
 import { createGemi as createGemiGezilir, createKayik as createKayikGezilir } from './tekne.js';
 import { createTunelGirisi } from './tunel.js';
@@ -321,6 +322,14 @@ const models = {
     file: 'meydan_kiti.glb',
     target: new THREE.Vector3(0, 2, 0),
     distance: 110,
+  },
+  // Şehir halkı kıyafetleri: ?kiyafet=<ad> ile seçilir (adlar: sehir_halki.js KIYAFET_ADLARI)
+  sehirHalki: {
+    create: () => sehir_halki.createSehir(new URLSearchParams(location.search).get('kiyafet') || 'esnaf'),
+    file: `${new URLSearchParams(location.search).get('kiyafet') || 'esnaf'}.glb`,
+    target: new THREE.Vector3(0, 0.95, 0),
+    distance: 4.8,
+    extras: loadMannequin,
   },
   kitAraba: {
     create: kit_araba.createKit,
