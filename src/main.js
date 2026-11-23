@@ -44,6 +44,7 @@ import * as kit_kerpic from './kit_kerpic.js';
 import * as kit_ahir from './kit_ahir.js';
 import * as kit_sokak from './kit_sokak.js';
 import * as sebil from './sebil.js';
+import * as kit_meydan from './kit_meydan.js';
 import { createDuvarFeneri, createTavanFeneri } from './fener.js';
 import { createGemi as createGemiGezilir, createKayik as createKayikGezilir } from './tekne.js';
 import { createTunelGirisi } from './tunel.js';
@@ -313,6 +314,18 @@ const models = {
     file: 'ornek_sebil.glb',
     target: new THREE.Vector3(0, 3, 0),
     distance: 42,
+  },
+  kitMeydan: {
+    create: kit_meydan.createKit,
+    file: 'meydan_kiti.glb',
+    target: new THREE.Vector3(0, 2, 0),
+    distance: 110,
+  },
+  ornekMeydan: {
+    create: kit_meydan.createOrnek,
+    file: 'ornek_meydan.glb',
+    target: new THREE.Vector3(0, 3, 2),
+    distance: 75,
   },
   sultanahmet: {
     create: createSultanahmet,
@@ -707,3 +720,4 @@ renderer.setAnimationLoop(() => {
 });
 
 showModel('stall');
+

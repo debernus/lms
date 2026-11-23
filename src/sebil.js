@@ -9,7 +9,7 @@ const { V, ALL, OUT, SIDES, PAINT, TAU, box, lath, quad, tri, lathe } = K;
 // Duvar kiti: modül 3,0 m; parça 3,0 m geniş, 3,0 m yüksek; orijin alt kenarın ortası, dış yüz +Z,
 //   gövde Z -0,4 … 0. Parçalar: tas_duvar, _pencere, _2pencere, _kemerli, _kapi, _yikik, _dar, tas_kose, tas_sacak.
 
-const marble = (g, w, h, rand) => {
+export const marble = (g, w, h, rand) => {
   g.fillStyle = '#d6d2c6';
   g.fillRect(0, 0, w, h);
   g.filter = 'blur(6px)';
@@ -32,7 +32,7 @@ const marble = (g, w, h, rand) => {
     g.fillRect(rand() * w, rand() * h, 1 + rand() * 2, 4 + rand() * 20);
   }
 };
-const ashlar = (g, w, h, rand) => {
+export const ashlar = (g, w, h, rand) => {
   g.fillStyle = '#5e594e';
   g.fillRect(0, 0, w, h);
   for (let r = 0; r < 6; r++) {
@@ -95,7 +95,7 @@ const lattice = (g, w, h, rand, arch = false) => {
     g.strokeRect(4, 4, w - 8, h - 8);
   }
 };
-const bars = (g, w, h) => {
+export const bars = (g, w, h) => {
   g.fillStyle = '#17130f';
   g.fillRect(0, 0, w, h);
   g.strokeStyle = '#3a342a';
@@ -103,7 +103,7 @@ const bars = (g, w, h) => {
   for (let x = 16; x < w; x += 28) g.strokeRect(x, 0, 0.01, h);
   for (let y = 16; y < h; y += 28) g.strokeRect(0, y, w, 0.01);
 };
-const mossTile = (g, w, h, rand) => {
+export const mossTile = (g, w, h, rand) => {
   PAINT.kiremit(g, w, h, rand);
   g.filter = 'blur(5px)';
   for (let i = 0; i < 26; i++) {
