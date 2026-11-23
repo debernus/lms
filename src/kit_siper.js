@@ -146,6 +146,7 @@ function kutukDuvar(P, rand, o = {}) {
   }
   for (const x of o.posts ?? [-0.75, 0.75]) kazik(P, rand, x);
   toprakGovde(P, rand, L, o.top);
+  bx(P, 'toprak', -L, L, -0.1, 0.015, -0.13, 0, '-z'); // en alt kütüğün altını kapatan eşik
 }
 // Kum torbası: uçları büzülmüş, altı yassı yastık
 function torba(P, rand, c, yaw = 0, { len = 0.58, w = 0.3, h = 0.185, n = 6, fine = false } = {}) {
