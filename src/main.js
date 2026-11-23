@@ -42,6 +42,7 @@ import { createSultanahmet } from './sultanahmet.js';
 import * as kit_ahsap from './kit_ahsap.js';
 import * as kit_kerpic from './kit_kerpic.js';
 import * as kit_ahir from './kit_ahir.js';
+import * as kit_sokak from './kit_sokak.js';
 import { createTunelGirisi } from './tunel.js';
 import { createMadenTuneli } from './maden.js';
 import { createMakamMezari } from './makam.js';
@@ -260,6 +261,18 @@ const models = {
     create: kit_ahir.createOrnekler,
     file: 'kit_ahir_ornekler.glb',
     target: new THREE.Vector3(0, 4, 0),
+    distance: 50,
+  },
+  kitSokak: {
+    create: kit_sokak.createKit,
+    file: 'kit_sokak.glb',
+    target: new THREE.Vector3(0, 1.5, 6),
+    distance: 75,
+  },
+  ornekSokak: {
+    create: kit_sokak.createOrnekler,
+    file: 'kit_sokak_ornekler.glb',
+    target: new THREE.Vector3(0, 2, 0),
     distance: 50,
   },
   sultanahmet: {
