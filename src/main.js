@@ -45,6 +45,7 @@ import * as kit_ahir from './kit_ahir.js';
 import * as kit_sokak from './kit_sokak.js';
 import * as sebil from './sebil.js';
 import * as kit_meydan from './kit_meydan.js';
+import * as kit_araba from './kit_araba.js';
 import { createDuvarFeneri, createTavanFeneri } from './fener.js';
 import { createGemi as createGemiGezilir, createKayik as createKayikGezilir } from './tekne.js';
 import { createTunelGirisi } from './tunel.js';
@@ -320,6 +321,12 @@ const models = {
     file: 'meydan_kiti.glb',
     target: new THREE.Vector3(0, 2, 0),
     distance: 110,
+  },
+  kitAraba: {
+    create: kit_araba.createKit,
+    file: 'at_arabasi_kiti.glb',
+    target: new THREE.Vector3(0, 1, 1),
+    distance: 40,
   },
   ornekMeydan: {
     create: kit_meydan.createOrnek,
