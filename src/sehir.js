@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import * as K from './kit_ortak.js';
-import { yuz, cephe, kutu, halka } from './hazire_yapilari.js';
+import { yuz, cephe, kutu, halka, kemer } from './hazire_yapilari.js';
 const { V, TAU, Part } = K;
 
 // Eski İstanbul şehir paketi: 32 ev, merdiven ve yokuş parçaları, istinat ve bahçe duvarları, dükkân önü parçaları.
@@ -14,7 +14,7 @@ const lekele = (g, w, h, r, n, c, a, s = 0.1) => { for (let k = 0; k < n; k++) {
 const tuglaCiz = (g, x0, y0, x1, y1, r) => { g.fillStyle = '#6e6252'; g.fillRect(x0, y0, x1 - x0, y1 - y0); for (let y = y0, row = 0; y < y1; y += 13, row++) for (let x = x0 - (row % 2 ? 18 : 0); x < x1; x += 36) { g.fillStyle = rgb(ton(r, [122, 86, 72], 0.14)); g.fillRect(x + 1, y + 1, 34, 11); } };
 const yagmurIzi = (g, w, h, r, n = 14, a = 0.3) => { for (let k = 0; k < n; k++) { const x = r() * w, L = 50 + r() * 190, ww = 6 + r() * 26, gr = g.createLinearGradient(0, 0, 0, L); gr.addColorStop(0, `rgba(40,32,24,${a * (0.5 + r() * 0.5)})`); gr.addColorStop(1, 'rgba(40,32,24,0)'); g.fillStyle = gr; g.fillRect(x, 0, ww, L); } };
 // Kir katmanı: saçak altı ve dip koyulaşır, iri lekeler ve aşağı süzülen izler (düz, temiz görünüşü kırar)
-const kirlet = (g, w, h, r, k = 1) => { let gr = g.createLinearGradient(0, 0, 0, h * 0.16); gr.addColorStop(0, `rgba(24,20,16,${0.5 * k})`); gr.addColorStop(1, 'rgba(24,20,16,0)'); g.fillStyle = gr; g.fillRect(0, 0, w, h * 0.16); gr = g.createLinearGradient(0, h * 0.8, 0, h); gr.addColorStop(0, 'rgba(30,26,20,0)'); gr.addColorStop(1, `rgba(30,26,20,${0.42 * k})`); g.fillStyle = gr; g.fillRect(0, h * 0.8, w, h * 0.2); lekele(g, w, h, r, 26, '26,22,18', 0.22 * k, 0.22); lekele(g, w, h, r, 16, '70,80,56', 0.12 * k, 0.16); yagmurIzi(g, w, h, r, 16, 0.34 * k); for (let i = 0; i < 2600; i++) { g.fillStyle = r() < 0.6 ? `rgba(20,16,12,${r() * 0.16})` : `rgba(235,230,215,${r() * 0.09})`; g.fillRect(r() * w, r() * h, 1 + r() * 2, 1 + r() * 3); } };
+const kirlet = (g, w, h, r, k = 1) => { let gr = g.createLinearGradient(0, 0, 0, h * 0.16); gr.addColorStop(0, `rgba(24,20,16,${0.5 * k})`); gr.addColorStop(1, 'rgba(24,20,16,0)'); g.fillStyle = gr; g.fillRect(0, 0, w, h * 0.16); gr = g.createLinearGradient(0, h * 0.8, 0, h); gr.addColorStop(0, 'rgba(30,26,20,0)'); gr.addColorStop(1, `rgba(30,26,20,${0.42 * k})`); g.fillStyle = gr; g.fillRect(0, h * 0.8, w, h * 0.2); lekele(g, w, h, r, 70, '26,22,18', 0.13 * k, 0.07); lekele(g, w, h, r, 30, '70,80,56', 0.09 * k, 0.06); yagmurIzi(g, w, h, r, 16, 0.34 * k); for (let i = 0; i < 2600; i++) { g.fillStyle = r() < 0.6 ? `rgba(20,16,12,${r() * 0.16})` : `rgba(235,230,215,${r() * 0.09})`; g.fillRect(r() * w, r() * h, 1 + r() * 2, 1 + r() * 3); } };
 const siva = (base, dokuk = 3) => (g, w, h, r) => {
   g.fillStyle = rgb(base); g.fillRect(0, 0, w, h);
   lekele(g, w, h, r, 260, '60,48,34', 0.1); lekele(g, w, h, r, 200, '255,250,235', 0.1);
@@ -85,10 +85,10 @@ const M = K.materials('sehir', {
   yarim_ahsap: [yarimAhsap],
   ahsap_koyu: [ahsap([74, 58, 46])], ahsap_gri: [ahsap([110, 104, 96])], ahsap_kirmizi: [ahsap([102, 58, 50])], ahsap_mavi: [ahsap([110, 120, 124])], ahsap_katran: [ahsap([50, 42, 36])], ahsap_asi: [ahsap([150, 130, 94])], ahsap_kizil: [ahsap([90, 56, 46])], ahsap_gumus: [ahsap([130, 128, 122])], ahsap_yama: [(g, w, h, r) => { ahsap([110, 92, 72])(g, w, h, r); for (let k = 0; k < 7; k++) { g.fillStyle = rgb(ton(r, [[70, 54, 40], [150, 130, 100], [96, 84, 76]][k % 3], 0.1)); g.fillRect(r() * w, r() * h, 60 + r() * 90, 50 + r() * 120); } }],
   kereste: [ahsap([84, 64, 46], true)], tahta: [ahsap([134, 112, 84], true)],
-  kiremit: [kiremitP], kursun: [kursunP], tas_sove: [tasBlok([184, 180, 166], 3, '#6a665a', 0.3)], bez_krem: [bez([214, 200, 166])], bez_cizgili: [bez([224, 214, 190], [160, 60, 48])], bez_yamali: [(g, w, h, r) => { bez([188, 170, 134])(g, w, h, r); for (let k = 0; k < 6; k++) { g.fillStyle = rgb(ton(r, [[150, 120, 90], [200, 190, 160], [130, 110, 100]][k % 3], 0.1)); const x = r() * w, y = r() * h; g.fillRect(x, y, 70 + r() * 80, 60 + r() * 80); g.strokeStyle = 'rgba(40,30,20,0.6)'; g.setLineDash([6, 5]); g.strokeRect(x, y, 100, 90); g.setLineDash([]); } }],
+  kiremit: [kiremitP], kursun: [kursunP], tas_koyu: [tasBlok([124, 120, 110], 8, '#3c3830', 0.3)], tas_sove: [tasBlok([184, 180, 166], 3, '#6a665a', 0.3)], bez_krem: [bez([214, 200, 166])], bez_cizgili: [bez([224, 214, 190], [160, 60, 48])], bez_yamali: [(g, w, h, r) => { bez([188, 170, 134])(g, w, h, r); for (let k = 0; k < 6; k++) { g.fillStyle = rgb(ton(r, [[150, 120, 90], [200, 190, 160], [130, 110, 100]][k % 3], 0.1)); const x = r() * w, y = r() * h; g.fillRect(x, y, 70 + r() * 80, 60 + r() * 80); g.strokeStyle = 'rgba(40,30,20,0.6)'; g.setLineDash([6, 5]); g.strokeRect(x, y, 100, 90); g.setLineDash([]); } }],
   kaldirim: [kaldirim],
   pencere_giyotin: [PEN('giyotin', [168, 162, 148]), 256, 384], pencere_koyu: [PEN('giyotin', [70, 54, 40]), 256, 384], pencere_kafes: [PEN('kafes', [84, 64, 46], [140, 110, 78]), 256, 384], pencere_kafes_beyaz: [PEN('kafes', [168, 162, 148], [124, 104, 80]), 256, 384],
-  pencere_cok: [PEN('cok', [84, 64, 46]), 384, 384], pencere_parmak: [PEN('parmak', [90, 84, 74]), 256, 256],
+  pencere_cok: [PEN('cok', [84, 64, 46]), 384, 384], pencere_sebeke: [(g, w, h) => { g.fillStyle = '#14171a'; g.fillRect(0, 0, w, h); g.strokeStyle = '#a8a494'; g.lineWidth = w * 0.035; const R = w / 8; for (let rI = -1; rI < 14; rI++) for (let c = -1; c < 7; c++) { const x = c * R * 1.732 + (rI % 2 ? R * 0.866 : 0), y = rI * R * 1.5; g.beginPath(); for (let k = 0; k <= 6; k++) g.lineTo(x + Math.sin((k / 6) * TAU) * R, y + Math.cos((k / 6) * TAU) * R); g.stroke(); } g.strokeStyle = '#8f8b7c'; g.lineWidth = w * 0.06; g.strokeRect(0, 0, w, h); }, 256, 384], bayrak: 0x8a2a22, pencere_parmak: [PEN('parmak', [90, 84, 74]), 256, 256],
   kepenk_yesil: [PEN('kepenk', [60, 52, 40], [82, 104, 86]), 256, 384], kepenk_mavi: [PEN('kepenk', [168, 162, 148], [100, 112, 118]), 256, 384], kepenk_kahve: [PEN('kepenk', [60, 46, 34], [88, 70, 54]), 256, 384],
   kapi_ahsap: [PEN('kapi', [0, 0, 0], [72, 58, 46]), 256, 512], kapi_cift: [PEN('cift', [0, 0, 0], [64, 52, 42]), 256, 384], kapi_civili: [PEN('civili', [0, 0, 0], [56, 46, 38]), 256, 384], kepenk_dukkan: [PEN('dukkan', [0, 0, 0], [90, 78, 64]), 384, 256],
   demir: 0x2a2826, karanlik: 0x14110e, yanik: 0x1c1814, asma: 0x4a6a34,
@@ -287,6 +287,71 @@ function istinat(P, w, h, t) { // şevli (arkaya yatık) kaba taş duvar; ağlam
   for (let k = 0; k < 3; k++) { const x = -hw + 0.7 + k * ((w - 1.4) / 2), y = 0.5 + (k % 2) * 0.25, z = -y * 0.07 + 0.004; P.quad('karanlik', [V(x - 0.07, y, z), V(x + 0.07, y, z), V(x + 0.07, y + 0.12, z), V(x - 0.07, y + 0.12, z)], K.FLAT, V(0, 0, 1)); }
   for (let k = 0; k < 6; k++) { const x = (r() - 0.5) * (w - 0.6), y = 0.6 + r() * (h - 1), z = -y * 0.07; for (let q = 0; q < 3; q++) { const a = (q - 1) * 0.6 + (r() - 0.5) * 0.3; P.tri('asma', [V(x - 0.05, y, z + 0.01), V(x + 0.05, y, z + 0.01), V(x + Math.sin(a) * 0.28, y + 0.22 + r() * 0.12, z + 0.16 + r() * 0.08)], K.FLAT.slice(0, 3), V(0, 0.3, 1)); } }
 }
+// ---------- Kubbeli köşk (resimdeki yapı): solda üçlü pencereli kemer panolu, alçak kurşun çatılı kütle ve onu saran
+// sütunlu revak; sağda kasnaklı kurşun kubbeli kütle, sivri kemerli taç kapı, şebekeli pencereler. Ön cephe +Z.
+function koskKubbeli(P) {
+  const XL = -6.5, XM = -0.5, XR = 6, D = 6.5, H1 = 3.8, H2 = 8.5, TAS2 = 'tas_koyu';
+  // Kemer kuşağı: almaşık (taş / tuğla) kemer taşları, duvardan hafif taşar
+  const kusak = (F, op, t, d = 0.05) => { const n = 18, uc = (op.u0 + op.u1) / 2, pt = (k, out) => { const u = op.u0 + ((op.u1 - op.u0) * k) / n, y = kemer(op, u), dx = u - uc, dy = y - op.ys + 0.4, l = Math.hypot(dx, dy) || 1; return out ? [u + (dx / l) * t, y + (dy / l) * t] : [u, y]; }; for (let k = 0; k < n; k++) P.quad(k % 2 ? 'tugla' : 'tas_sove', [pt(k, 0), pt(k + 1, 0), pt(k + 1, 1), pt(k, 1)].map(([u, y]) => F.pt(u, y, d)), K.FLAT, F.N); for (const [u, sg] of [[op.u0, -1], [op.u1, 1]]) kutu(P, F, Math.min(u, u + sg * t), Math.max(u, u + sg * t), op.y0, op.ys, 0, d, 'tas_sove'); };
+  const soveKat = (F, ops) => { for (const o of ops) { const hwO = (o.u1 - o.u0) / 2, top = o.ys + (o.rise || 0), kapi = o.y0 < 0.3; cephe(P, yuz(F.pt((o.u0 + o.u1) / 2, 0, 0.05).setY(0), F.N), hwO * 2 + 0.4, [[kapi ? 0 : o.y0 - 0.16, top + 0.22, 'tas_sove', 1.5]], [{ ...o, u0: -hwO, u1: hwO, depth: 0.05, fill: null, reveal: 'tas_sove' }]); if (!kapi) kutu(P, F, o.u0 - 0.28, o.u1 + 0.28, o.y0 - 0.24, o.y0 - 0.12, 0, 0.12, 'tas_sove'); } };
+  const op = (u, w, y0, ys, rise, fill, tip, depth = 0.12) => ({ u0: u - w / 2, u1: u + w / 2, y0, ys, rise, tip, fill, depth, reveal: 'tas_sove' });
+  const Z2 = [[0, H1, TAS2, 3], [H1, H2, TAS2, 3]];
+  const uclu = (F) => { const big = { u0: -1.95, u1: 1.95, y0: 4.7, ys: 6.25, rise: 1.5, tip: 'sogan' }; kusak(F, big, 0.36); return [-0.8, 0, 0.8].map((u) => op(u, 0.55, 5.1, 6.05, 0.32, 'pencere_sebeke', 'yuvarlak', 0.1)); };
+  // Sol kütle
+  const Fo = yuz(V((XL + XM) / 2, 0, 0), V(0, 0, 1)), oOn = [op(-1.9, 1.15, 0.02, 1.75, 0.6, 'kapi_cift'), op(1.6, 0.9, 1.1, 2.2, 0.45, 'pencere_parmak'), ...uclu(Fo)];
+  cephe(P, Fo, XM - XL, Z2, oOn); soveKat(Fo, oOn.slice(0, 2));
+  const Fs = yuz(V(XL, 0, -D / 2), V(-1, 0, 0)), oSol = [op(-1.6, 0.9, 1.1, 2.2, 0.45, 'pencere_parmak'), op(1.6, 0.9, 1.1, 2.2, 0.45, 'pencere_parmak'), ...uclu(Fs)];
+  cephe(P, Fs, D, Z2, oSol); soveKat(Fs, oSol.slice(0, 2));
+  // Sağ (kubbeli) kütle
+  const Fr = yuz(V((XM + XR) / 2, 0, 0), V(0, 0, 1)), oR = [op(-1.3, 2.0, 0.02, 2.45, 1.25, 'kapi_cift', undefined, 0.5), op(2.3, 1.0, 1.25, 2.55, 0, 'pencere_parmak'), op(-1.5, 1.0, 5.2, 6.3, 0.62, 'pencere_sebeke'), op(1.6, 1.0, 5.2, 6.3, 0.62, 'pencere_sebeke')];
+  cephe(P, Fr, XR - XM, Z2, oR); soveKat(Fr, oR);
+  kusak(Fr, { u0: -2.3, u1: -0.3, y0: 0.02, ys: 2.45, rise: 1.25 }, 0.3, 0.1);
+  const Fy = yuz(V(XR, 0, -D / 2), V(1, 0, 0)), oY = [op(0, 1.0, 5.2, 6.3, 0.62, 'pencere_sebeke'), op(0, 1.0, 1.25, 2.55, 0, 'pencere_parmak')];
+  cephe(P, Fy, D, Z2, oY); soveKat(Fy, oY);
+  dortgen(P, TAS2, [V(XL, 0, -D), V(XR, 0, -D), V(XR, H2, -D), V(XL, H2, -D)], V(0, 0, -1));
+  // Kat silmesi, saçak kornişi (dişli) ve tepelik dizisi
+  const cevre = [[V(XL, 0, 0), V(XR, 0, 0), V(0, 0, 1)], [V(XL, 0, -D), V(XL, 0, 0), V(-1, 0, 0)], [V(XR, 0, 0), V(XR, 0, -D), V(1, 0, 0)], [V(XR, 0, -D), V(XL, 0, -D), V(0, 0, -1)]];
+  for (const [a, b, n] of cevre) {
+    const F = yuz(a.clone().add(b).multiplyScalar(0.5), n), L = a.distanceTo(b);
+    kutu(P, F, -L / 2 - 0.08, L / 2 + 0.08, H1 - 0.1, H1 + 0.1, 0, 0.09, 'tas_sove');
+    kutu(P, F, -L / 2, L / 2, 0, 0.5, 0, 0.07, 'tas_sove');
+    kutu(P, F, -L / 2 - 0.2, L / 2 + 0.2, H2 - 0.1, H2 + 0.16, 0, 0.2, 'tas_sove');
+    kutu(P, F, -L / 2 - 0.1, L / 2 + 0.1, H2 - 0.42, H2 - 0.26, 0, 0.1, 'tas_sove');
+    for (let u = -L / 2 + 0.1; u < L / 2 - 0.1; u += 0.36) kutu(P, F, u, u + 0.16, H2 - 0.26, H2 - 0.1, 0, 0.14, 'tas_sove');
+    for (let u = -L / 2 - 0.1; u < L / 2; u += 0.42) { const q = (uu, y) => F.pt(uu, y, 0.16); P.quad('tas_sove', [q(u, H2 + 0.16), q(u + 0.3, H2 + 0.16), q(u + 0.3, H2 + 0.4), q(u, H2 + 0.4)], K.FLAT, n); P.tri('tas_sove', [q(u, H2 + 0.4), q(u + 0.3, H2 + 0.4), q(u + 0.15, H2 + 0.58)], K.FLAT.slice(0, 3), n); }
+  }
+  // Sol kütlenin çatısı: alçak kırma kurşun örtü; uzun baca
+  const cx = (XL + XM) / 2, tip = V(cx, H2 + 1.25, -D / 2), e = 0.05, kose = [V(XL - e, H2 + 0.16, e), V(XM, H2 + 0.16, e), V(XM, H2 + 0.16, -D - e), V(XL - e, H2 + 0.16, -D - e)];
+  for (let k = 0; k < 4; k++) { const a = kose[k], b = kose[(k + 1) % 4], m = a.clone().add(b).multiplyScalar(0.5); P.tri('kursun', [a, b, tip], [[0, 0], [a.distanceTo(b) / 1.5, 0], [a.distanceTo(b) / 3, 2.6]], V(m.x - cx, 1.5, m.z + D / 2)); }
+  kup(P, TAS2, XL + 0.7, XL + 1.25, H2 + 0.3, H2 + 2.9, -D + 0.9, -D + 1.45, '-y', 1.5); kup(P, 'tas_sove', XL + 0.62, XL + 1.33, H2 + 2.9, H2 + 3.02, -D + 0.82, -D + 1.53, '', 1.5); kup(P, 'kursun', XL + 0.78, XL + 1.17, H2 + 3.02, H2 + 3.3, -D + 0.98, -D + 1.37, '-y', 1);
+  // Sağ kütle: düz kurşun dam, sekizgen kasnak, kurşun kubbe, alem; bayrak direği
+  const dx = (XM + XR) / 2, dz = -D / 2;
+  dortgen(P, 'kursun', [V(XM, H2 + 0.17, 0), V(XR, H2 + 0.17, 0), V(XR, H2 + 0.17, -D), V(XM, H2 + 0.17, -D)], UP, 1.5);
+  halka(P, TAS2, [[2.95, H2 + 0.17], [2.95, H2 + 1.05, 'tas_sove'], [3.1, H2 + 1.12, 'tas_sove'], [3.1, H2 + 1.24, 'kursun'], [2.78, H2 + 1.32]], 8, Math.PI / 8, 1.5, dx, dz);
+  const dome = Array.from({ length: 10 }, (_, k) => { const t = (k / 9) * (Math.PI / 2); return [2.78 * Math.cos(t) ** 0.95, H2 + 1.32 + 2.3 * Math.sin(t)]; });
+  dome[9][0] = 0.12;
+  halka(P, 'kursun', dome, 20, 0, 1.2, dx, dz);
+  halka(P, 'demir', [[0.12, H2 + 3.56], [0.16, H2 + 3.68], [0.06, H2 + 3.8], [0.13, H2 + 3.96], [0.03, H2 + 4.12], [0.02, H2 + 4.56], [0, H2 + 4.66]], 8, 0, 1, dx, dz);
+  K.cyl(P, 'demir', V(XM + 0.6, H2 + 0.17, -1.0), V(XM + 0.6, H2 + 2.3, -1.0), 0.03, 6);
+  P.quad('bayrak', [V(XM + 0.6, H2 + 2.25, -1.0), V(XM + 1.25, H2 + 2.15, -0.9), V(XM + 1.2, H2 + 1.7, -0.9), V(XM + 0.6, H2 + 1.8, -1.0)], K.FLAT, V(0, 0, 1));
+  // Revak: sol kütlenin önünü ve sol yanını saran, kurşun örtülü sundurma; ince sütunlar, soğan kemerler, alçak korkuluk
+  const PX = XL - 2.7, PZ = 2.7, RY = 3.62, EY = 3.0;
+  kup(P, TAS2, PX, XM, 0, 0.18, 0, PZ, '-y-z', 3); kup(P, TAS2, PX, XL, 0, 0.18, -D, 0, '-y+x', 3);
+  P.quad('kursun', [V(XL, RY, 0), V(XM, RY, 0), V(XM, EY, PZ + 0.25), V(PX - 0.25, EY, PZ + 0.25)], [[0, 0], [5, 0], [5, 2], [-1.5, 2]], V(0, 1, 0.3));
+  P.quad('kursun', [V(XL, RY, -D), V(XL, RY, 0), V(PX - 0.25, EY, PZ + 0.25), V(PX - 0.25, EY, -D)], [[0, 0], [5, 0], [6.5, 2], [0, 2]], V(-0.3, 1, 0));
+  P.tri(TAS2, [V(XM, RY, 0), V(XM, EY, 0), V(XM, EY, PZ + 0.25)], K.FLAT.slice(0, 3), V(1, 0, 0));
+  const revak = (a, b, n, bays) => { // a → b boyunca kemer dizisi
+    const L = a.distanceTo(b), F = yuz(a.clone().add(b).multiplyScalar(0.5), n), bw = L / bays, ops = Array.from({ length: bays }, (_, k) => ({ u0: -L / 2 + k * bw, u1: -L / 2 + (k + 1) * bw, y0: 0.18, ys: 2.1, rise: 0.62, tip: 'sogan', fill: null, depth: 0.22, reveal: 'tas_sove' }));
+    cephe(P, F, L, [[0.18, EY, 'tas_sove', 2]], ops);
+    cephe(P, yuz(F.pt(0, 0, -0.22).setY(0), n.clone().negate()), L, [[0.18, EY, 'tas_sove', 2]], ops.map((o) => ({ ...o, u0: -o.u1, u1: -o.u0, depth: 0.01 })));
+    for (let k = 0; k <= bays; k++) { const c = F.pt(-L / 2 + k * bw, 0, -0.11); halka(P, 'tas_sove', [[0.17, 0.18], [0.17, 0.3], [0.1, 0.38], [0.085, 1.85], [0.11, 1.9], [0.17, 2.02], [0.17, 2.08]], 8, 0, 1, c.x, c.z); }
+    for (let k = 0; k < bays; k++) kutu(P, F, -L / 2 + k * bw + 0.14, -L / 2 + (k + 1) * bw - 0.14, 0.18, 0.78, -0.16, -0.06, 'tas_sove'); // korkuluk levhaları
+    kutu(P, F, -L / 2 - 0.25, L / 2 + 0.25, EY - 0.12, EY + 0.02, 0, 0.22, 'kursun');
+  };
+  revak(V(PX, 0, PZ), V(XM, 0, PZ), V(0, 0, 1), 5);
+  revak(V(PX, 0, -D), V(PX, 0, PZ), V(-1, 0, 0), 5);
+}
+DIGER.kosk_kubbeli = koskKubbeli;
 export const SEHIR_PARCALAR = [...Object.keys(EVLER), ...Object.keys(DIGER)].sort((a, b) => (a.startsWith('ev_') ? 0 : 1) - (b.startsWith('ev_') ? 0 : 1) || a.localeCompare(b));
 const cache = new Map();
 export function createSehirParca(name) {
