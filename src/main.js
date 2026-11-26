@@ -51,6 +51,7 @@ import * as kit_siper from './kit_siper.js';
 import { createTufekMavzer, tufekRaporu } from './tufek_mavzer.js';
 import { createKaya, KAYALAR } from './kaya.js';
 import { createGovde, GOVDELER } from './agac_govde.js';
+import { createHazireYapisi, HAZIRE_YAPILARI } from './hazire_yapilari.js';
 const GOVDE = GOVDELER.includes(new URLSearchParams(location.search).get('govde')) ? new URLSearchParams(location.search).get('govde') : 'govde_mese';
 const KAYA = KAYALAR[new URLSearchParams(location.search).get('kaya')] ? new URLSearchParams(location.search).get('kaya') : 'kaya_buyuk_1';
 import { createDuvarFeneri, createTavanFeneri } from './fener.js';
@@ -369,6 +370,24 @@ const models = {
     file: `${GOVDE}.glb`,
     target: new THREE.Vector3(0, 2, 0),
     distance: 14,
+  },
+  hazireTurbe: {
+    create: () => createHazireYapisi('turbe'),
+    file: 'turbe.glb',
+    target: new THREE.Vector3(0, 4.5, 0),
+    distance: 22,
+  },
+  hazireEv: {
+    create: () => createHazireYapisi('ahsap_ev'),
+    file: 'ahsap_ev.glb',
+    target: new THREE.Vector3(0, 3.8, 0),
+    distance: 24,
+  },
+  hazireKosk: {
+    create: () => createHazireYapisi('giris_kosku'),
+    file: 'giris_kosku.glb',
+    target: new THREE.Vector3(0, 2.4, 0),
+    distance: 16,
   },
   kitAraba: {
     create: kit_araba.createKit,
