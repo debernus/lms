@@ -49,6 +49,7 @@ import * as kit_araba from './kit_araba.js';
 import * as sehir_halki from './sehir_halki.js';
 import * as kit_siper from './kit_siper.js';
 import { createTufekMavzer, tufekRaporu } from './tufek_mavzer.js';
+import { createKaya } from './kaya.js';
 import { createDuvarFeneri, createTavanFeneri } from './fener.js';
 import { createGemi as createGemiGezilir, createKayik as createKayikGezilir } from './tekne.js';
 import { createTunelGirisi } from './tunel.js';
@@ -351,6 +352,18 @@ const models = {
     target: new THREE.Vector3(0, -0.02, 0),
     distance: 1.9,
     report: tufekRaporu, // dışa aktarmadan önce konsola özet yazar
+  },
+  kaya1: {
+    create: () => createKaya(1),
+    file: 'kaya_buyuk_1.glb',
+    target: new THREE.Vector3(0, 1.3, 0),
+    distance: 11,
+  },
+  kaya2: {
+    create: () => createKaya(2),
+    file: 'kaya_buyuk_2.glb',
+    target: new THREE.Vector3(0, 1.3, 0),
+    distance: 11,
   },
   kitAraba: {
     create: kit_araba.createKit,
