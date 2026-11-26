@@ -53,6 +53,8 @@ import { createKaya, KAYALAR } from './kaya.js';
 import { createGovde, GOVDELER } from './agac_govde.js';
 import { createHazireYapisi, HAZIRE_YAPILARI } from './hazire_yapilari.js';
 import { createMimariKit, createMimariParca, MIMARI_PARCALAR } from './mimari_kit.js';
+import { createSehirParca, createSehirOrnek, SEHIR_PARCALAR } from './sehir.js';
+const SEHIR = SEHIR_PARCALAR.includes(new URLSearchParams(location.search).get('sehir')) ? new URLSearchParams(location.search).get('sehir') : 'ev_01';
 const GOVDE = GOVDELER.includes(new URLSearchParams(location.search).get('govde')) ? new URLSearchParams(location.search).get('govde') : 'govde_mese';
 const KAYA = KAYALAR[new URLSearchParams(location.search).get('kaya')] ? new URLSearchParams(location.search).get('kaya') : 'kaya_buyuk_1';
 import { createDuvarFeneri, createTavanFeneri } from './fener.js';
@@ -395,6 +397,19 @@ const models = {
     file: 'mimari_susleme_kiti.glb',
     target: new THREE.Vector3(0, 1.2, -4),
     distance: 30,
+  },
+  // Şehir paketi: ?sehir=<ad> ile seçilir (adlar: sehir.js SEHIR_PARCALAR)
+  sehirParca: {
+    create: () => createSehirParca(SEHIR),
+    file: `${SEHIR}.glb`,
+    target: new THREE.Vector3(0, 4, -3),
+    distance: 30,
+  },
+  sehirOrnek: {
+    create: createSehirOrnek,
+    file: 'ornek_sokak.glb',
+    target: new THREE.Vector3(24, 5, 0),
+    distance: 70,
   },
   kitAraba: {
     create: kit_araba.createKit,
