@@ -28,6 +28,9 @@ const KABUK = {
   hus: { base: [228, 224, 214], dark: [30, 28, 26], light: [245, 243, 236], grooves: 0, gw: [1, 2], breaks: 0, moss: 0.04, lichen: 8, birch: true },
   kayin: { base: [138, 138, 132], dark: [86, 86, 82], light: [168, 168, 160], grooves: 14, gw: [1, 2.5], breaks: 0, moss: 0.05, lichen: 45, smooth: true },
   olu: { base: [104, 92, 78], dark: [40, 32, 26], light: [150, 136, 116], grooves: 64, gw: [3, 11], breaks: 200, moss: 0.12, lichen: 30, peel: 9 },
+  ladin: { base: [96, 84, 74], dark: [38, 30, 26], light: [146, 128, 112], grooves: 40, gw: [2, 6], breaks: 900, moss: 0.06, lichen: 50 },
+  selvi: { base: [112, 92, 76], dark: [52, 38, 30], light: [158, 136, 114], grooves: 120, gw: [1.5, 4], breaks: 60, moss: 0.02, lichen: 12 },
+  meyve: { base: [98, 90, 80], dark: [36, 30, 26], light: [150, 142, 126], grooves: 50, gw: [3, 9], breaks: 420, moss: 0.16, lichen: 90 },
   curuk: { base: [66, 52, 40], dark: [22, 16, 12], light: [104, 86, 66], grooves: 54, gw: [4, 14], breaks: 300, moss: 0.85, lichen: 20 },
 };
 function kabuk(kind) {
@@ -264,6 +267,26 @@ const DEFS = {
     agac(g, r, { h: 10, r0: 0.31, r1: 0.04, bend: 0.01, flare: 0.5, flareH: 0.7, lobes: 5, rings: 22, vTile: 2, branches: [
       { y: 3.4, a: 0.3, up: 1.0, len: 4.2, r: 0.13, lift: 1.1, sub: 1 }, { y: 3.9, a: 2.3, up: 1.1, len: 4.0, r: 0.12, lift: 1.1, sub: 1 }, { y: 4.5, a: 4.3, up: 1.2, len: 3.6, r: 0.11, lift: 1.0, sub: 1 },
       { y: 5.2, a: 1.2, up: 1.3, len: 3.2, r: 0.1, lift: 0.9, sub: 1 }, { y: 5.9, a: 3.3, up: 1.4, len: 2.8, r: 0.085, lift: 0.8 }, { y: 6.7, a: 5.3, up: 1.5, len: 2.3, r: 0.07, lift: 0.7 }, { y: 7.5, a: 2.0, up: 1.6, len: 1.8, r: 0.055, lift: 0.6 },
+    ] });
+  } },
+  // Ladin: dümdüz gövde; dipten tepeye çepeçevre dizilmiş ince, yatay dal dipleri
+  govde_ladin: { bark: 'ladin', wood: 'kirik', build(g, r) {
+    const branches = [];
+    for (let k = 0; k < 16; k++) { const y = 1.4 + k * 0.9, t = k / 15, n = k < 13 ? 4 : 3; for (let q = 0; q < n; q++) branches.push({ y: y + (r() - 0.5) * 0.2, a: (q / n) * 6.283 + k * 0.7 + r() * 0.3, up: 0.02 - 0.1 * (1 - t), len: (1.7 - 1.25 * t) * (0.75 + r() * 0.4), r: 0.038 - 0.02 * t, r1: 0.012, segs: 3, lift: -0.05, wig: 0.06, n: 6 }); }
+    agac(g, r, { h: 16, r0: 0.3, r1: 0.03, te: 1.0, bend: 0.002, flare: 0.4, flareH: 0.6, lobes: 5, rings: 26, vTile: 1.6, uRep: 1, branches });
+  } },
+  // Selvi: ince, düz gövde; boyunca yukarı bakan kısa dal dipleri
+  govde_selvi: { bark: 'selvi', wood: 'kirik', build(g, r) {
+    const branches = [];
+    for (let k = 0; k < 34; k++) { const y = 0.9 + k * 0.32, t = k / 33; branches.push({ y, a: k * 2.4 + r() * 0.6, up: 1.3 + r() * 0.6, len: (0.75 - 0.4 * t) * (0.7 + r() * 0.5), r: 0.03 - 0.014 * t, r1: 0.01, segs: 3, lift: 0.5, wig: 0.08, n: 6 }); }
+    agac(g, r, { h: 12, r0: 0.17, r1: 0.025, te: 0.95, bend: 0.004, flare: 0.5, flareH: 0.5, lobes: 6, rings: 24, vTile: 1.4, uRep: 1, n: 14, branches });
+  } },
+  // Yaşlı elma ağacı: kısa, eğri büğrü gövde; alçaktan yayılan kalın dallar
+  govde_meyve: { bark: 'meyve', wood: 'kirik', build(g, r) {
+    agac(g, r, { h: 3.4, r0: 0.24, r1: 0.05, te: 0.7, bend: 0.07, flare: 0.6, flareH: 0.5, lobes: 5, rings: 16, vTile: 1.2, uRep: 1, branches: [
+      { y: 1.05, a: 0.5, up: 0.3, len: 2.5, r: 0.13, lift: 0.9, wig: 0.3, sub: 2, segs: 6 }, { y: 1.25, a: 2.7, up: 0.35, len: 2.4, r: 0.12, lift: 0.9, wig: 0.3, sub: 2, segs: 6 },
+      { y: 1.5, a: 4.6, up: 0.4, len: 2.2, r: 0.11, lift: 0.8, wig: 0.3, sub: 2, segs: 6 }, { y: 1.8, a: 1.6, up: 0.55, len: 1.9, r: 0.09, lift: 0.7, wig: 0.3, sub: 1, segs: 5 },
+      { y: 2.2, a: 3.7, up: 0.7, len: 1.6, r: 0.075, lift: 0.6, wig: 0.28, sub: 1, segs: 5 }, { y: 2.6, a: 5.6, up: 0.9, len: 1.2, r: 0.06, lift: 0.5, wig: 0.25, sub: 1, segs: 4 },
     ] });
   } },
 };
