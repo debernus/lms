@@ -404,6 +404,87 @@ function kuleKubbeli(P) {
   halka(P, 'demir', [[0.1, ty + 3.18], [0.15, ty + 3.3], [0.05, ty + 3.42], [0.12, ty + 3.58], [0.03, ty + 3.74], [0.02, ty + 4.2], [0, ty + 4.3]], 8, 0, 1, 0, cz);
 }
 DIGER.kule_kubbeli = kuleKubbeli;
+// ---------- Taş bina çeşitleri (kubbeli kule ile aynı üslup; bayrak ve flama yok) ----------
+// o: w, d, kat (1 | 2), fh (kat yüksekliği), bays (ön cephedeki kemerli pencere sayısı), cati: 'kubbe' | 'kursun' | 'duz' | 'zarf',
+//    kubbeR, balkon, x (yan yana dizilimde kayma), solKapali / sagKapali (bitişik yan duvar: penceresiz)
+function tasBina(P0, o) {
+  const dx = o.x || 0, f = (v) => V(v.x + dx, v.y, v.z), P = dx ? { quad: (m, pts, uv, h) => P0.quad(m, pts.map(f), uv, h), tri: (m, pts, uv, h) => P0.tri(m, pts.map(f), uv, h) } : P0;
+  const W = o.w, D = o.d ?? 7, hw = W / 2, n = o.kat ?? 2, fh = o.fh ?? 4.1, Y = Array.from({ length: n + 1 }, (_, k) => k * fh), H = Y[n], T = 'tas_koyu', bays = o.bays ?? 4;
+  const op = (u, w, y0, ys, rise, fill, tip, depth = 0.14) => ({ u0: u - w / 2, u1: u + w / 2, y0, ys, rise, tip, fill, depth, reveal: 'tas_sove' });
+  const sove = (F, ops, pad = 0.2) => { for (const q of ops) { const hwO = (q.u1 - q.u0) / 2, top = q.ys + (q.rise || 0), kapi = q.y0 < 0.3; cephe(P, yuz(F.pt((q.u0 + q.u1) / 2, 0, 0.05).setY(0), F.N), hwO * 2 + pad * 2, [[kapi ? 0 : q.y0 - 0.16, top + 0.22, 'tas_sove', 1.5]], [{ ...q, u0: -hwO, u1: hwO, depth: 0.05, fill: null, reveal: 'tas_sove' }]); if (!kapi) kutu(P, F, q.u0 - pad - 0.06, q.u1 + pad + 0.06, q.y0 - 0.26, q.y0 - 0.14, 0, 0.13, 'tas_sove'); } };
+  const zones = Array.from({ length: n }, (_, k) => [Y[k], Y[k + 1], T, 3]);
+  const sp = Math.min(1.45, (W - 1.3) / bays), us = Array.from({ length: bays }, (_, k) => (k - (bays - 1) / 2) * sp), ww = sp - 0.4, hh = fh - 1.95, span = (bays * sp) / 2;
+  const Fo = yuz(V(0, 0, 0), V(0, 0, 1)), di = Math.floor(bays / 2), ops = [];
+  const kapi = n === 1 ? op(us[di], Math.min(1.4, ww + 0.25), 0.02, 2.2, 0.5, 'kapi_cift', 'yuvarlak', 0.3) : op(Math.min(0.7, hw - 1.3), 1.5, 0.02, 2.5, 0, 'kapi_cift', undefined, 0.3);
+  ops.push(kapi);
+  if (n > 1) ops.push(op(-(hw - 1.5), 0.8, 1.6, 2.5, 0, 'pencere_parmak'));
+  const kemerli = [];
+  for (let k = n === 1 ? 0 : 1; k < n; k++) us.forEach((u, i) => { if (n === 1 && i === di) return; kemerli.push(op(u, ww, Y[k] + 0.6, Y[k] + 0.6 + hh, 0.5, 'pencere_koyu', 'yuvarlak', 0.3)); });
+  ops.push(...kemerli);
+  cephe(P, Fo, W, zones, ops);
+  sove(Fo, n === 1 ? [kapi] : ops.slice(0, 2));
+  if (n > 1) { kutu(P, Fo, kapi.u0 - 0.2, kapi.u1 + 0.2, 2.72, 2.95, 0, 0.16, 'tas_sove'); kutu(P, Fo, kapi.u0 - 0.1, kapi.u1 + 0.1, 2.95, 3.4, 0, 0.08, 'tas_sove'); }
+  for (let k = n === 1 ? 0 : 1; k < n; k++) { // pencere dizisi: denizlik, üst kuşak, sütunçeler, kemer kuşakları
+    const y = Y[k], seg = n === 1 ? [[-span, us[di] - sp / 2], [us[di] + sp / 2, span]] : [[-span, span]];
+    for (const [a, b] of seg) if (b - a > 0.2) { kutu(P, Fo, a - 0.05, b + 0.05, y + 0.36, y + 0.54, 0, 0.14, 'tas_sove'); kutu(P, Fo, a - 0.05, b + 0.05, y + hh + 1.25, y + hh + 1.42, 0, 0.1, 'tas_sove'); }
+    for (let q = 0; q <= bays; q++) { const u = -span + q * sp; halka(P, 'tas_sove', [[0.11, y + 0.54], [0.11, y + 0.66], [0.07, y + 0.74], [0.065, y + 0.4 + hh], [0.11, y + 0.52 + hh], [0.12, y + 0.62 + hh]], 8, 0, 1, u, 0.1); }
+  }
+  for (const q of kemerli) { const u = (q.u0 + q.u1) / 2, o2 = { u0: q.u0, u1: q.u1, ys: q.ys, rise: 0.5, tip: 'yuvarlak' }, m = 12, pt = (k, t) => { const uu = q.u0 + ((q.u1 - q.u0) * k) / m, yy = kemer(o2, uu), ex = uu - u, ey = yy - q.ys + 0.25, l = Math.hypot(ex, ey) || 1; return Fo.pt(uu + (ex / l) * t, yy + (ey / l) * t, 0.06); }; for (let k = 0; k < m; k++) P.quad('tas_sove', [pt(k, 0), pt(k + 1, 0), pt(k + 1, 0.16), pt(k, 0.16)], K.FLAT, V(0, 0, 1)); }
+  if (o.balkon && n > 1) { // taş balkon: konsollar, döşeme, tornalı korkuluk
+    const y = Y[1] + 0.5, b0 = -Math.min(span, sp * 1.5 + 0.3), b1 = -b0, dz = 1.05;
+    kutu(P, Fo, b0, b1, y - 0.16, y, 0, dz, 'tas_sove');
+    for (const u of [b0 + 0.3, 0, b1 - 0.3]) for (let k = 0; k < 3; k++) kutu(P, Fo, u - 0.12, u + 0.12, y - 0.16 - (k + 1) * 0.16, y - 0.16 - k * 0.16, 0, dz * (0.85 - k * 0.27), 'tas_sove');
+    for (const [a, b] of [[V(b0, 0, dz - 0.08), V(b1, 0, dz - 0.08)], [V(b0 + 0.08, 0, 0), V(b0 + 0.08, 0, dz - 0.08)], [V(b1 - 0.08, 0, 0), V(b1 - 0.08, 0, dz - 0.08)]]) { K.beam(P, 'tas_sove', a.clone().setY(y + 0.92), b.clone().setY(y + 0.92), 0.1, 0.16); const c = Math.max(2, Math.round(a.distanceTo(b) / 0.26)); for (let k = 0; k <= c; k++) { const q = a.clone().lerp(b, k / c); halka(P, 'tas_sove', [[0.05, y], [0.05, y + 0.1], [0.075, y + 0.3], [0.04, y + 0.55], [0.06, y + 0.8], [0.06, y + 0.88]], 6, 0, 1, q.x, q.z); } }
+  }
+  // Yan ve arka cepheler
+  for (const [C, N, kapali] of [[V(-hw, 0, -D / 2), V(-1, 0, 0), o.solKapali], [V(hw, 0, -D / 2), V(1, 0, 0), o.sagKapali], [V(0, 0, -D), V(0, 0, -1), true]]) {
+    const F = yuz(C, N), yo = kapali ? [] : Y.slice(n === 1 ? 0 : 1, n).flatMap((y) => [-1.5, 1.5].map((u) => op(u, 1.0, y + 0.9, y + 0.6 + hh - 0.1, 0.5, 'pencere_koyu', 'yuvarlak')));
+    cephe(P, F, N.z ? W : D, zones, yo); sove(F, yo, 0.18);
+  }
+  // Silmeler, su basman, köşe taşları, dişli saçak kornişi
+  for (const [a, b, nn] of [[V(-hw, 0, 0), V(hw, 0, 0), V(0, 0, 1)], [V(-hw, 0, -D), V(-hw, 0, 0), V(-1, 0, 0)], [V(hw, 0, 0), V(hw, 0, -D), V(1, 0, 0)], [V(hw, 0, -D), V(-hw, 0, -D), V(0, 0, -1)]]) {
+    const F = yuz(a.clone().add(b).multiplyScalar(0.5), nn), L = a.distanceTo(b), yan = (nn.x < 0 && o.solKapali) || (nn.x > 0 && o.sagKapali);
+    if (yan) continue;
+    kutu(P, F, -L / 2, L / 2, 0, 0.55, 0, 0.08, 'tas_sove');
+    for (let k = 1; k < n; k++) kutu(P, F, -L / 2 - 0.08, L / 2 + 0.08, Y[k] - 0.1, Y[k] + 0.1, 0, 0.1, 'tas_sove');
+    for (const sg of [-1, 1]) kutu(P, F, sg > 0 ? L / 2 - 0.4 : -L / 2, sg > 0 ? L / 2 : -L / 2 + 0.4, 0.55, H - 0.5, 0, 0.05, 'tas_sove');
+    kutu(P, F, -L / 2 - 0.12, L / 2 + 0.12, H - 0.5, H - 0.32, 0, 0.12, 'tas_sove');
+    for (let u = -L / 2 + 0.08; u < L / 2 - 0.1; u += 0.36) kutu(P, F, u, u + 0.16, H - 0.32, H - 0.14, 0, 0.18, 'tas_sove');
+    kutu(P, F, -L / 2 - (nn.z ? 0 : 0.32), L / 2 + (nn.z ? 0 : 0.32), H - 0.14, H + 0.12, 0, 0.32, 'tas_sove');
+  }
+  // Çatı
+  const e = 0.34, ex = (sg) => ((sg < 0 ? o.solKapali : o.sagKapali) ? 0 : e), cz = -D / 2, cati = o.cati || 'kubbe', x0 = -hw - ex(-1), x1 = hw + ex(1);
+  if (cati === 'duz') { // düz kurşun dam ve alçak korkuluk duvarı
+    dortgen(P, 'kursun', [V(x0, H + 0.13, e), V(x1, H + 0.13, e), V(x1, H + 0.13, -D - e), V(x0, H + 0.13, -D - e)], UP, 1.5);
+    for (const [a, b, nn] of [[V(-hw, 0, 0), V(hw, 0, 0), V(0, 0, 1)], [V(-hw, 0, -D), V(-hw, 0, 0), V(-1, 0, 0)], [V(hw, 0, 0), V(hw, 0, -D), V(1, 0, 0)], [V(hw, 0, -D), V(-hw, 0, -D), V(0, 0, -1)]]) { const F = yuz(a.clone().add(b).multiplyScalar(0.5), nn), L = a.distanceTo(b); kutu(P, F, -L / 2, L / 2, H + 0.12, H + 0.62, -0.28, 0.02, T); kutu(P, F, -L / 2 - 0.04, L / 2 + 0.04, H + 0.62, H + 0.74, -0.34, 0.08, 'tas_sove'); }
+  } else {
+    const kub = cati === 'kubbe', mat = cati === 'zarf' ? 'kiremit' : 'kursun', rise = cati === 'zarf' ? Math.min(W, D) * 0.2 : 0.83, k = kub ? 0.42 : 0, rl = kub ? 0 : Math.max(0, (W - D) / 2), y0 = H + 0.12, y1 = y0 + rise;
+    const top = kub ? [V(x0 * k, y1, cz + (D / 2 + e) * k), V(x1 * k, y1, cz + (D / 2 + e) * k), V(x1 * k, y1, cz - (D / 2 + e) * k), V(x0 * k, y1, cz - (D / 2 + e) * k)] : [V(-rl, y1, cz), V(rl, y1, cz), V(rl, y1, cz), V(-rl, y1, cz)];
+    const kose = [V(x0, y0, e), V(x1, y0, e), V(x1, y0, -D - e), V(x0, y0, -D - e)];
+    for (let q = 0; q < 4; q++) { const a = kose[q], b = kose[(q + 1) % 4], ta = top[q], tb = top[(q + 1) % 4], m = a.clone().add(b).multiplyScalar(0.5), nrm = V(m.x, 2, m.z - cz), L = a.distanceTo(b); if (ta.distanceTo(tb) < 1e-6) P.tri(mat, [a, b, ta], [[0, 0], [L / 1.5, 0], [L / 3, 2]], nrm); else P.quad(mat, [a, b, tb, ta], [[0, 0], [L / 1.5, 0], [L / 1.5 - 1, 2], [1, 2]], nrm); }
+    if (kub) {
+      const r0 = o.kubbeR ?? Math.min(W, D) * 0.39, ty = y1 + 0.02;
+      halka(P, T, [[r0, ty - 0.1], [r0, ty + 0.75, 'tas_sove'], [r0 + 0.14, ty + 0.82, 'tas_sove'], [r0 + 0.14, ty + 0.94, 'bakir_yesil'], [r0 - 0.15, ty + 1.0]], 8, Math.PI / 8, 1.5, 0, cz);
+      const dome = Array.from({ length: 10 }, (_, q) => { const t = (q / 9) * (Math.PI / 2); return [(r0 - 0.15) * Math.cos(t) ** 0.95, ty + 1.0 + (r0 - 0.15) * 0.85 * Math.sin(t)]; });
+      dome[9][0] = 0.1;
+      halka(P, 'bakir_yesil', dome, 20, 0, 1.2, 0, cz);
+      const ay = ty + 1.0 + (r0 - 0.15) * 0.85 - 0.02;
+      halka(P, 'demir', [[0.1, ay], [0.15, ay + 0.12], [0.05, ay + 0.24], [0.12, ay + 0.4], [0.03, ay + 0.56], [0.02, ay + 1.0], [0, ay + 1.1]], 8, 0, 1, 0, cz);
+    }
+  }
+}
+const yanYana = (list) => (P) => { const tot = list.reduce((t, o) => t + o.w, 0); let x = -tot / 2; list.forEach((o, i) => { tasBina(P, { ...o, x: x + o.w / 2, solKapali: i > 0, sagKapali: i < list.length - 1 }); x += o.w; }); };
+Object.assign(DIGER, {
+  tas_bina_2k_kubbeli: (P) => tasBina(P, { w: 7, d: 7, kat: 2, bays: 4, cati: 'kubbe' }),
+  tas_bina_2k_genis_kubbe: (P) => tasBina(P, { w: 8, d: 8, kat: 2, bays: 4, cati: 'kubbe', kubbeR: 3.75 }),
+  tas_bina_2k_genis_balkonlu: (P) => tasBina(P, { w: 11.5, d: 7, kat: 2, bays: 6, cati: 'kursun', balkon: true }),
+  tas_bina_1k_duz: (P) => tasBina(P, { w: 7, d: 7, kat: 1, fh: 4.4, bays: 5, cati: 'duz' }),
+  tas_bina_1k_zarf: (P) => tasBina(P, { w: 7, d: 7, kat: 1, fh: 4.4, bays: 5, cati: 'zarf' }),
+  tas_bina_1k_genis: (P) => tasBina(P, { w: 12.5, d: 7, kat: 1, fh: 4.4, bays: 7, cati: 'kursun' }),
+  tas_bina_1k_ikili: yanYana([{ w: 6.5, d: 7, kat: 1, fh: 4.2, bays: 3, cati: 'duz' }, { w: 7.5, d: 7, kat: 1, fh: 4.8, bays: 5, cati: 'zarf' }]),
+  tas_bina_2k_uclu: yanYana([{ w: 6.5, d: 7, kat: 2, fh: 4.0, bays: 4, cati: 'kursun' }, { w: 7, d: 7, kat: 2, fh: 4.4, bays: 4, cati: 'kubbe' }, { w: 6, d: 7, kat: 2, fh: 3.9, bays: 3, cati: 'zarf' }]),
+});
+
 
 export const SEHIR_PARCALAR = [...Object.keys(EVLER), ...Object.keys(DIGER)].sort((a, b) => (a.startsWith('ev_') ? 0 : 1) - (b.startsWith('ev_') ? 0 : 1) || a.localeCompare(b));
 const cache = new Map();
