@@ -138,9 +138,119 @@ function textures(tip, T, f, S, W, fs) {
   return new THREE.MeshStandardMaterial({ name: tip, map: tex(`${tip}_renk`, cc, true), roughnessMap: m, metalnessMap: m, normalMap: tex(`${tip}_kabartma`, normalFrom(H, W, 5), false), roughness: 1, metalness: 1 });
 }
 
+// ---------- Dev kayalar: birleşik köşeli kütleler, hücre hücre kırılmış yüzey ----------
+// Hücre gürültüsü (Worley): [en yakın uzaklık, ikinci uzaklık, hücre kimliği 0..1]
+function worley(x, y, z) {
+  const ix = Math.floor(x), iy = Math.floor(y), iz = Math.floor(z);
+  let f1 = 9, f2 = 9, id = 0;
+  for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) for (let c = -1; c <= 1; c++) {
+    const cx = ix + a, cy = iy + b, cz = iz + c, px = cx + hash(cx, cy, cz), py = cy + hash(cx + 57, cy, cz + 13), pz = cz + hash(cx, cy + 91, cz + 7), d = Math.hypot(px - x, py - y, pz - z);
+    if (d < f1) { f2 = f1; f1 = d; id = hash(cx + 5, cy + 3, cz + 11); } else if (d < f2) f2 = d;
+  }
+  return [f1, f2, id];
+}
+function rnd(seed) { let s = seed >>> 0; return () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296); }
+// tur: kutle (tek iri kütle), cift (yan yana iki kaya), sivri (sivri tepeli kayalık), blok (üst üste bloklar), yayvan (alçak, geniş)
+const DEV = [['kutle', 14, 8], ['kutle', 18, 10], ['cift', 22, 11], ['sivri', 16, 18], ['sivri', 20, 22], ['blok', 14, 16], ['blok', 20, 14], ['yayvan', 26, 8], ['kutle', 15, 11], ['cift', 28, 14], ['sivri', 24, 12], ['yayvan', 30, 10]];
+DEV.forEach(([tur, w, h], i) => { KAYALAR[`kaya_dev_${String(i + 1).padStart(2, '0')}`] = { w, h, cy: 0.28 * h, dev: tur, big: true, moss: i === 8 ? 0.7 : 0, tint: i }; });
+function devBlobs(T, r) {
+  const W = T.w, H = T.h, j = (v, d = 0.15) => v * (1 + (r() - 0.5) * 2 * d), B = [];
+  const add = (cx, cy, cz, rx, ry, rz, np, boxy = 0.15) => B.push([j(cx), j(cy, 0.08), j(cz), j(rx), j(ry, 0.08), j(rz), np, boxy]);
+  if (T.dev === 'kutle') { add(0, 0.4 * H, 0, 0.5 * W, 0.62 * H, 0.38 * W, 16); add(0.2 * W, 0.3 * H, 0.1 * W, 0.32 * W, 0.42 * H, 0.3 * W, 12); add(-0.25 * W, 0.25 * H, -0.1 * W, 0.28 * W, 0.34 * H, 0.25 * W, 10); }
+  if (T.dev === 'cift') { add(-0.24 * W, 0.4 * H, 0, 0.27 * W, 0.6 * H, 0.26 * W, 16); add(0.22 * W, 0.5 * H, 0.03 * W, 0.3 * W, 0.56 * H, 0.28 * W, 16); add(0, 0.18 * H, 0.1 * W, 0.26 * W, 0.24 * H, 0.2 * W, 10); add(0.05 * W, 0.15 * H, -0.12 * W, 0.2 * W, 0.2 * H, 0.18 * W, 9); }
+  if (T.dev === 'sivri') { [1, 0.74, 0.6, 0.5, 0.4, 0.32].forEach((k, i) => { const a = i * 2.2 + r() * 0.8, d = (i ? 0.24 : 0.12) * W; add(Math.cos(a) * d, k * H * 0.5, Math.sin(a) * d * 0.8, 0.2 * W * (0.75 + 0.5 * k), k * H * 0.56, 0.17 * W * (0.75 + 0.5 * k), 12, 0.3); }); add(0, 0.14 * H, 0, 0.5 * W, 0.2 * H, 0.4 * W, 12); }
+  if (T.dev === 'blok') { add(0, 0.45 * H, 0, 0.3 * W, 0.6 * H, 0.28 * W, 11, 0.85); add(0.26 * W, 0.3 * H, 0.05 * W, 0.27 * W, 0.38 * H, 0.26 * W, 10, 0.85); add(-0.24 * W, 0.22 * H, -0.08 * W, 0.3 * W, 0.3 * H, 0.28 * W, 10, 0.85); add(0.05 * W, 0.62 * H, -0.04 * W, 0.2 * W, 0.4 * H, 0.2 * W, 9, 0.85); }
+  if (T.dev === 'yayvan') { add(0, 0.4 * H, 0, 0.5 * W, 0.62 * H, 0.33 * W, 14, 0.5); add(-0.3 * W, 0.3 * H, 0.05 * W, 0.25 * W, 0.42 * H, 0.25 * W, 11, 0.5); add(0.3 * W, 0.28 * H, -0.05 * W, 0.26 * W, 0.38 * H, 0.24 * W, 11, 0.5); add(0.08 * W, 0.2 * H, 0.14 * W, 0.3 * W, 0.26 * H, 0.2 * W, 9, 0.5); }
+  // Her kütle: merkezinin çevresinde rastgele düzlemlerle kesilmiş dışbükey çok yüzlü; hepsi ana merkezi içine alır
+  return B.map(([cx, cy, cz, rx, ry, rz, np, boxy]) => {
+    const planes = [];
+    // Her yönü sınırlayan altı kutu düzlemi (kütle sonsuza uzamasın)
+    for (const [nx, ny, nz, e] of [[1, 0, 0, rx], [-1, 0, 0, rx], [0, 1, 0, ry], [0, -1, 0, ry], [0, 0, 1, rz], [0, 0, -1, rz]]) { const od = nx * (0 - cx) + ny * (T.cy - cy) + nz * (0 - cz); planes.push([nx, ny, nz, Math.max(e * 1.05, od + 0.6) - od]); }
+    for (let k = 0; k < np; k++) {
+      let nx = r() * 2 - 1, ny = r() * 2 - 0.75, nz = r() * 2 - 1;
+      if (r() < boxy) { const ax = Math.floor(r() * 3), sg = r() < 0.5 ? -1 : 1; nx = (ax === 0 ? sg : 0) + (r() - 0.5) * 0.25; ny = (ax === 1 ? 1 : 0) + (r() - 0.5) * 0.2; nz = (ax === 2 ? sg : 0) + (r() - 0.5) * 0.25; }
+      const l = Math.hypot(nx, ny, nz) || 1;
+      nx /= l; ny /= l; nz /= l;
+      let hd = Math.hypot(nx * rx, ny * ry, nz * rz) * (0.72 + 0.4 * r());
+      const od = nx * (0 - cx) + ny * (T.cy - cy) + nz * (0 - cz);
+      if (od > hd - 0.5) hd = od + 0.5 + r();
+      planes.push([nx, ny, nz, hd - od]); // ana merkezden düzleme uzaklık
+    }
+    return planes;
+  });
+}
+function shapeDev(T, seed) {
+  const rr = rnd(seed * 7919 + 31), blobs = devBlobs(T, rr), sd = seed * 17.3, step = T.dev === 'blok' ? 0.12 : T.dev === 'yayvan' ? 0.07 : 0.045;
+  const fis = Array.from({ length: 2 + Math.floor(rr() * 2) }, () => { const a = rr() * 6.28, b = rr() * 6.28; return [Math.cos(a), (rr() - 0.5) * 0.5, Math.sin(a), (rr() - 0.5) * 0.5, 0.012 + rr() * 0.01, 0.05 + rr() * 0.04, Math.cos(b), 0.3, Math.sin(b)]; });
+  return (dx, dy, dz) => {
+    let r = 0;
+    for (const planes of blobs) { let t = 1e9; for (const [nx, ny, nz, d] of planes) { const c = nx * dx + ny * dy + nz * dz; if (c > 1e-3) t = Math.min(t, d / c); } if (t < 1e8) r = Math.max(r, t); }
+    // Büyük bloklar: gerçek konumda ölçülen iri hücreler (yaklaşık 5 m) hafifçe içeri ya da dışarı durur; çatlak ağı yok
+    const qx = dx * r, qy = dy * r, qz = dz * r, id1 = worley(qx * 0.2 + sd, qy * 0.2, qz * 0.2)[2], id2 = worley(qx * 0.5, qy * 0.5 + sd, qz * 0.5)[2];
+    r *= 1 + step * (id1 - 0.5) + 0.3 * step * (id2 - 0.5) + 0.06 * (fbm(dx * 1.6 + sd, dy * 1.6, dz * 1.6, 3) - 0.5) + 0.025 * (fbm(dx * 6, dy * 6 + sd, dz * 6, 3) - 0.5);
+    // Yalnız birkaç büyük yarık
+    let c1 = 0;
+    fis.forEach(([nx, ny, nz, off, w, depth, mx, my, mz], k) => {
+      const d = dx * nx + dy * ny + dz * nz - off + 0.12 * (fbm(dx * 2 + k * 9 + sd, dy * 2, dz * 2, 2) - 0.5), c = Math.exp(-((d / w) ** 2)) * sm(-0.1, 0.35, dx * mx + dy * my + dz * mz);
+      r *= 1 - depth * c;
+      c1 = Math.max(c1, c);
+    });
+    const c2 = 0;
+    return [r, Math.max(c1, c2 * 0.5), id1, id2];
+  };
+}
+function texturesDev(tip, T, f, S, W) {
+  const mk = () => { const c = document.createElement('canvas'); c.width = c.height = W; return c; };
+  const cc = mk(), oc = mk(), cg = cc.getContext('2d'), og = oc.getContext('2d'), col = cg.createImageData(W, W), orm = og.createImageData(W, W), H = new Float32Array(W * W), o = (T.tint + 1) * 53, lean = T.lean || 0;
+  const warm = 0.5 + 0.5 * Math.sin(T.tint * 2.1), darkAmt = 0.35 + 0.3 * Math.sin(T.tint * 1.3 + 1); // her kayanın tonu biraz farklı
+  for (let py = 0; py < W; py++) for (let px = 0; px < W; px++) {
+    const ex = ((px + 0.5) / W) * 2 - 1, ey = (1 - (py + 0.5) / W) * 2 - 1, rho = Math.min(1, Math.hypot(ex, ey)), th = rho * TH, ph = Math.atan2(ey, ex);
+    const dx = Math.sin(th) * Math.cos(ph), dy = Math.cos(th), dz = Math.sin(th) * Math.sin(ph), [r, crack, id1, id2] = f(dx, dy, dz);
+    const yr = Math.max(0, T.cy + dy * r), x = (dx * r + lean * yr) * S[0], y = yr * S[1], z = dz * r * S[0], up = sm(0.2, 0.9, dy), side = 1 - up;
+    // Taban: açık kireçtaşı; her kırık yüzün tonu ayrı
+    let g = 0.58 + 0.07 * (id1 - 0.5) + 0.04 * (id2 - 0.5) + 0.2 * (fbm(x * 0.35 + o, y * 0.35, z * 0.35, 4) - 0.5) + 0.12 * (fbm(x * 2.5, y * 2.5 + o, z * 2.5, 3) - 0.5);
+    let R = g * (1 + 0.03 * warm), G = g * 0.985, B = g * (0.97 - 0.05 * warm), rough = 0.86;
+    const blend = (cr, cg2, cb, t) => { R = mix(R, cr, t); G = mix(G, cg2, t); B = mix(B, cb, t); };
+    // Yeni kırılmış, sarımsı yüzler
+    blend(0.74 * (0.6 + g * 0.6), 0.63 * (0.6 + g * 0.6), 0.47 * (0.6 + g * 0.6), 0.5 * sm(0.52, 0.7, fbm(x * 0.16 + 90 + o, y * 0.16, z * 0.16, 3) + 0.1 * (id1 - 0.5)));
+    // Koyu, yağmur yemiş kabuk: geniş lekeler ve yanlardan aşağı süzülen izler
+    const patina = sm(0.5 - 0.1 * darkAmt, 0.66, fbm(x * 0.22 + 30 + o, y * 0.22, z * 0.22, 4) + 0.12 * (id2 - 0.5));
+    blend(0.2, 0.21, 0.225, (0.55 + 0.3 * darkAmt) * patina);
+    const streak = sm(0.52, 0.74, fbm(x * 1.5 + 60, y * 0.09 + o, z * 1.5, 4)) * sm(0.15, 0.6, side);
+    blend(0.17, 0.17, 0.18, 0.55 * streak);
+    blend(0.5, 0.36, 0.24, 0.4 * sm(0.6, 0.74, fbm(x * 0.9 + 140 + o, y * 0.5, z * 0.9, 3)) * side); // pas rengi akıntı
+    // Tane ve ince damarlar
+    const sp = noise(x * 28, y * 28, z * 28 + o);
+    R *= 1 + (sp > 0.74 ? -0.2 : sp < 0.2 ? 0.1 : 0); G *= 1 + (sp > 0.74 ? -0.2 : sp < 0.2 ? 0.1 : 0); B *= 1 + (sp > 0.74 ? -0.2 : sp < 0.2 ? 0.1 : 0);
+    const vein = 1 - sm(0.002, 0.008, Math.abs(fbm(x * 0.5 + 200 + o, y * 0.5, z * 0.5, 4) - 0.5));
+    blend(0.86, 0.85, 0.82, 0.35 * vein * sm(0.55, 0.7, noise(x * 0.4, y * 0.4 + o, z * 0.4)));
+    const fine = sm(0.56, 0.68, fbm(x * 0.25 + 300 + o, y * 0.25, z * 0.25, 2)) * (1 - sm(0.0008, 0.003, Math.abs(fbm(x * 0.5 + 240, y * 0.5 + o, z * 0.5, 4) - 0.5)));
+    blend(0.1, 0.1, 0.1, 0.45 * fine);
+    // Yarıklar: blok sınırları koyu
+    blend(0.09, 0.09, 0.09, 0.7 * sm(0.4, 0.95, crack));
+    // Liken ve yosun: üst yüzlerde, yarık kenarlarında
+    const lich = sm(0.58, 0.68, fbm(x * 1.4 + 60 + o, y * 1.4, z * 1.4, 4)) * (0.25 + 0.75 * up);
+    blend(0.5, 0.52, 0.36, 0.45 * lich);
+    blend(0.8, 0.8, 0.72, 0.55 * sm(0.7, 0.74, fbm(x * 3.2 + 90, y * 3.2 + o, z * 3.2, 3)));
+    blend(0.62, 0.46, 0.2, 0.45 * sm(0.75, 0.78, fbm(x * 4 + 120 + o, y * 4, z * 4, 2)) * up);
+    const moss = Math.min(1, Math.max(0.5 * sm(0.15, 0.5, crack) * (1 - sm(0.6, 0.95, crack)) * sm(-0.1, 0.5, dy), (0.55 + 0.45 * (T.moss || 0)) * sm(0.6 - 0.2 * (T.moss || 0), 0.76, fbm(x * 0.7 + 150, y * 0.7, z * 0.7 + o, 3)) * sm(0.35, 0.85, dy))) * sm(0.3, 0.6, noise(x * 6 + o, y * 6, z * 6) + 0.25);
+    blend(0.14 + 0.05 * sp, 0.19 + 0.06 * sp, 0.08, 0.8 * moss);
+    rough = Math.min(0.98, rough + 0.1 * moss + 0.04 * lich - 0.08 * vein);
+    const i = (py * W + px) * 4;
+    col.data[i] = Math.min(255, R * 255); col.data[i + 1] = Math.min(255, G * 255); col.data[i + 2] = Math.min(255, B * 255); col.data[i + 3] = 255;
+    orm.data[i] = 255; orm.data[i + 1] = rough * 255; orm.data[i + 2] = 0; orm.data[i + 3] = 255;
+    H[i / 4] = 0.5 * fbm(x * 5, y * 5 + o, z * 5, 5) + 0.35 * fbm(x * 1.2 + o, y * 1.2, z * 1.2, 3) + 0.1 * (sp - 0.5) - 0.3 * fine - 0.45 * sm(0.3, 0.8, crack) + 0.2 * moss * noise(x * 20, y * 20, z * 20) - 0.15 * streak;
+  }
+  cg.putImageData(col, 0, 0);
+  og.putImageData(orm, 0, 0);
+  const tex = (name, c, srgb) => { const t = new THREE.CanvasTexture(c); t.name = name; t.colorSpace = srgb ? THREE.SRGBColorSpace : THREE.NoColorSpace; t.anisotropy = 4; return t; };
+  const m = tex(`${tip}_pm`, oc, false);
+  return new THREE.MeshStandardMaterial({ name: tip, map: tex(`${tip}_renk`, cc, true), roughnessMap: m, metalnessMap: m, normalMap: tex(`${tip}_kabartma`, normalFrom(H, W, 7), false), roughness: 1, metalness: 1 });
+}
+
 export function createKaya(tip = 'kaya_buyuk_1') {
-  const T = KAYALAR[tip], f = shape(T, Object.keys(KAYALAR).indexOf(tip)), width = T.w, height = T.h, lean = T.lean || 0;
-  const M = T.big ? 104 : 48, N = T.big ? 56 : 30, size = T.big ? 1024 : 512; // büyükler ~11 600, küçükler 2 880 üçgen
+  const T = KAYALAR[tip], f = (T.dev ? shapeDev : shape)(T, Object.keys(KAYALAR).indexOf(tip)), width = T.w, height = T.h, lean = T.lean || 0;
+  const M = T.big ? 104 : 48, N = T.dev ? 57 : T.big ? 56 : 30, size = T.dev ? 1536 : T.big ? 1024 : 512; // büyükler ~11 600, küçükler 2 880 üçgen
   // Ham ağ: tepe noktası, N halka (kutup açısı 0 … TH), taban merkezi. Köşeler paylaşılır: ağ kapalıdır.
   const raw = [];
   for (let j = 1; j <= N; j++) for (let k = 0; k < M; k++) {
@@ -173,7 +283,7 @@ export function createKaya(tip = 'kaya_buyuk_1') {
   g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
   g.setIndex(idx);
   g.computeVertexNormals();
-  const mesh = new THREE.Mesh(g, textures(tip, T, f, S, size, Math.min(6, (4 / width) ** 0.7)));
+  const mesh = new THREE.Mesh(g, T.dev ? texturesDev(tip, T, f, S, size) : textures(tip, T, f, S, size, Math.min(6, (4 / width) ** 0.7)));
   mesh.name = tip;
   mesh.castShadow = mesh.receiveShadow = true;
   return mesh;
