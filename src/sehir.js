@@ -78,6 +78,13 @@ const kiremitP = (g, w, h, r) => { g.fillStyle = '#3a2c24'; g.fillRect(0, 0, w, 
 const kursunP = (g, w, h, r) => { g.fillStyle = '#74787a'; g.fillRect(0, 0, w, h); lekele(g, w, h, r, 120, '40,44,46', 0.22, 0.12); lekele(g, w, h, r, 70, '190,196,196', 0.12, 0.1); for (let k = 0; k < 5; k++) { const x = (k / 5) * w; g.fillStyle = 'rgba(36,40,42,0.7)'; g.fillRect(x, 0, 4, h); g.fillStyle = 'rgba(170,176,176,0.5)'; g.fillRect(x + 4, 0, 4, h); } yagmurIzi(g, w, h, r, 12, 0.3); };
 const bez = (base, serit) => (g, w, h, r) => { g.fillStyle = rgb(base); g.fillRect(0, 0, w, h); if (serit) { g.fillStyle = rgb(serit); for (let k = 0; k < 4; k++) g.fillRect((k / 4) * w, 0, w / 8, h); } for (let k = 0; k < 3000; k++) { g.fillStyle = r() < 0.5 ? 'rgba(60,50,36,0.1)' : 'rgba(255,250,235,0.1)'; g.fillRect(r() * w, r() * h, 1, 3 + r() * 8); } lekele(g, w, h, r, 60, '70,56,36', 0.14); };
 const kaldirim = (g, w, h, r) => { g.fillStyle = '#4a4034'; g.fillRect(0, 0, w, h); for (let row = 0; row < 12; row++) for (let c = 0; c < 12; c++) { const x = (c + (row % 2 ? 0.5 : 0)) * (w / 12) + (r() - 0.5) * 8, y = (row + 0.5) * (h / 12) + (r() - 0.5) * 8; for (const dx of [-w, 0, w]) { const gr = g.createRadialGradient(x + dx - 4, y - 4, 2, x + dx, y, 24); const c0 = ton(r, [150, 142, 128], 0.14); gr.addColorStop(0, rgb(c0.map((v) => Math.min(255, v * 1.15)))); gr.addColorStop(1, rgb(c0.map((v) => v * 0.7))); g.fillStyle = gr; g.beginPath(); g.ellipse(x + dx, y, 17 + r() * 4, 15 + r() * 4, r() * 3, 0, 7); g.fill(); } } lekele(g, w, h, r, 60, '30,24,16', 0.2); };
+// ---------- Süslü ev dokuları ----------
+const tuglaR = (c, harc = '#b9a88a') => (g, w, h, r) => { g.fillStyle = harc; g.fillRect(0, 0, w, h); for (let y = 0, row = 0; y < h; y += 16, row++) for (let x = -(row % 2 ? 32 : 0); x < w; x += 64) { g.fillStyle = rgb(ton(r, c, 0.09)); g.fillRect(x + 1.5, y + 1.5, 61, 13); } kirlet(g, w, h, r, 0.35); };
+const kiremitR = (c) => (g, w, h, r) => { g.fillStyle = rgb(c.map((v) => v * 0.35)); g.fillRect(0, 0, w, h); for (let row = 0; row < 12; row++) for (let q = 0; q < 14; q++) { const x = (q / 14) * w, y = (row / 12) * h, t = ton(r, c, 0.16), gr = g.createLinearGradient(x, 0, x + w / 14, 0); gr.addColorStop(0, rgb(t.map((v) => v * 0.6))); gr.addColorStop(0.5, rgb(t)); gr.addColorStop(1, rgb(t.map((v) => v * 0.62))); g.fillStyle = gr; g.fillRect(x + 1, y, w / 14 - 2, h / 12 - 3); } lekele(g, w, h, r, 50, '40,30,20', 0.2, 0.07); };
+const oyma = (base, k = 0.3) => (g, w, h, r) => { g.fillStyle = rgb(base); g.fillRect(0, 0, w, h); for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) { const x = (i + 0.5) * w / 4, y = (j + 0.5) * h / 4; for (const [st, lw] of [[rgb(base.map((v) => v * 0.48)), 7], [rgb(base.map((v) => Math.min(255, v * 1.22))), 3]]) { g.strokeStyle = st; g.lineWidth = lw; g.beginPath(); for (let q = 0; q < 8; q++) { const a = (q / 8) * TAU; g.moveTo(x, y); g.quadraticCurveTo(x + Math.cos(a + 0.6) * w / 9, y + Math.sin(a + 0.6) * h / 9, x + Math.cos(a) * w / 8.6, y + Math.sin(a) * h / 8.6); } g.stroke(); g.beginPath(); g.arc(x, y, w / 8.4, 0, 7); g.stroke(); g.strokeRect(x - w / 8 + 3, y - h / 8 + 3, w / 4 - 6, h / 4 - 6); } } kirlet(g, w, h, r, k); };
+const vitray = (cerceve, renkler, alt) => (g, w, h, r) => { g.fillStyle = rgb(cerceve); g.fillRect(0, 0, w, h); const f = w * 0.08, top = alt ? h * 0.42 : h - f; for (let i = 0; i < 6; i++) for (let j = 0; j < 12; j++) { const x = f + (i / 6) * (w - 2 * f), y = f + (j / 12) * (top - f); g.fillStyle = rgb(ton(r, renkler[Math.floor(r() * renkler.length)], 0.22)); g.fillRect(x + 1.5, y + 1.5, (w - 2 * f) / 6 - 3, (top - f) / 12 - 3); } g.strokeStyle = 'rgba(24,18,12,0.9)'; g.lineWidth = 3; for (let q = 0; q < 4; q++) { g.beginPath(); g.ellipse(w / 2, f + (top - f) * (0.14 + q * 0.24), w * 0.24, (top - f) * 0.1, 0, 0, 7); g.stroke(); } g.fillStyle = rgb(cerceve); g.fillRect(w / 2 - 4, f, 8, top - f); if (alt) { g.fillRect(f, top - 5, w - 2 * f, 10); for (let y = top + 8; y < h - f - 6; y += 13) { g.fillStyle = rgb(ton(r, cerceve.map((v) => v * 1.25), 0.08)); g.fillRect(f + 4, y, w - 2 * f - 8, 8); g.fillStyle = 'rgba(14,10,8,0.75)'; g.fillRect(f + 4, y + 8, w - 2 * f - 8, 3); } } lekele(g, w, h, r, 24, '20,16,12', 0.18, 0.06); };
+const kafesP = (c) => (g, w, h) => { g.fillStyle = '#1c140e'; g.fillRect(0, 0, w, h); g.strokeStyle = rgb(c); g.lineWidth = w * 0.045; const R = w / 9; for (let rI = -1; rI < 16; rI++) for (let q = -1; q < 8; q++) { const x = q * R * 1.732 + (rI % 2 ? R * 0.866 : 0), y = rI * R * 1.5; g.beginPath(); for (let k = 0; k <= 6; k++) g.lineTo(x + Math.sin((k / 6) * TAU) * R, y + Math.cos((k / 6) * TAU) * R); g.stroke(); g.beginPath(); g.arc(x, y, R * 0.3, 0, 7); g.stroke(); } g.lineWidth = w * 0.08; g.strokeRect(0, 0, w, h); };
+const ciniP = (g, w, h, r) => { g.fillStyle = '#e9e2cc'; g.fillRect(0, 0, w, h); for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) { const x = (i + 0.5) * w / 4, y = (j + 0.5) * h / 4, c = (i + j) % 2 ? '#2a8f96' : '#1d4f86'; g.fillStyle = c; g.beginPath(); g.moveTo(x, y - h / 9); g.lineTo(x + w / 9, y); g.lineTo(x, y + h / 9); g.lineTo(x - w / 9, y); g.fill(); g.fillStyle = '#d9a23a'; g.beginPath(); g.arc(x, y, w / 44, 0, 7); g.fill(); g.strokeStyle = '#2a8f96'; g.lineWidth = 3; g.strokeRect(x - w / 8 + 2, y - h / 8 + 2, w / 4 - 4, h / 4 - 4); } for (const [x, y] of [[0, 0], [w / 2, 0], [0, h / 2], [w / 2, h / 2]]) { g.fillStyle = '#16365e'; g.beginPath(); g.arc(x + w / 4, y + h / 4, w / 50, 0, 7); g.fill(); } kirlet(g, w, h, r, 0.25); };
 const M = K.materials('sehir', {
   temel_tas: [moloz([104, 100, 92])], moloz_tas: [moloz([138, 134, 124])], beyaz_tas: [moloz([174, 170, 158])], kesme_tas: [tasBlok([158, 154, 142], 7)], kirec_tasi: [tasBlok([164, 160, 146], 4, '#4a463c', 0.2)],
   almasik_duvar: [almasik], tugla: [(g, w, h, r) => { tuglaCiz(g, 0, 0, w, h, r); lekele(g, w, h, r, 80, '40,30,20', 0.16); }],
@@ -91,6 +98,13 @@ const M = K.materials('sehir', {
   pencere_cok: [PEN('cok', [84, 64, 46]), 384, 384], pencere_sebeke: [(g, w, h) => { g.fillStyle = '#14171a'; g.fillRect(0, 0, w, h); g.strokeStyle = '#a8a494'; g.lineWidth = w * 0.035; const R = w / 8; for (let rI = -1; rI < 14; rI++) for (let c = -1; c < 7; c++) { const x = c * R * 1.732 + (rI % 2 ? R * 0.866 : 0), y = rI * R * 1.5; g.beginPath(); for (let k = 0; k <= 6; k++) g.lineTo(x + Math.sin((k / 6) * TAU) * R, y + Math.cos((k / 6) * TAU) * R); g.stroke(); } g.strokeStyle = '#8f8b7c'; g.lineWidth = w * 0.06; g.strokeRect(0, 0, w, h); }, 256, 384], bayrak: [(g, w, h, r) => { const G = h; g.fillStyle = '#c0161d'; g.fillRect(0, 0, w, h); g.fillStyle = '#f4f1ea'; g.beginPath(); g.arc(0.5 * G, 0.5 * G, 0.25 * G, 0, 7); g.fill(); g.fillStyle = '#c0161d'; g.beginPath(); g.arc(0.5625 * G, 0.5 * G, 0.2 * G, 0, 7); g.fill(); g.fillStyle = '#f4f1ea'; g.beginPath(); for (let k = 0; k < 10; k++) { const a = Math.PI + (k / 10) * TAU, rr = (k % 2 ? 0.048 : 0.125) * G; g.lineTo(0.76 * G + Math.cos(a) * rr, 0.5 * G + Math.sin(a) * rr); } g.fill(); for (let k = 0; k < 500; k++) { g.fillStyle = r() < 0.5 ? 'rgba(40,10,10,0.1)' : 'rgba(255,220,200,0.06)'; g.fillRect(r() * w, r() * h, 2 + r() * 14, 1); } }, 384, 256], pencere_parmak: [PEN('parmak', [90, 84, 74]), 256, 256],
   kepenk_yesil: [PEN('kepenk', [60, 52, 40], [82, 104, 86]), 256, 384], kepenk_mavi: [PEN('kepenk', [168, 162, 148], [100, 112, 118]), 256, 384], kepenk_kahve: [PEN('kepenk', [60, 46, 34], [88, 70, 54]), 256, 384],
   kapi_ahsap: [PEN('kapi', [0, 0, 0], [72, 58, 46]), 256, 512], kapi_cift: [PEN('cift', [0, 0, 0], [64, 52, 42]), 256, 384], kapi_civili: [PEN('civili', [0, 0, 0], [56, 46, 38]), 256, 384], kepenk_dukkan: [PEN('dukkan', [0, 0, 0], [90, 78, 64]), 384, 256],
+  tugla_sari: [tuglaR([212, 184, 128])], tugla_krem: [tuglaR([220, 206, 172], '#cdbf9e')], tugla_delikli: [(g, w, h, r) => { tuglaR([212, 184, 128])(g, w, h, r); g.fillStyle = 'rgba(40,30,18,0.85)'; for (let y = 24; y < h; y += 48) for (let x = (y / 48) % 2 ? 24 : 56; x < w; x += 64) g.fillRect(x, y, 22, 22); }],
+  kumtasi: [tasBlok([200, 142, 84], 7, '#8a5a30', 0.3)], oyma_kum: [oyma([206, 150, 90])], kafes_kum: [kafesP([206, 150, 90]), 256, 384], oyma_tas: [oyma([222, 210, 184])],
+  ahsap_bal: [ahsap([172, 114, 62])], oyma_ahsap: [oyma([176, 118, 64])], ahsap_ceviz: [ahsap([104, 62, 42])], oyma_ceviz: [oyma([110, 66, 44])],
+  vitray_bal: [vitray([170, 112, 60], [[70, 110, 120], [170, 150, 90], [120, 70, 60], [90, 120, 80], [60, 70, 110]]), 256, 384], vitray_renkli: [vitray([170, 112, 60], [[52, 84, 128], [140, 62, 58], [176, 150, 84], [70, 122, 104], [188, 182, 166], [60, 96, 110]]), 256, 384], kapi_vitray: [vitray([150, 96, 52], [[90, 60, 40], [150, 120, 70], [70, 100, 90], [120, 60, 50]], true), 256, 384],
+  cumba_pencere: [vitray([104, 62, 42], [[62, 110, 136], [52, 104, 100], [168, 146, 86], [70, 84, 124]], true), 256, 512], kepenk_ceviz: [PEN('kepenk', [96, 58, 40], [124, 78, 52]), 256, 384],
+  siva_ak: [(g, w, h, r) => { g.fillStyle = '#ece6d6'; g.fillRect(0, 0, w, h); lekele(g, w, h, r, 200, '120,100,70', 0.06); kirlet(g, w, h, r, 0.3); }], ahsap_mavi2: [ahsap([92, 148, 196])], oyma_mavi: [oyma([98, 156, 204], 0.2)], pencere_mavi: [PEN('giyotin', [86, 144, 196]), 256, 384], kepenk_mavi2: [PEN('kepenk', [70, 124, 176], [104, 162, 208]), 256, 384], kapi_turuncu: [PEN('civili', [0, 0, 0], [214, 136, 52]), 256, 384], kiremit_sari: [kiremitR([206, 140, 62])],
+  cini_turkuaz: [ciniP], kapi_bal: [PEN('cift', [0, 0, 0], [150, 98, 56]), 256, 384], korkuluk_bal: [(g, w, h, r) => { g.fillStyle = '#2a1c12'; g.fillRect(0, 0, w, h); for (let x = 6; x < w; x += 26) { g.fillStyle = rgb(ton(r, [172, 114, 62], 0.1)); g.fillRect(x, 0, 13, h); } g.fillStyle = '#9a6234'; g.fillRect(0, 0, w, h * 0.12); g.fillRect(0, h * 0.88, w, h * 0.12); }, 256, 128],
   demir: 0x2a2826, karanlik: 0x14110e, yanik: 0x1c1814, asma: 0x4a6a34,
 });
 // Kabartma haritaları: renk dokusunun aydınlığından
@@ -570,6 +584,118 @@ Object.assign(DIGER, {
 });
 
 
+// ---------- Beş süslü ev (resimlerden) ----------
+const O = (u, w, y0, ys, rise, fill, tip, depth = 0.14, reveal = 'kereste') => ({ u0: u - w / 2, u1: u + w / 2, y0, ys, rise, tip, fill, depth, reveal });
+function govde(P, W, D, zones, on = [], yan = []) {
+  cephe(P, yuz(V(0, 0, 0), V(0, 0, 1)), W, zones, on);
+  for (const sg of [-1, 1]) cephe(P, yuz(V(sg * W / 2, 0, -D / 2), V(sg, 0, 0)), D, zones, yan);
+  cephe(P, yuz(V(0, 0, -D), V(0, 0, -1)), W, zones, []);
+}
+// Çıkma (cumba): ön yüz genişliği wf, pahlı yan yüzler ws (0 = dik), çıkma derinliği c
+function cikma(P, u, c, wf, ws, y0, y1, mat, opF = [], opS = [], alt = 'kereste') {
+  cephe(P, yuz(V(u, 0, c), V(0, 0, 1)), wf, [[y0, y1, mat, 3]], opF);
+  for (const sg of [-1, 1]) { if (ws > 0) cephe(P, yuz(V(u + sg * (wf / 2 + ws / 2), 0, c / 2), V(sg * c, 0, ws).normalize()), Math.hypot(ws, c), [[y0, y1, mat, 3]], opS); else dortgen(P, mat, [V(u + sg * wf / 2, y0, 0), V(u + sg * wf / 2, y0, c), V(u + sg * wf / 2, y1, c), V(u + sg * wf / 2, y1, 0)], V(sg, 0, 0)); }
+  for (const [y, n] of [[y0, -1], [y1, 1]]) dortgen(P, alt, [V(u - wf / 2 - ws, y, 0), V(u - wf / 2, y, c), V(u + wf / 2, y, c), V(u + wf / 2 + ws, y, 0)], V(0, n, 0), 1.5);
+}
+function catiKirma(P, mat, x0, x1, z0, z1, y0, rise) {
+  const cx = (x0 + x1) / 2, cz = (z0 + z1) / 2, rl = Math.max(0, (x1 - x0 - (z1 - z0)) / 2), A = V(cx - rl, y0 + rise, cz), B = V(cx + rl, y0 + rise, cz), uv = (q) => [(q.x + q.z) / 1.5, q.y / 1.2 + Math.hypot(q.x - cx, q.z - cz) / 2], f = (pts, n) => (pts.length === 4 ? P.quad(mat, pts, pts.map(uv), n) : P.tri(mat, pts, pts.map(uv), n));
+  f([V(x0, y0, z1), V(x1, y0, z1), B, A], V(0, 1, 1)); f([V(x1, y0, z0), V(x0, y0, z0), A, B], V(0, 1, -1)); f([V(x1, y0, z1), V(x1, y0, z0), B], V(1, 1, 0)); f([V(x0, y0, z0), V(x0, y0, z1), A], V(-1, 1, 0));
+  dortgen(P, 'kereste', [V(x0, y0, z0), V(x1, y0, z0), V(x1, y0, z1), V(x0, y0, z1)], V(0, -1, 0), 1.5);
+}
+const Fon = yuz(V(0, 0, 0), V(0, 0, 1));
+Object.assign(DIGER, {
+  // 1) Vitraylı ahşap cumbalı ev: krem tuğla gövde, iki pahlı ahşap cumba, vitray pencereler, oymalı panolar, geniş ahşap saçak
+  ev_vitrayli_cumbali: (P) => {
+    const W = 10, D = 8, H = 7.6;
+    govde(P, W, D, [[0, 0.9, 'kirec_tasi', 3], [0.9, 3.8, 'tugla_krem', 2], [3.8, H, 'tugla_krem', 2]], [O(0, 2.3, 0.9, 2.9, 0.65, 'kapi_vitray', 'yuvarlak', 0.3, 'oyma_tas'), O(-3.3, 2.2, 1.5, 3.3, 0, 'vitray_bal', undefined, 0.1, 'ahsap_bal'), O(3.3, 2.2, 1.5, 3.3, 0, 'vitray_bal', undefined, 0.1, 'ahsap_bal'), O(0, 0.9, 4.7, 6.0, 0.45, 'vitray_renkli', 'yuvarlak', 0.1, 'ahsap_bal')]);
+    for (const [a, b, y0, y1] of [[-1.25, 1.25, 6.7, 7.25], [-1.25, -0.7, 4.3, 6.6], [0.7, 1.25, 4.3, 6.6], [-1.6, 1.6, 3.55, 3.85]]) kutu(P, Fon, a, b, y0, y1, 0, 0.05, 'oyma_tas');
+    for (const sg of [-1, 1]) kutu(P, Fon, sg > 0 ? 1.2 : -1.55, sg > 0 ? 1.55 : -1.2, 0.9, 3.55, 0, 0.06, 'oyma_tas'); // kapının iki yanında oymalı panolar
+    for (const sg of [-1, 1]) { kutu(P, Fon, sg * 3.3 - 1.25, sg * 3.3 + 1.25, 1.36, 1.5, 0, 0.14, 'ahsap_bal'); for (const dx of [-0.8, 0.8]) kutu(P, Fon, sg * 3.3 + dx - 0.08, sg * 3.3 + dx + 0.08, 1.1, 1.36, 0, 0.1, 'ahsap_bal'); }
+    basamak(P, 'kirec_tasi', -1.6, 1.6, 5, 0.18, 0.3, 1.5); for (const sg of [-1, 1]) kup(P, 'kirec_tasi', sg > 0 ? 1.6 : -2.0, sg > 0 ? 2.0 : -1.6, 0, 1.0, 0, 1.5, '-y');
+    for (const u of [-3.2, 3.2]) {
+      cikma(P, u, 0.9, 2.3, 0.65, 3.9, 7.3, 'ahsap_bal', [O(0, 1.8, 4.9, 6.3, 0.55, 'vitray_renkli', 'yuvarlak', 0.07, 'ahsap_bal')], [O(0, 0.62, 4.9, 6.6, 0, 'vitray_bal', undefined, 0.06, 'ahsap_bal')], 'ahsap_bal');
+      const F = yuz(V(u, 0, 0.9), V(0, 0, 1)); kutu(P, F, -1.0, 1.0, 4.05, 4.75, 0, 0.04, 'korkuluk_bal', true); kutu(P, F, -1.0, 1.0, 6.95, 7.25, 0, 0.04, 'oyma_ahsap');
+      kutu(P, F, -1.2, 1.2, 3.82, 3.98, 0, 0.08, 'ahsap_bal');
+      for (const dx of [-1.3, -0.65, 0, 0.65, 1.3]) for (let k = 0; k < 3; k++) kup(P, 'oyma_ahsap', u + dx - 0.09, u + dx + 0.09, 3.9 - (k + 1) * 0.17, 3.9 - k * 0.17, 0, 0.8 - k * 0.24, '-z', 1);
+    }
+    kup(P, 'ahsap_bal', -W / 2 - 0.75, W / 2 + 0.75, 7.3, 7.52, -D - 0.3, 1.75, '', 2); kup(P, 'ahsap_bal', -W / 2 - 0.9, W / 2 + 0.9, 7.52, 7.7, -D - 0.45, 1.9, '', 2); dortgen(P, 'kursun', [V(-W / 2 - 0.9, 7.71, 1.9), V(W / 2 + 0.9, 7.71, 1.9), V(W / 2 + 0.9, 7.71, -D - 0.45), V(-W / 2 - 0.9, 7.71, -D - 0.45)], UP, 1.5);
+    for (let x = -W / 2 + 0.3; x <= W / 2 - 0.2; x += 0.62) if (Math.abs(x) < 1.5) kup(P, 'ahsap_bal', x - 0.06, x + 0.06, 7.05, 7.3, 0, 0.55, '-z', 1);
+  },
+  // 2) Sarı tuğla ev: üst katta altı kemerli pencereli büyük ceviz cumba, altında kirişler, üstünde korkuluklu teras; kemerli tuğla pencereler
+  ev_tugla_cumbali: (P) => {
+    const W = 11, D = 8, H = 8.6, cu = 1.3, cw = 6.6, cc = 1.4;
+    govde(P, W, D, [[0, 0.5, 'kirec_tasi', 3], [0.5, 4.3, 'tugla_sari', 2], [4.3, H, 'tugla_sari', 2]], [...[-4.1, -1.3, 1.5].map((u) => O(u, 1.25, 1.0, 2.75, 0.62, 'pencere_parmak', 'yuvarlak', 0.2, 'tugla_sari')), O(4.3, 1.4, 0.02, 2.5, 0.7, 'kapi_cift', 'yuvarlak', 0.3, 'tugla_sari'), O(-4.1, 1.5, 5.0, 6.9, 0.75, 'kepenk_ceviz', 'yuvarlak', 0.15, 'tugla_sari')], [O(0, 1.4, 5.0, 6.9, 0.7, 'kepenk_ceviz', 'yuvarlak', 0.15, 'tugla_sari')]);
+    for (const u of [-4.1, -1.3, 1.5, 4.3]) kutu(P, Fon, u - 0.85, u + 0.85, 3.55, 3.95, 0, 0.04, 'oyma_tas');
+    for (const [C, N, L] of [[V(0, 0, 0), V(0, 0, 1), W], [V(-W / 2, 0, -D / 2), V(-1, 0, 0), D], [V(W / 2, 0, -D / 2), V(1, 0, 0), D], [V(0, 0, -D), V(0, 0, -1), W]]) { const F = yuz(C, N); kutu(P, F, -L / 2 - 0.05, L / 2 + 0.05, 4.2, 4.36, 0, 0.07, 'tugla_krem'); kutu(P, F, -L / 2 - 0.12, L / 2 + 0.12, H - 0.25, H, 0, 0.14, 'tugla_krem'); kutu(P, F, -L / 2, L / 2, H, H + 0.9, -0.28, 0, 'tugla_delikli'); }
+    dortgen(P, 'kursun', [V(-W / 2, H + 0.02, 0), V(W / 2, H + 0.02, 0), V(W / 2, H + 0.02, -D), V(-W / 2, H + 0.02, -D)], UP, 1.5);
+    cikma(P, cu, cc, cw, 0, 4.5, 8.2, 'ahsap_ceviz', Array.from({ length: 6 }, (_, k) => O(-2.6 + k * 1.04, 0.82, 5.05, 7.25, 0.45, 'cumba_pencere', undefined, 0.07, 'ahsap_ceviz')), [], 'ahsap_ceviz');
+    const F = yuz(V(cu, 0, cc), V(0, 0, 1)); kutu(P, F, -cw / 2, cw / 2, 4.52, 4.98, 0, 0.04, 'oyma_ceviz'); kutu(P, F, -cw / 2, cw / 2, 7.8, 8.18, 0, 0.04, 'oyma_ceviz');
+    for (let k = 0; k < 7; k++) { const x = cu - cw / 2 + 0.25 + k * ((cw - 0.5) / 6); K.beam(P, 'kereste', V(x, 4.38, 0), V(x, 4.38, cc + 0.25), 0.22, 0.18); K.beam(P, 'kereste', V(x, 3.75, 0.02), V(x, 4.28, 0.9), 0.14, 0.12); }
+    kup(P, 'ahsap_ceviz', cu - cw / 2 - 0.3, cu + cw / 2 + 0.3, 8.2, 8.4, 0, cc + 0.4, '', 2);
+    for (const [a, b] of [[V(cu - cw / 2 - 0.2, 8.4, cc + 0.3), V(cu + cw / 2 + 0.2, 8.4, cc + 0.3)], [V(cu - cw / 2 - 0.2, 8.4, 0.1), V(cu - cw / 2 - 0.2, 8.4, cc + 0.3)], [V(cu + cw / 2 + 0.2, 8.4, 0.1), V(cu + cw / 2 + 0.2, 8.4, cc + 0.3)]]) { K.beam(P, 'ahsap_ceviz', a.clone().setY(9.35), b.clone().setY(9.35), 0.08, 0.1); const n = Math.max(2, Math.round(a.distanceTo(b) / 0.22)); for (let k = 0; k <= n; k++) { const q = a.clone().lerp(b, k / n); K.cyl(P, 'ahsap_ceviz', q, q.clone().setY(9.35), k % 5 ? 0.02 : 0.045, 5, false); } }
+  },
+  // 3) Kumtaşı ev: oymalı taç kapı, ortada konsollu ve saçaklı çıkma (cumba), dört kafesli ve saçaklı pencere, dendanlı korkuluk
+  ev_kumtasi_kafesli: (P) => {
+    const W = 11, D = 8, H = 9.6, wins = [[-3.6, 1.9], [3.6, 1.9], [-3.6, 5.7], [3.6, 5.7]];
+    govde(P, W, D, [[0, H, 'kumtasi', 3]], [O(0, 1.6, 0.3, 2.6, 0.75, 'kapi_civili', 'dilimli', 0.4, 'oyma_kum'), ...wins.map(([u, y]) => O(u, 1.1, y, y + 1.45, 0.45, 'kafes_kum', 'sogan', 0.1, 'oyma_kum'))]);
+    for (const [a, b, y0, y1] of [[-1.55, -0.85, 0.3, 4.1], [0.85, 1.55, 0.3, 4.1], [-1.55, 1.55, 3.45, 4.1]]) kutu(P, Fon, a, b, y0, y1, 0, 0.12, 'oyma_kum');
+    kup(P, 'kumtasi', -2.3, 2.3, 0, 0.3, 0, 0.9, '-y'); kup(P, 'kumtasi', -1.3, 1.3, 0, 0.15, 0.9, 1.3, '-y');
+    for (const sg of [-1, 1]) kutu(P, Fon, sg * 2.2 - 0.2, sg * 2.2 + 0.2, 0, H, 0, 0.18, 'kumtasi');
+    const sacak = (u, y, w, out = 0.6) => { P.quad('kumtasi', [V(u - w / 2, y - 0.28, out), V(u + w / 2, y - 0.28, out), V(u + w / 2 - 0.1, y, 0), V(u - w / 2 + 0.1, y, 0)], K.FLAT, V(0, 1, 0.5)); dortgen(P, 'oyma_kum', [V(u - w / 2, y - 0.28, 0), V(u + w / 2, y - 0.28, 0), V(u + w / 2, y - 0.28, out), V(u - w / 2, y - 0.28, out)], V(0, -1, 0), 1.5); for (const sg of [-1, 1]) K.beam(P, 'oyma_kum', V(u + sg * (w / 2 - 0.15), y - 0.75, 0.02), V(u + sg * (w / 2 - 0.15), y - 0.3, out - 0.1), 0.08, 0.08); };
+    for (const [u, y] of wins) { for (const sg of [-1, 1]) kutu(P, Fon, u + sg * 0.7 - 0.13, u + sg * 0.7 + 0.13, y - 0.1, y + 2.05, 0, 0.1, 'oyma_kum'); kutu(P, Fon, u - 0.95, u + 0.95, y - 0.32, y - 0.1, 0, 0.26, 'oyma_kum'); for (const dx of [-0.7, 0, 0.7]) kutu(P, Fon, u + dx - 0.07, u + dx + 0.07, y - 0.6, y - 0.32, 0, 0.18, 'oyma_kum'); sacak(u, y + 2.55, 2.5); kutu(P, Fon, u - 0.8, u + 0.8, y + 2.55, y + 3.1, 0, 0.12, 'oyma_kum'); }
+    cikma(P, 0, 0.75, 3.0, 0, 5.2, 7.5, 'oyma_kum', [-0.95, 0, 0.95].map((u) => O(u, 0.68, 5.75, 6.7, 0.4, 'kafes_kum', 'sogan', 0.08, 'oyma_kum')), [], 'oyma_kum');
+    for (const dx of [-1.3, -0.45, 0.45, 1.3]) for (let k = 0; k < 4; k++) kup(P, 'oyma_kum', dx - 0.09, dx + 0.09, 5.2 - (k + 1) * 0.2, 5.2 - k * 0.2, 0, 0.72 - k * 0.17, '-z', 1);
+    sacak(0, 8.0, 4.2, 1.35); kutu(P, Fon, -1.6, 1.6, 8.0, 9.1, 0, 0.14, 'oyma_kum');
+    for (const y of [4.4, 8.35]) for (const [a, b] of [[-W / 2, -2.4], [2.4, W / 2]]) kutu(P, Fon, a, b, y, y + 0.14, 0, 0.07, 'oyma_kum');
+    kup(P, 'kumtasi', -2, 2, H, H + 0.8, -2, 0.02, '-y');
+    for (const [C, N, L, y, d] of [[V(0, 0, 0), V(0, 0, 1), W, H, 0], [V(-W / 2, 0, -D / 2), V(-1, 0, 0), D, H, 0], [V(W / 2, 0, -D / 2), V(1, 0, 0), D, H, 0], [V(0, 0, 0.02), V(0, 0, 1), 4, H + 0.8, 0]]) { const F = yuz(C, N); kutu(P, F, -L / 2 - 0.08, L / 2 + 0.08, y - 0.22, y, 0, 0.1, 'oyma_kum'); for (let u = -L / 2; u < L / 2 - 0.1; u += 0.34) kutu(P, F, u, u + 0.22, y, y + 0.36, -0.22, 0, 'kumtasi'); }
+    dortgen(P, 'kumtasi', [V(-W / 2, H, 0), V(W / 2, H, 0), V(W / 2, H, -D), V(-W / 2, H, -D)], UP);
+  },
+  // 4) Mavi ahşaplı beyaz ev: ortada öne çıkan blok (nal kemerli turuncu kapı, kafesli balkon, üç kemerli üst kat, geniş saçaklı kiremit çatı), yanlarda mavi kepenkli pencereler ve kiremit saçaklar
+  ev_mavi_ahsapli: (P) => {
+    const W = 13, D = 7, H = 7.4, bw = 5.4, bc = 1.1, BH = 8.6;
+    const lw = [[-4.7, 1.5], [-4.7, 4.9], [4.6, 4.9]];
+    govde(P, W, D, [[0, 0.9, 'ahsap_mavi2', 2], [0.9, H, 'siva_ak', 3]], [...lw.map(([u, y]) => O(u, 1.4, y, y + 1.6, 0, 'pencere_mavi', undefined, 0.12, 'ahsap_mavi2')), O(4.6, 1.3, 0.25, 2.6, 0.55, 'pencere_mavi', 'yuvarlak', 0.14, 'oyma_mavi')]);
+    for (const [u, y] of lw) { kutu(P, Fon, u - 0.95, u + 0.95, y - 0.16, y, 0, 0.16, 'ahsap_mavi2'); kutu(P, Fon, u - 0.9, u + 0.9, y + 1.65, y + 2.05, 0, 0.3, 'oyma_mavi'); P.quad('kiremit_sari', [V(u - 1.15, y + 2.0, 0.65), V(u + 1.15, y + 2.0, 0.65), V(u + 0.95, y + 2.45, 0), V(u - 0.95, y + 2.45, 0)], [[0, 0], [1.5, 0], [1.4, 0.5], [0.1, 0.5]], V(0, 1, 0.5)); for (const sg of [-1, 1]) { const h0 = V(u + sg * 0.7, y, 0.02), e = V(u + sg * 1.28, y, 0.3); P.quad('kepenk_mavi2', [h0, e, e.clone().setY(y + 1.6), h0.clone().setY(y + 1.6)], [[0.02, 0], [0.48, 0], [0.48, 1], [0.02, 1]], V(sg * 0.4, 0, 1)); } }
+    kutu(P, Fon, 3.5, 5.7, 2.95, 3.35, 0, 0.3, 'oyma_mavi'); P.quad('kiremit_sari', [V(3.3, 3.3, 0.8), V(5.9, 3.3, 0.8), V(5.7, 3.8, 0), V(3.5, 3.8, 0)], [[0, 0], [1.7, 0], [1.6, 0.6], [0.1, 0.6]], V(0, 1, 0.5));
+    for (const [a, b] of [[-W / 2, -bw / 2], [bw / 2, W / 2]]) { kutu(P, Fon, a, b, H - 0.5, H - 0.1, 0, 0.25, 'oyma_mavi'); P.quad('kiremit_sari', [V(a, H - 0.1, 0.75), V(b, H - 0.1, 0.75), V(b, H + 0.4, -0.5), V(a, H + 0.4, -0.5)], [[a / 1.5, 0], [b / 1.5, 0], [b / 1.5, 0.9], [a / 1.5, 0.9]], V(0, 1, 0.4)); }
+    dortgen(P, 'siva_ak', [V(-W / 2, H + 0.05, 0), V(W / 2, H + 0.05, 0), V(W / 2, H + 0.05, -D), V(-W / 2, H + 0.05, -D)], UP);
+    cikma(P, 0, bc, bw, 0, 0, BH, 'siva_ak', [O(0, 2.2, 0.3, 2.3, 1.25, 'kapi_turuncu', 'yuvarlak', 0.35, 'oyma_mavi'), O(-1.55, 0.95, 5.35, 6.5, 0.5, 'pencere_mavi', 'yuvarlak', 0.3, 'oyma_mavi'), O(0, 1.2, 5.35, 6.8, 0.62, 'pencere_mavi', 'yuvarlak', 0.3, 'oyma_mavi'), O(1.55, 0.95, 5.35, 6.5, 0.5, 'pencere_mavi', 'yuvarlak', 0.3, 'oyma_mavi')], [], 'ahsap_mavi2');
+    const F = yuz(V(0, 0, bc), V(0, 0, 1));
+    for (const [a, b, y0, y1] of [[-1.75, -1.15, 0.3, 3.7], [1.15, 1.75, 0.3, 3.7], [-1.75, 1.75, 3.6, 4.2], [-bw / 2, bw / 2, 7.3, 8.5], [-bw / 2, -2.15, 5.2, 7.3], [2.15, bw / 2, 5.2, 7.3]]) kutu(P, F, a, b, y0, y1, 0, 0.07, 'oyma_mavi');
+    for (const sg of [-1, 1]) halka(P, 'siva_ak', [[0.2, 0.3], [0.2, 0.5], [0.13, 0.6], [0.12, 2.5], [0.16, 2.6], [0.22, 2.8], [0.22, 2.9]], 10, 0, 1, sg * 1.45, bc + 0.3);
+    kup(P, 'siva_ak', -2.3, 2.3, 0, 0.3, bc, bc + 0.9, '-y'); kup(P, 'siva_ak', -2.6, 2.6, 0, 0.15, bc + 0.9, bc + 1.3, '-y');
+    kup(P, 'ahsap_mavi2', -bw / 2 - 0.2, bw / 2 + 0.2, 4.28, 4.45, bc, bc + 0.9, '', 2);
+    for (const dx of [-2.4, -1.2, 1.2, 2.4]) for (let k = 0; k < 3; k++) kup(P, 'oyma_mavi', dx - 0.1, dx + 0.1, 4.28 - (k + 1) * 0.2, 4.28 - k * 0.2, bc, bc + 0.82 - k * 0.25, '-z', 1);
+    for (const [a, b, n] of [[V(-bw / 2 - 0.15, 4.45, bc + 0.85), V(bw / 2 + 0.15, 4.45, bc + 0.85), V(0, 0, 1)], [V(-bw / 2 - 0.15, 4.45, bc), V(-bw / 2 - 0.15, 4.45, bc + 0.85), V(-1, 0, 0)], [V(bw / 2 + 0.15, 4.45, bc), V(bw / 2 + 0.15, 4.45, bc + 0.85), V(1, 0, 0)]]) { P.quad('oyma_mavi', [a, b, b.clone().setY(5.35), a.clone().setY(5.35)], [[0, 0], [a.distanceTo(b) / 0.9, 0], [a.distanceTo(b) / 0.9, 1], [0, 1]], n); K.beam(P, 'ahsap_mavi2', a.clone().setY(5.38), b.clone().setY(5.38), 0.07, 0.1); }
+    catiKirma(P, 'kiremit_sari', -bw / 2 - 1.0, bw / 2 + 1.0, -2.4, bc + 1.1, BH, 1.5);
+    for (const dx of [-2.2, -0.75, 0.75, 2.2]) K.beam(P, 'ahsap_mavi2', V(dx, BH - 0.7, bc + 0.02), V(dx, BH - 0.02, bc + 0.95), 0.1, 0.09);
+    halka(P, 'kiremit_sari', [[0.12, BH + 1.5], [0.2, BH + 1.65], [0.06, BH + 1.85], [0, BH + 2.0]], 8, 0, 1, 0, (bc + 1.1 - 2.4) / 2);
+  },
+  // 5) Çinili köşk: zemin katta turkuaz çini ve kemerli nişler; üst katta ince sütunlu, korkuluklu açık revak; iki pahlı çıkma; geniş ahşap saçak
+  kosk_cinili_revakli: (P) => {
+    const W = 16, D = 9, Y1 = 4.4, H = 8.8, bu = 5.3;
+    govde(P, W, D, [[0, Y1, 'cini_turkuaz', 1.6], [Y1, H, 'tugla_sari', 2]], [{ ...O(0, 2.3, 0.02, 2.9, 1.0, 'karanlik', 'yuvarlak', 0.9, 'siva_ak') }, ...[-2.5, 2.5].map((u) => O(u, 1.5, 0.4, 2.7, 0.75, 'kapi_bal', 'yuvarlak', 0.3, 'siva_ak')), ...[-2.15, 0, 2.15].map((u) => O(u, 1.75, Y1 + 0.2, 7.0, 0.87, null, 'yuvarlak', 0.35, 'siva_ak'))], [O(-2, 1.5, 0.4, 2.7, 0.75, 'kapi_bal', 'yuvarlak', 0.3, 'siva_ak'), O(2, 1.5, 0.4, 2.7, 0.75, 'siva_ak', 'yuvarlak', 0.3, 'siva_ak'), O(-2, 1.5, Y1 + 0.9, 7.0, 0.75, 'pencere_giyotin', 'yuvarlak', 0.2, 'siva_ak'), O(2, 1.5, Y1 + 0.9, 7.0, 0.75, 'pencere_giyotin', 'yuvarlak', 0.2, 'siva_ak')]);
+    // Revak: arka duvar, döşeme, tavan, sütunlar, korkuluk
+    dortgen(P, 'siva_ak', [V(-3.3, Y1, -2.2), V(3.3, Y1, -2.2), V(3.3, H, -2.2), V(-3.3, H, -2.2)], V(0, 0, 1)); dortgen(P, 'siva_ak', [V(-3.3, Y1 + 0.21, -2.2), V(3.3, Y1 + 0.21, -2.2), V(3.3, Y1 + 0.21, 0), V(-3.3, Y1 + 0.21, 0)], UP); dortgen(P, 'siva_ak', [V(-3.3, H - 0.3, -2.2), V(3.3, H - 0.3, -2.2), V(3.3, H - 0.3, 0), V(-3.3, H - 0.3, 0)], V(0, -1, 0));
+    for (const sg of [-1, 1]) dortgen(P, 'siva_ak', [V(sg * 3.3, Y1, -2.2), V(sg * 3.3, Y1, 0), V(sg * 3.3, H, 0), V(sg * 3.3, H, -2.2)], V(-sg, 0, 0));
+    for (const u of [-3.22, -1.075, 1.075, 3.22]) { halka(P, 'siva_ak', [[0.2, Y1 + 0.2], [0.2, Y1 + 0.4], [0.11, Y1 + 0.5], [0.1, 6.75], [0.14, 6.85], [0.21, 7.02], [0.21, 7.1]], 10, 0, 1, u, 0.08); halka(P, 'siva_ak', [[0, 7.85], [0.2, 7.851]], 12, 0, 1, u, 0.0); P.quad('siva_ak', [V(u - 0.2, 7.65, 0.012), V(u + 0.2, 7.65, 0.012), V(u + 0.2, 8.05, 0.012), V(u - 0.2, 8.05, 0.012)], K.FLAT, V(0, 0, 1)); }
+    for (const u of [-2.15, 0, 2.15]) { P.quad('korkuluk_bal', [V(u - 0.87, Y1 + 0.2, -0.12), V(u + 0.87, Y1 + 0.2, -0.12), V(u + 0.87, Y1 + 1.1, -0.12), V(u - 0.87, Y1 + 1.1, -0.12)], [[0, 0], [2, 0], [2, 1], [0, 1]], V(0, 0, 1)); }
+    for (const [a, b] of [[-W / 2, W / 2]]) { kutu(P, Fon, a, b, Y1 - 0.12, Y1 + 0.16, 0, 0.16, 'siva_ak'); kutu(P, Fon, a, b, 0, 0.4, 0, 0.06, 'kirec_tasi'); }
+    for (const u of [-bu, bu]) {
+      cikma(P, u, 1.1, 2.3, 1.1, 0, Y1, 'cini_turkuaz', [O(0, 1.5, 0.4, 2.7, 0.75, u < 0 ? 'siva_ak' : 'kapi_bal', 'yuvarlak', 0.3, 'siva_ak')], [O(0, 0.9, 0.5, 2.6, 0.45, 'siva_ak', 'yuvarlak', 0.2, 'siva_ak')], 'siva_ak');
+      cikma(P, u, 1.1, 2.3, 1.1, Y1, H, 'tugla_sari', [O(0, 1.7, Y1 + 0.2, 7.0, 0.85, 'karanlik', 'yuvarlak', 0.5, 'siva_ak')], [O(0, 0.95, Y1 + 0.2, 7.2, 0.47, 'karanlik', 'yuvarlak', 0.4, 'siva_ak')], 'siva_ak');
+      const F = yuz(V(u, 0, 1.1), V(0, 0, 1)); kutu(P, F, -1.3, 1.3, Y1 - 0.12, Y1 + 0.16, 0, 0.16, 'siva_ak'); P.quad('korkuluk_bal', [F.pt(-0.85, Y1 + 0.2, -0.2), F.pt(0.85, Y1 + 0.2, -0.2), F.pt(0.85, Y1 + 1.1, -0.2), F.pt(-0.85, Y1 + 1.1, -0.2)], [[0, 0], [2, 0], [2, 1], [0, 1]], V(0, 0, 1));
+      for (const sg of [-1, 1]) halka(P, 'siva_ak', [[0.13, Y1 + 0.16], [0.1, Y1 + 0.4], [0.09, 6.8], [0.16, 7.05]], 8, 0, 1, u + sg * 1.15, 1.12);
+      dortgen(P, 'ahsap_bal', [V(u - 3.0, H, 0), V(u - 1.6, H, 2.0), V(u + 1.6, H, 2.0), V(u + 3.0, H, 0)], V(0, -1, 0), 1.5); dortgen(P, 'kiremit', [V(u - 3.0, H + 0.24, 0), V(u - 1.6, H + 0.24, 2.0), V(u + 1.6, H + 0.24, 2.0), V(u + 3.0, H + 0.24, 0)], UP, 1.5);
+      for (const [a, b] of [[V(u - 3.0, H, 0), V(u - 1.6, H, 2.0)], [V(u - 1.6, H, 2.0), V(u + 1.6, H, 2.0)], [V(u + 1.6, H, 2.0), V(u + 3.0, H, 0)]]) P.quad('ahsap_bal', [a, b, b.clone().setY(H + 0.24), a.clone().setY(H + 0.24)], [[0, 0], [2, 0], [2, 0.2], [0, 0.2]], V(0, 0, 1));
+      cikma(P, u, 1.1, 2.3, 1.1, H + 0.24, H + 1.2, 'tugla_sari', [], [], 'ahsap_bal'); dortgen(P, 'ahsap_bal', [V(u - 2.8, H + 1.2, 0), V(u - 1.5, H + 1.2, 1.8), V(u + 1.5, H + 1.2, 1.8), V(u + 2.8, H + 1.2, 0)], UP, 1.5);
+    }
+    kup(P, 'ahsap_bal', -W / 2 - 0.9, W / 2 + 0.9, H, H + 0.24, -D - 0.9, 0.9, '', 2);
+    for (let x = -W / 2 + 0.3; x < W / 2; x += 0.7) if (Math.abs(Math.abs(x) - bu) > 2.9) kup(P, 'ahsap_bal', x - 0.06, x + 0.06, H - 0.22, H, 0, 0.7, '-z', 1);
+    kup(P, 'tugla_sari', -W / 2 + 0.3, W / 2 - 0.3, H + 0.24, H + 1.0, -D + 0.3, -0.3, '-y', 2); kup(P, 'ahsap_bal', -W / 2 - 0.2, W / 2 + 0.2, H + 1.0, H + 1.2, -D - 0.2, 0.2, '', 2);
+  },
+});
 export const SEHIR_PARCALAR = [...Object.keys(EVLER), ...Object.keys(DIGER)].sort((a, b) => (a.startsWith('ev_') ? 0 : 1) - (b.startsWith('ev_') ? 0 : 1) || a.localeCompare(b));
 const cache = new Map();
 export function createSehirParca(name) {
