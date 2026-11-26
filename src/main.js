@@ -48,6 +48,7 @@ import * as kit_meydan from './kit_meydan.js';
 import * as kit_araba from './kit_araba.js';
 import * as sehir_halki from './sehir_halki.js';
 import * as kit_siper from './kit_siper.js';
+import { createTufekMavzer, tufekRaporu } from './tufek_mavzer.js';
 import { createDuvarFeneri, createTavanFeneri } from './fener.js';
 import { createGemi as createGemiGezilir, createKayik as createKayikGezilir } from './tekne.js';
 import { createTunelGirisi } from './tunel.js';
@@ -343,6 +344,13 @@ const models = {
     file: 'ornek_siper.glb',
     target: new THREE.Vector3(7, 0.8, 0),
     distance: 32,
+  },
+  tufekMavzer: {
+    create: createTufekMavzer,
+    file: 'tufek_mavzer.glb',
+    target: new THREE.Vector3(0, -0.02, 0),
+    distance: 1.9,
+    report: tufekRaporu, // dışa aktarmadan önce konsola özet yazar
   },
   kitAraba: {
     create: kit_araba.createKit,
@@ -714,6 +722,7 @@ function showModel(key) {
 
 function exportGLB() {
   const { object, file } = active;
+  active.report?.(object);
   new GLTFExporter().parse(
     object,
     (buffer) => {
