@@ -52,6 +52,7 @@ import { createTufekMavzer, tufekRaporu } from './tufek_mavzer.js';
 import { createKaya, KAYALAR } from './kaya.js';
 import { createGovde, GOVDELER } from './agac_govde.js';
 import { createHazireYapisi, HAZIRE_YAPILARI } from './hazire_yapilari.js';
+import { createMimariKit, createMimariParca, MIMARI_PARCALAR } from './mimari_kit.js';
 const GOVDE = GOVDELER.includes(new URLSearchParams(location.search).get('govde')) ? new URLSearchParams(location.search).get('govde') : 'govde_mese';
 const KAYA = KAYALAR[new URLSearchParams(location.search).get('kaya')] ? new URLSearchParams(location.search).get('kaya') : 'kaya_buyuk_1';
 import { createDuvarFeneri, createTavanFeneri } from './fener.js';
@@ -388,6 +389,12 @@ const models = {
     file: 'giris_kosku.glb',
     target: new THREE.Vector3(0, 2.4, 0),
     distance: 16,
+  },
+  kitMimari: {
+    create: createMimariKit,
+    file: 'mimari_susleme_kiti.glb',
+    target: new THREE.Vector3(0, 1.2, -4),
+    distance: 30,
   },
   kitAraba: {
     create: kit_araba.createKit,

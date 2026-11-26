@@ -107,18 +107,21 @@ M.pirinc.metalness = 0.8; M.pirinc.roughness = 0.4;
 
 // ---------- Yardımcılar ----------
 const UP = V(0, 1, 0);
-const yuz = (C, N) => { const R = V(N.z, 0, -N.x); return { C, R, N, pt: (u, y, d = 0) => C.clone().addScaledVector(R, u).addScaledVector(N, d).setY(C.y + y) }; };
-const kaydir = (F, d) => yuz(F.C.clone().addScaledVector(F.N, d), F.N);
-function kemer(op, u) { // açıklığın üst kenarının yüksekliği
+export const yuz = (C, N) => { const R = V(N.z, 0, -N.x); return { C, R, N, pt: (u, y, d = 0) => C.clone().addScaledVector(R, u).addScaledVector(N, d).setY(C.y + y) }; };
+export const kaydir = (F, d) => yuz(F.C.clone().addScaledVector(F.N, d), F.N);
+export function kemer(op, u) { // açıklığın üst kenarının yüksekliği. tip: sivri (varsayılan), yuvarlak, sogan, dilimli
   if (!op.rise) return op.ys;
-  const a = (op.u1 - op.u0) / 2, x = Math.min(a, Math.abs(u - (op.u0 + op.u1) / 2));
+  const a = (op.u1 - op.u0) / 2, x = Math.min(a, Math.abs(u - (op.u0 + op.u1) / 2)), t = x / a;
+  if (op.tip === 'yuvarlak') return op.ys + op.rise * Math.sqrt(1 - t * t);
+  if (op.tip === 'sogan') return op.ys + op.rise * (0.6 * Math.sqrt(1 - t * t) + 0.4 * (1 - t) ** 2.4);
+  if (op.tip === 'dilimli') return op.ys + Math.max(0, op.rise * Math.sqrt(1 - t * t) - op.rise * 0.16 * (1 - Math.abs(Math.sin(Math.PI * (3.5 * t + 0.5)))));
   if (op.rise < a) return op.ys + op.rise * Math.sqrt(Math.max(0, 1 - (x / a) ** 2));
   const R = (op.rise ** 2 + a ** 2) / (2 * a), cx = a - R;
   return op.ys + Math.sqrt(Math.max(0, R * R - (x - cx) ** 2)); // sivri kemer
 }
 // Cephe: bölgelere ayrılmış duvar yüzü ve içine oyulmuş (kemerli ya da düz) açıklıklar.
 // zones: [y0, y1, malzeme, döşeme ölçüsü | 'fit']; ops: { u0, u1, y0, ys, rise, depth, fill, reveal }
-function cephe(P, F, w, zones, ops = []) {
+export function cephe(P, F, w, zones, ops = []) {
   const us = [...new Set([-w / 2, w / 2, ...ops.flatMap((o) => [o.u0, o.u1])])].sort((a, b) => a - b), ys = [...new Set([...zones.flatMap((z) => [z[0], z[1]]), ...ops.flatMap((o) => [o.y0, o.ys, o.ys + (o.rise || 0)])])].sort((a, b) => a - b);
   const yMin = zones[0][0], yMax = zones[zones.length - 1][1];
   const uvOf = (z) => (u, y) => (z[3] === 'fit' ? [(u + w / 2) / w, (y - z[0]) / (z[1] - z[0])] : [u / (z[3] || 1), y / (z[3] || 1)]);
@@ -130,24 +133,25 @@ function cephe(P, F, w, zones, ops = []) {
     if (!z) continue;
     if (!op) { q(z[2], [[ua, ya], [ub, ya], [ub, yb], [ua, yb]], uvOf(z)); continue; }
     if (ym < op.ys) continue;
-    for (let k = 0; k < 8; k++) { const u1 = ua + ((ub - ua) * k) / 8, u2 = ua + ((ub - ua) * (k + 1)) / 8, c1 = Math.max(ya, kemer(op, u1)), c2 = Math.max(ya, kemer(op, u2)); if (c1 < yb - 1e-4 || c2 < yb - 1e-4) q(z[2], [[u1, Math.min(c1, yb)], [u2, Math.min(c2, yb)], [u2, yb], [u1, yb]], uvOf(z)); }
+    for (let k = 0; k < 24; k++) { const u1 = ua + ((ub - ua) * k) / 24, u2 = ua + ((ub - ua) * (k + 1)) / 24, c1 = Math.max(ya, kemer(op, u1)), c2 = Math.max(ya, kemer(op, u2)); if (c1 < yb - 1e-4 || c2 < yb - 1e-4) q(z[2], [[u1, Math.min(c1, yb)], [u2, Math.min(c2, yb)], [u2, yb], [u1, yb]], uvOf(z)); }
   }
   for (const op of ops) {
-    const d = -(op.depth ?? 0.12), top = op.ys + (op.rise || 0), fit = (u, y) => [(u - op.u0) / (op.u1 - op.u0), (y - op.y0) / (top - op.y0)], rv = op.reveal || 'mermer';
+    const d = -(op.depth ?? 0.12), top = op.ys + (op.rise || 0), fit = op.fillScale ? (u, y) => [u / op.fillScale, y / op.fillScale] : (u, y) => [(u - op.u0) / (op.u1 - op.u0), (y - op.y0) / (top - op.y0)], rv = op.reveal || 'mermer';
     const B = (u, y) => F.pt(u, y, d), A = (u, y) => F.pt(u, y, 0);
-    P.quad(op.fill, [B(op.u0, op.y0), B(op.u1, op.y0), B(op.u1, op.ys), B(op.u0, op.ys)], [fit(op.u0, op.y0), fit(op.u1, op.y0), fit(op.u1, op.ys), fit(op.u0, op.ys)], F.N);
+    const fd = -(op.fillDepth ?? op.depth ?? 0.12), Bf = (u, y) => F.pt(u, y, fd);
+    if (op.fill && op.ys > op.y0) P.quad(op.fill, [Bf(op.u0, op.y0), Bf(op.u1, op.y0), Bf(op.u1, op.ys), Bf(op.u0, op.ys)], [fit(op.u0, op.y0), fit(op.u1, op.y0), fit(op.u1, op.ys), fit(op.u0, op.ys)], F.N);
     for (const [u, n] of [[op.u0, 1], [op.u1, -1]]) P.quad(rv, [A(u, op.y0), B(u, op.y0), B(u, op.ys), A(u, op.ys)], K.FLAT, F.R.clone().multiplyScalar(n));
     P.quad(rv, [A(op.u0, op.y0), A(op.u1, op.y0), B(op.u1, op.y0), B(op.u0, op.y0)], K.FLAT, UP);
-    const n = op.rise ? 10 : 1, uc = (op.u0 + op.u1) / 2;
+    const n = op.rise ? 24 : 1, uc = (op.u0 + op.u1) / 2;
     for (let k = 0; k < n; k++) {
       const u1 = op.u0 + ((op.u1 - op.u0) * k) / n, u2 = op.u0 + ((op.u1 - op.u0) * (k + 1)) / n, y1 = kemer(op, u1), y2 = kemer(op, u2);
-      if (op.rise) P.tri(op.fill, [B(uc, op.ys), B(u1, y1), B(u2, y2)], [fit(uc, op.ys), fit(u1, y1), fit(u2, y2)], F.N);
+      if (op.rise && op.fill) P.tri(op.fill, [Bf(uc, op.ys), Bf(u1, y1), Bf(u2, y2)], [fit(uc, op.ys), fit(u1, y1), fit(u2, y2)], F.N);
       P.quad(rv, [A(u1, y1), A(u2, y2), B(u2, y2), B(u1, y1)], K.FLAT, V(0, -1, 0));
     }
   }
 }
 // Yüze göre kutu: u, y aralığı; d0 (içte) … d1 (dışta)
-function kutu(P, F, u0, u1, y0, y1, d0, d1, mat, fitFront = false) {
+export function kutu(P, F, u0, u1, y0, y1, d0, d1, mat, fitFront = false) {
   const p = (u, y, d) => F.pt(u, y, d), uv = fitFront ? K.FLAT : [[u0, y0], [u1, y0], [u1, y1], [u0, y1]];
   P.quad(mat, [p(u0, y0, d1), p(u1, y0, d1), p(u1, y1, d1), p(u0, y1, d1)], uv, F.N);
   P.quad(mat, [p(u0, y0, d0), p(u0, y0, d1), p(u0, y1, d1), p(u0, y1, d0)], K.FLAT, F.R.clone().negate());
@@ -156,7 +160,7 @@ function kutu(P, F, u0, u1, y0, y1, d0, d1, mat, fitFront = false) {
   P.quad(mat, [p(u0, y0, d0), p(u1, y0, d0), p(u1, y0, d1), p(u0, y0, d1)], K.FLAT, V(0, -1, 0));
 }
 // Y çevresinde dönel / çokgen yüzey. prof: [yarıçap, y, malzeme?]; phase: ilk köşenin açısı
-function halka(P, mat, prof, n, phase = 0, s = 1, cx = 0, cz = 0) {
+export function halka(P, mat, prof, n, phase = 0, s = 1, cx = 0, cz = 0) {
   let run = 0;
   for (let j = 0; j + 1 < prof.length; j++) {
     const [r0, y0, m = mat] = prof[j], [r1, y1] = prof[j + 1], len = Math.hypot(r1 - r0, y1 - y0);
