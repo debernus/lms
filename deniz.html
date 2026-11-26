@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="utf-8" />
+    <title>Deniz dalgası önizleme</title>
+    <style>
+      body { margin: 0; overflow: hidden; background: #9db7c9; font: 13px system-ui, sans-serif; color: #e8eef2; }
+      #panel { position: fixed; top: 10px; left: 10px; width: 300px; padding: 12px; background: rgba(12, 22, 30, 0.82); border-radius: 8px; }
+      #panel label { display: grid; grid-template-columns: 110px 1fr 44px; gap: 6px; align-items: center; margin: 4px 0; }
+      #panel input[type='range'] { width: 100%; }
+      #panel h4 { margin: 8px 0 2px; font-size: 12px; color: #9cc; }
+      pre { margin: 8px 0 0; padding: 8px; background: #0a1218; border-radius: 6px; font-size: 11px; white-space: pre-wrap; user-select: all; }
+    </style>
+  </head>
+  <body>
+    <div id="panel">
+      <b>Deniz dalgası</b> (Godot shader'ıyla aynı formül)
+      <div id="ayar"></div>
+      <h4>Godot'ta malzemeye yazılacak değerler</h4>
+      <pre id="cikti"></pre>
+    </div>
+    <script type="module" src="./src/deniz_onizleme.js"></script>
+  </body>
+</html>
