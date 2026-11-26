@@ -49,7 +49,10 @@ import * as kit_araba from './kit_araba.js';
 import * as sehir_halki from './sehir_halki.js';
 import * as kit_siper from './kit_siper.js';
 import { createTufekMavzer, tufekRaporu } from './tufek_mavzer.js';
-import { createKaya } from './kaya.js';
+import { createKaya, KAYALAR } from './kaya.js';
+import { createGovde, GOVDELER } from './agac_govde.js';
+const GOVDE = GOVDELER.includes(new URLSearchParams(location.search).get('govde')) ? new URLSearchParams(location.search).get('govde') : 'govde_mese';
+const KAYA = KAYALAR[new URLSearchParams(location.search).get('kaya')] ? new URLSearchParams(location.search).get('kaya') : 'kaya_buyuk_1';
 import { createDuvarFeneri, createTavanFeneri } from './fener.js';
 import { createGemi as createGemiGezilir, createKayik as createKayikGezilir } from './tekne.js';
 import { createTunelGirisi } from './tunel.js';
@@ -353,17 +356,19 @@ const models = {
     distance: 1.9,
     report: tufekRaporu, // dışa aktarmadan önce konsola özet yazar
   },
-  kaya1: {
-    create: () => createKaya(1),
-    file: 'kaya_buyuk_1.glb',
-    target: new THREE.Vector3(0, 1.3, 0),
-    distance: 11,
+  // Kayalar: ?kaya=<ad> ile seçilir (adlar: kaya.js KAYALAR)
+  kaya: {
+    create: () => createKaya(KAYA),
+    file: `${KAYA}.glb`,
+    target: new THREE.Vector3(0, KAYALAR[KAYA].h * 0.45, 0),
+    distance: Math.max(KAYALAR[KAYA].w, KAYALAR[KAYA].h) * 2.2,
   },
-  kaya2: {
-    create: () => createKaya(2),
-    file: 'kaya_buyuk_2.glb',
-    target: new THREE.Vector3(0, 1.3, 0),
-    distance: 11,
+  // Kütük ve gövdeler: ?govde=<ad> ile seçilir (adlar: agac_govde.js GOVDELER)
+  govde: {
+    create: () => createGovde(GOVDE),
+    file: `${GOVDE}.glb`,
+    target: new THREE.Vector3(0, 2, 0),
+    distance: 14,
   },
   kitAraba: {
     create: kit_araba.createKit,
