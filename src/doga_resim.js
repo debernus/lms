@@ -44,19 +44,19 @@ function yaprak(g, r, x, y, ang, len, wid, o = {}) {
   g.rotate(ang);
   const path = () => { g.beginPath(); up.forEach(([px, py], i) => (i ? g.lineTo(px, py) : g.moveTo(px, py))); for (let i = N; i >= 0; i--) g.lineTo(dn[i][0], dn[i][1]); g.closePath(); };
   const gr = g.createLinearGradient(0, 0, len, 0);
-  gr.addColorStop(0, hsl(h, s, l * 0.72)); gr.addColorStop(0.5, hsl(h, s, l)); gr.addColorStop(1, hsl(h - 6, s + 4, l * 1.18));
+  gr.addColorStop(0, hsl(h, s, l * (o.mat ? 0.82 : 0.72))); gr.addColorStop(0.5, hsl(h, s, l)); gr.addColorStop(1, hsl(h - 6, s + (o.mat ? 0 : 4), l * (o.mat ? 1.06 : 1.18)));
   path(); g.fillStyle = gr; g.fill();
   g.save(); path(); g.clip();
   g.fillStyle = 'rgba(0,0,0,0.16)'; g.beginPath(); g.moveTo(0, 0); up.forEach(([px, py]) => g.lineTo(px, py + ((o.bend || 0) ? 0 : 0))); g.lineTo(len, (o.bend || 0) * len); g.closePath(); if (r() < 0.5) g.fill(); else { g.beginPath(); g.moveTo(0, 0); dn.forEach(([px, py]) => g.lineTo(px, py)); g.closePath(); g.fill(); } // bir yarısı gölgede
   if (o.vein !== false) { // yan damarlar
-    g.strokeStyle = hsl(h - 8, s - 8, l * 1.35, 0.4); g.lineWidth = Math.max(0.7, len / 110);
+    g.strokeStyle = o.mat ? hsl(h, s, l * 0.62, 0.45) : hsl(h - 8, s - 8, l * 1.35, 0.4); g.lineWidth = Math.max(0.7, len / 110);
     const nv = o.ribs ? 0 : Math.max(4, Math.round(len / 16));
     for (let i = 1; i < nv; i++) { const t = i / nv, hw = (wid / 2) * f(Math.min(1, t + 0.18)), b0 = (o.bend || 0) * len * Math.sin(t * Math.PI * 0.5) ** 2; for (const sd of [-1, 1]) { g.beginPath(); g.moveTo(t * len, b0); g.quadraticCurveTo((t + 0.1) * len, b0 + sd * hw * 0.5, (t + 0.2) * len, b0 + sd * hw * 0.95); g.stroke(); } }
     for (let i = 1; i <= (o.ribs || 0); i++) for (const sd of [-1, 1]) { const k = (i / (o.ribs + 1)) * sd; g.beginPath(); g.moveTo(0, 0); g.quadraticCurveTo(len * 0.5, k * wid * 0.62, len, 0); g.stroke(); }
   }
-  for (let i = 0; i < len / 6; i++) { g.fillStyle = r() < 0.5 ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,220,0.07)'; g.fillRect(r() * len, (r() - 0.5) * wid, 1 + r() * 3, 1 + r() * 2); } // benek
+  for (let i = 0; i < len / 6; i++) { g.fillStyle = r() < (o.mat ? 0.8 : 0.5) ? 'rgba(0,0,0,0.12)' : 'rgba(255,255,220,0.07)'; g.fillRect(r() * len, (r() - 0.5) * wid, 1 + r() * 3, 1 + r() * 2); } // benek
   g.restore();
-  g.strokeStyle = hsl(o.rib ?? h - 10, s - 5, l * 1.5, 0.75); g.lineWidth = Math.max(1, len / 70); g.beginPath(); g.moveTo(0, 0); for (let i = 1; i <= 8; i++) g.lineTo((i / 8) * len * 0.96, (o.bend || 0) * len * Math.sin((i / 8) * Math.PI * 0.5) ** 2); g.stroke();
+  g.strokeStyle = o.mat ? hsl(h + 4, s * 0.8, l * 1.22, 0.55) : hsl(o.rib ?? h - 10, s - 5, l * 1.5, 0.75); g.lineWidth = Math.max(1, len / 70); g.beginPath(); g.moveTo(0, 0); for (let i = 1; i <= 8; i++) g.lineTo((i / 8) * len * 0.96, (o.bend || 0) * len * Math.sin((i / 8) * Math.PI * 0.5) ** 2); g.stroke();
   path(); g.strokeStyle = hsl(h, s, l * 0.5, 0.5); g.lineWidth = 1; g.stroke();
   g.restore();
 }
@@ -165,7 +165,7 @@ function tacYapraklari(g, r, x, y, n, len, wid, col, tilt = 0.6, rot = 0) { // y
 function doluIgneli(g, r, cx, o) {
   const y0 = 2000, y1 = jit(r, 130, 50), H = y0 - y1, lean = jit(r, 0, 50), bend = jit(r, 0, 60), twigs = [];
   const main = Array.from({ length: 21 }, (_, i) => { const t = i / 20; return [cx + lean * t + Math.sin(t * Math.PI) * bend, y0 - H * t]; });
-  twigs.push({ pts: main, w: 14, from: 0.12 });
+  twigs.push({ pts: main, w: 30, from: 0.14 });
   const nSide = Math.round(H / o.gap);
   for (let k = 0; k < nSide; k++) for (const side of [-1, 1]) {
     const t = 0.1 + (0.86 * (k + (side > 0 ? 0.5 : 0))) / nSide, i = Math.min(19, Math.floor(t * 20)), px = main[i][0], py = y0 - H * t;
@@ -177,7 +177,7 @@ function doluIgneli(g, r, cx, o) {
       if (SL > 24) twigs.push({ pts: Array.from({ length: 5 }, (_, v) => [Math.max(cx - 245, Math.min(cx + 245, sx + Math.cos(sa) * SL * (v / 4))), sy + Math.sin(sa) * SL * (v / 4) + (o.sarkik || 0) * SL * (v / 4) ** 2]), w: 3, from: 0.1 });
     }
   }
-  for (const tw of twigs) sap(g, tw.pts, tw.w, Math.max(1.5, tw.w * 0.35), '#3e2e22', 'rgba(140,116,90,0.3)');
+  for (const tw of twigs) govdeCiz(g, r, tw.pts, tw.w, Math.max(1.5, tw.w * 0.35));
   // Üç kat iğne: önce koyu (arkada kalanlar), sonra orta, en üstte ışık alanlar
   for (let pass = 0; pass < 3; pass++) for (const tw of twigs) {
     const n = tw.pts.length - 1;
@@ -188,13 +188,14 @@ function doluIgneli(g, r, cx, o) {
         const u = r(), x = ax + (bx - ax) * u, y = ay + (by - ay) * u;
         for (let q = 0; q < o.per; q++) {
           const a = ta + (r() < 0.5 ? 1 : -1) * jit(r, o.fan, o.fan * 0.55) * (pass === 0 ? 1.15 : 1), len = jit(r, o.len, o.len * 0.25) * (pass === 0 ? 1.1 : 1);
-          g.strokeStyle = hsl(jit(r, o.h, 9), jit(r, o.s ?? 30, 8), pass === 0 ? jit(r, 9, 2.5) : pass === 1 ? jit(r, 19, 5) : jit(r, 31, 6), pass === 2 ? 0.85 : 1);
+          g.strokeStyle = hsl(jit(r, o.h, 9), jit(r, o.s ?? 30, 8), pass === 0 ? jit(r, 8, 2.5) : pass === 1 ? jit(r, 16, 4) : jit(r, 24, 5), pass === 2 ? 0.8 : 1);
           g.lineWidth = o.lw * (0.7 + r() * 0.5) * (pass === 2 ? 0.7 : 1); g.lineCap = 'round';
           g.beginPath(); g.moveTo(x, y); g.quadraticCurveTo(x + Math.cos(a) * len * 0.5 + (r() - 0.5) * len * 0.12, y + Math.sin(a) * len * 0.5 + (o.sarkik ? len * 0.05 : 0), x + Math.cos(a) * len, y + Math.sin(a) * len + (o.sarkik ? len * 0.12 : 0)); g.stroke();
         }
       }
     }
   }
+  govdeCiz(g, r, main.slice(0, 4), 30, 26);
   for (let c = 0; c < (o.cones || 0); c++) { // kozalak
     const tw = twigs[1 + Math.floor(r() * Math.min(12, twigs.length - 1))].pts, [x, y] = tw[1 + Math.floor(r() * 2)], hh = jit(r, 84, 10);
     g.save(); g.translate(x, y + 8); g.rotate(jit(r, 0.2, 0.6));
@@ -206,9 +207,9 @@ function doluIgneli(g, r, cx, o) {
 function selviDali(g, r, cx) {
   const y0 = 2000, y1 = jit(r, 120, 40), H = y0 - y1, lean = jit(r, 0, 30), items = [];
   const axis = (t) => [cx + lean * t + Math.sin(t * 2.6) * 12, y0 - H * t];
-  sap(g, Array.from({ length: 12 }, (_, i) => axis((i / 11) * 0.5)), 13, 4, '#4a3828', 'rgba(150,126,98,0.3)');
-  for (let k = 0; k < 380; k++) {
-    const t = 0.06 + 0.92 * r() ** 0.9, [px, py] = axis(t), wHere = 150 * Math.sin(Math.PI * Math.min(1, t * 0.9 + 0.08)) ** 0.8 * (1 - t * 0.55), side = r() < 0.5 ? -1 : 1, L = jit(r, 190, 60) * (1 - t * 0.5), a = -Math.PI / 2 + side * r() * 0.5;
+  govdeCiz(g, r, Array.from({ length: 12 }, (_, i) => axis((i / 11) * 0.5)), 28, 6);
+  for (let k = 0; k < 620; k++) {
+    const t = 0.1 + 0.92 * r() ** 0.9, [px, py] = axis(t), wHere = 215 * Math.sin(Math.PI * Math.min(1, t * 0.9 + 0.08)) ** 0.8 * (1 - t * 0.55), side = r() < 0.5 ? -1 : 1, L = jit(r, 190, 60) * (1 - t * 0.5), a = -Math.PI / 2 + side * r() * 0.5;
     const sx = px + side * r() * wHere * 0.75, sy = py + r() * 40;
     items.push({ pts: Array.from({ length: 7 }, (_, q) => { const u = q / 6; return [sx + Math.cos(a) * L * u * 0.5 + side * u * u * 14, sy + Math.sin(a) * L * u]; }), z: r() });
   }
@@ -216,9 +217,9 @@ function selviDali(g, r, cx) {
     const dark = z < 0.4;
     for (let q = 0; q + 1 < pts.length; q++) for (let v = 0; v < 5; v++) {
       const u = v / 5, x = pts[q][0] + (pts[q + 1][0] - pts[q][0]) * u, y = pts[q][1] + (pts[q + 1][1] - pts[q][1]) * u, w = 11 * (1 - q / 9);
-      g.fillStyle = hsl(jit(r, 112, 9), jit(r, 28, 6), dark ? jit(r, 11, 3) : jit(r, 21, 5));
+      g.fillStyle = hsl(jit(r, 112, 9), jit(r, 24, 6), dark ? jit(r, 8, 2.5) : jit(r, 16, 4));
       for (const s of [-1, 1]) { g.beginPath(); g.ellipse(x + s * w * 0.5, y, w * 0.62, w * 0.95, s * 0.5, 0, 7); g.fill(); }
-      if (!dark && r() < 0.3) { g.fillStyle = hsl(105, 26, 34, 0.7); g.beginPath(); g.ellipse(x, y - 2, w * 0.3, w * 0.5, 0, 0, 7); g.fill(); }
+      if (!dark && r() < 0.25) { g.fillStyle = hsl(105, 22, 25, 0.7); g.beginPath(); g.ellipse(x, y - 2, w * 0.3, w * 0.5, 0, 0, 7); g.fill(); }
     }
   });
 }
@@ -226,9 +227,55 @@ const elma = (g, r, x, y) => { const R = jit(r, 34, 6), cx2 = x + (r() - 0.5) * 
 // Tuvale tane ve hafif ton oynaması ekler (düz renk görünüşünü kırar); siyah zemine dokunmaz
 function tanele(g, seed) {
   const img = g.getImageData(0, 0, S, S), d = img.data, r = rng(seed);
-  for (let i = 0; i < d.length; i += 4) { if (d[i] + d[i + 1] + d[i + 2] < 12) continue; const k = 0.86 + r() * 0.28, w = (r() - 0.5) * 10; d[i] = Math.min(255, d[i] * k + w); d[i + 1] = Math.min(255, d[i + 1] * k); d[i + 2] = Math.min(255, d[i + 2] * k - w * 0.6); }
+  for (let i = 0; i < d.length; i += 4) { if (d[i] + d[i + 1] + d[i + 2] < 12) continue; const k = 0.8 + r() * 0.36, w = (r() - 0.5) * 12; d[i] = Math.min(255, d[i] * k + w); d[i + 1] = Math.min(255, d[i + 1] * k); d[i + 2] = Math.min(255, d[i + 2] * k - w * 0.6); }
   g.putImageData(img, 0, 0);
 }
+// Kabuklu gövde / dal: koyu kahverengi, boyuna çizgili (açık renk parlama yok)
+function govdeCiz(g, r, pts, w0, w1) {
+  g.lineCap = 'round';
+  for (let i = 0; i + 1 < pts.length; i++) { const t = i / (pts.length - 1), w = w0 + (w1 - w0) * t; g.strokeStyle = '#33241a'; g.lineWidth = w; g.beginPath(); g.moveTo(pts[i][0], pts[i][1]); g.lineTo(pts[i + 1][0], pts[i + 1][1]); g.stroke(); }
+  for (let k = 0; k < Math.max(3, w0 * 0.7); k++) { const off = (r() - 0.5) * 0.8; g.strokeStyle = r() < 0.5 ? 'rgba(92,68,46,0.7)' : 'rgba(20,13,8,0.7)'; g.lineWidth = 1 + r() * 2; g.beginPath(); pts.forEach(([x, y], i) => { const w = w0 + (w1 - w0) * (i / (pts.length - 1)), px = x + off * w + (r() - 0.5) * 2; i ? g.lineTo(px, y) : g.moveTo(px, y); }); g.stroke(); }
+}
+// Ağaç dalı: kalın gövdeden iki yana çatallanan dallar; geniş, oval ve sık yapraklı taç. Altta çıplak kahverengi gövde.
+// o: kind / cinar, len, wid, h, s, l, per (dal noktası başına yaprak), dolgu (boşluk kapatan yaprak sayısı), extra
+function agacDali(g, r, cx, o) {
+  const y0 = 2030, top = jit(r, 150, 40), H = y0 - top, RX = 200, ph = r() * 6, twigs = [], leaves = [];
+  const main = Array.from({ length: 19 }, (_, i) => { const t = i / 18; return [cx + Math.sin(t * 2.4 + ph) * 16 * t, y0 - H * 0.94 * t]; });
+  const crown = (t) => Math.sqrt(Math.max(0, 1 - ((t - 0.56) / 0.47) ** 2)); // taç genişliği: altta ve tepede dar, ortada geniş
+  const NB = 14;
+  for (let k = 0; k < NB; k++) {
+    const t = 0.13 + (0.8 * k) / (NB - 1) + (r() - 0.5) * 0.03, side = k % 2 ? 1 : -1, i = Math.min(17, Math.floor(t * 18)), px = main[i][0], py = y0 - H * 0.94 * t;
+    const L = Math.max(70, RX * (0.35 + 0.65 * crown(t)) * jit(r, 1, 0.12)), a = -Math.PI / 2 + side * (1.32 - 0.6 * t + (r() - 0.5) * 0.2);
+    const pts = Array.from({ length: 9 }, (_, q) => { const u = q / 8; return [Math.max(cx - RX, Math.min(cx + RX, px + Math.cos(a) * L * u)), py + Math.sin(a) * L * u - u * u * L * 0.22 + Math.sin(u * 4 + k) * 6]; });
+    twigs.push({ pts, w: [11 * (1 - 0.5 * t) + 3, 3], from: 2 });
+    for (let q = 2; q < 8; q += 2) { const [sx, sy] = pts[q], sa = a + (q % 4 ? 1 : -1) * jit(r, 0.75, 0.2), SL = L * jit(r, 0.42, 0.1); twigs.push({ pts: Array.from({ length: 5 }, (_, v) => [Math.max(cx - RX, Math.min(cx + RX, sx + Math.cos(sa) * SL * (v / 4))), sy + Math.sin(sa) * SL * (v / 4) - (v / 4) ** 2 * SL * 0.2]), w: [4.5, 2], from: 1 }); }
+  }
+  twigs.push({ pts: main, w: [34, 6], from: 5, main: true });
+  for (const tw of twigs) {
+    for (let i = tw.from; i < tw.pts.length; i++) {
+      const [x, y] = tw.pts[i], j = Math.min(i, tw.pts.length - 2), ta = Math.atan2(tw.pts[j + 1][1] - tw.pts[j][1], tw.pts[j + 1][0] - tw.pts[j][0]);
+      for (let n = 0; n < o.per; n++) leaves.push([x + (r() - 0.5) * o.len * 0.5, y + (r() - 0.5) * o.len * 0.5, ta + (r() - 0.5) * 2.6, r()]);
+    }
+  }
+  for (let k = 0; k < o.dolgu; k++) { // taç içindeki boşlukları kapatan yapraklar
+    const t = 0.14 + r() * 0.84, w = RX * (0.3 + 0.7 * crown(t)) * 0.95, x = cx + (r() * 2 - 1) * w, y = y0 - H * 0.94 * t;
+    leaves.push([x, y, -Math.PI / 2 + (x - cx) / RX * 1.2 + (r() - 0.5) * 1.6, r() * 0.7]);
+  }
+  for (const tw of twigs) govdeCiz(g, r, tw.pts, tw.w[0], tw.w[1]);
+  leaves.sort((a, b) => a[3] - b[3]).forEach(([x, y, a0, z]) => {
+    // Yaprak ucu sütunun dışına taşacaksa içe çevrilir: komşu dala değmez
+    const lim = 242 - (o.cinar ? 20 : 0), a = Math.abs(x + Math.cos(a0) * o.len * 1.15 - cx) > lim ? Math.PI - a0 : a0;
+    if (Math.abs(x - cx) > lim - 12) return;
+    const edge = Math.min(1, Math.abs(x - cx) / RX), sick = r() < 0.07, len = jit(r, o.len, o.len * 0.2);
+    const oo = { ...o, mat: true, h: sick ? jit(r, 62, 12) : o.h + (r() - 0.5) * 10, s: o.s * (sick ? 1.1 : 1), l: o.l * (0.42 + 0.72 * z) * (0.82 + 0.22 * edge), bend: (r() - 0.5) * 0.16 };
+    if (o.cinar) cinarYapragi(g, r, x, y, a, len, oo); else yaprak(g, r, x, y, a, len, len * o.wid, oo);
+    if (r() < 0.3) { g.fillStyle = `rgba(${70 + r() * 50},${46 + r() * 30},18,0.5)`; g.beginPath(); g.ellipse(x + Math.cos(a) * len * (0.3 + r() * 0.5), y + Math.sin(a) * len * (0.3 + r() * 0.5), 2 + r() * 5, 2 + r() * 4, r() * 3, 0, 7); g.fill(); }
+    if (o.extra && z > 0.5 && r() < o.extra[1]) o.extra[0](g, r, x, y);
+  });
+  // Dipteki çıplak gövde yaprakların önünde kalsın
+  govdeCiz(g, r, main.slice(0, 4), 34, 28);
+}
+const agaclar = (o) => (g, r) => SUTUN4.forEach((cx) => agacDali(g, r, cx, o));
 const DOLU = { gap: 82, twig: 150, perTwig: 6, cift: true, leke: true, spread: 0.85 };
 
 // ---------- Levhalar ----------
@@ -284,13 +331,13 @@ const RESIM = {
   cali_kuru: (g, r) => SUTUN4.forEach((cx) => ciplakDal(g, r, cx + jit(r, 0, 30), 1990, -Math.PI / 2 + jit(r, 0, 0.15), 380, 12, 7, { col: '#6e6258', thorn: true })),
   cali_funda: igneli({ len: 13, step: 9, per: 4, fan: 1.0, lw: 3, h: 130, gap: 80, twig: 240 }),
   // İkinci tur
-  dal_cam_2: (g, r) => SUTUN4.forEach((cx) => doluIgneli(g, r, cx, { len: 92, lw: 2.2, step: 15, per: 3, fan: 0.8, h: 100, s: 28, gap: 120, genis: 235, us: 0.6, cones: 2 })),
-  dal_ladin_2: (g, r) => SUTUN4.forEach((cx) => doluIgneli(g, r, cx, { len: 21, lw: 2.4, step: 5, per: 3, fan: 1.15, h: 122, s: 26, gap: 78, genis: 240, us: 0.85, sarkik: 0.3, aci: 1.15 })),
+  dal_cam_2: (g, r) => SUTUN4.forEach((cx) => doluIgneli(g, r, cx, { len: 96, lw: 2.2, step: 11, per: 3, fan: 0.85, h: 100, s: 24, gap: 96, genis: 240, us: 0.5, cones: 2 })),
+  dal_ladin_2: (g, r) => SUTUN4.forEach((cx) => doluIgneli(g, r, cx, { len: 22, lw: 2.5, step: 4, per: 3, fan: 1.15, h: 122, s: 22, gap: 60, genis: 240, us: 0.7, sarkik: 0.3, aci: 1.15 })),
   dal_selvi: (g, r) => SUTUN4.forEach((cx) => selviDali(g, r, cx)),
-  dal_meyve: dallar({ ...DOLU, kind: 'oval', len: 100, wid: 0.56, h: 98, s: 36, l: 31, serr: 0.07, gap: 100, perTwig: 6, extra: [elma, 0.035] }),
-  dal_mese_2: dallar({ ...DOLU, kind: 'loblu', len: 132, wid: 0.52, h: 104, s: 34, l: 23 }),
-  dal_kayin_2: dallar({ ...DOLU, kind: 'oval', len: 104, wid: 0.58, h: 96, s: 38, l: 31, serr: 0.04 }),
-  dal_cinar_2: dallar({ ...DOLU, cinar: true, len: 132, wid: 1, h: 96, s: 34, l: 29, gap: 150, perTwig: 4 }),
+  dal_meyve: agaclar({ kind: 'oval', len: 92, wid: 0.56, h: 96, s: 30, l: 27, serr: 0.07, per: 3, dolgu: 170, extra: [elma, 0.014] }),
+  dal_mese_2: agaclar({ kind: 'loblu', len: 118, wid: 0.54, h: 100, s: 27, l: 22, per: 3, dolgu: 170 }),
+  dal_kayin_2: agaclar({ kind: 'oval', len: 96, wid: 0.58, h: 92, s: 31, l: 27, serr: 0.04, per: 3, dolgu: 190 }),
+  dal_cinar_2: agaclar({ cinar: true, len: 112, wid: 1, h: 88, s: 28, l: 25, per: 2, dolgu: 110 }),
   cicek_papatya: (g, r) => {
     for (let k = 0; k < 7; k++) {
       const x = 150 + k * 290, small = k % 3 === 1, h = jit(r, small ? 1150 : 1500, 160);
