@@ -415,26 +415,42 @@ function tasBina(P0, o) {
   const zones = Array.from({ length: n }, (_, k) => [Y[k], Y[k + 1], T, 3]);
   const sp = Math.min(1.45, (W - 1.3) / bays), us = Array.from({ length: bays }, (_, k) => (k - (bays - 1) / 2) * sp), ww = sp - 0.4, hh = fh - 1.95, span = (bays * sp) / 2;
   const Fo = yuz(V(0, 0, 0), V(0, 0, 1)), di = Math.floor(bays / 2), ops = [];
-  const kapi = n === 1 ? op(us[di], Math.min(1.4, ww + 0.25), 0.02, 2.2, 0.5, 'kapi_cift', 'yuvarlak', 0.3) : op(Math.min(0.7, hw - 1.3), 1.5, 0.02, 2.5, 0, 'kapi_cift', undefined, 0.3);
-  ops.push(kapi);
-  if (n > 1) ops.push(op(-(hw - 1.5), 0.8, 1.6, 2.5, 0, 'pencere_parmak'));
-  const kemerli = [];
-  for (let k = n === 1 ? 0 : 1; k < n; k++) us.forEach((u, i) => { if (n === 1 && i === di) return; kemerli.push(op(u, ww, Y[k] + 0.6, Y[k] + 0.6 + hh, 0.5, 'pencere_koyu', 'yuvarlak', 0.3)); });
+  const sivri = o.stil === 'sivri', zemin = [];
+  let kapi = null;
+  if (o.revak) { // zemin kat: sütunlu, sivri kemerli derin revak
+    const nb = o.revak, bw = (W - 0.6) / nb;
+    for (let k = 0; k < nb; k++) { const u = -W / 2 + 0.3 + (k + 0.5) * bw; zemin.push({ ...op(u, bw - 0.5, 0.02, 2.2, (bw - 0.5) / 2 + 0.15, 'karanlik', undefined, 1.5), reveal: T }); }
+    for (let k = 0; k <= nb; k++) { const u = -W / 2 + 0.3 + k * bw; halka(P, 'tas_sove', [[0.24, 0], [0.24, 0.22], [0.15, 0.34], [0.13, 1.95], [0.17, 2.02], [0.25, 2.18], [0.25, 2.26]], 10, 0, 1, u, 0.14); }
+  } else {
+    kapi = n === 1 ? op(us[di], Math.min(1.4, ww + 0.25), 0.02, 2.2, 0.5, 'kapi_cift', 'yuvarlak', 0.3) : sivri ? op(0, 1.6, 0.02, 2.3, 0.9, 'kapi_cift', undefined, 0.35) : op(Math.min(0.7, hw - 1.3), 1.5, 0.02, 2.5, 0, 'kapi_cift', undefined, 0.3);
+    zemin.push(kapi);
+    if (n > 1 && W > 6.4) zemin.push(op(-(hw - 1.5), 0.8, 1.6, 2.5, 0, 'pencere_parmak'));
+  }
+  ops.push(...zemin);
+  const kemerli = [], wS = Math.min(ww, 0.95);
+  for (let k = n === 1 ? 0 : 1; k < n; k++) us.forEach((u, i) => { if (n === 1 && i === di) return; kemerli.push(sivri ? op(u, wS, Y[k] + 1.0, Y[k] + 0.45 + hh, wS / 2 + 0.1, 'pencere_koyu', undefined, 0.16) : op(u, ww, Y[k] + 0.6, Y[k] + 0.6 + hh, 0.5, 'pencere_koyu', 'yuvarlak', 0.3)); });
   ops.push(...kemerli);
   cephe(P, Fo, W, zones, ops);
-  sove(Fo, n === 1 ? [kapi] : ops.slice(0, 2));
-  if (n > 1) { kutu(P, Fo, kapi.u0 - 0.2, kapi.u1 + 0.2, 2.72, 2.95, 0, 0.16, 'tas_sove'); kutu(P, Fo, kapi.u0 - 0.1, kapi.u1 + 0.1, 2.95, 3.4, 0, 0.08, 'tas_sove'); }
-  for (let k = n === 1 ? 0 : 1; k < n; k++) { // pencere dizisi: denizlik, üst kuşak, sütunçeler, kemer kuşakları
+  sove(Fo, o.revak ? [] : zemin);
+  if (sivri) sove(Fo, kemerli, 0.17);
+  if (n > 1 && !sivri && !o.revak) { kutu(P, Fo, kapi.u0 - 0.2, kapi.u1 + 0.2, 2.72, 2.95, 0, 0.16, 'tas_sove'); kutu(P, Fo, kapi.u0 - 0.1, kapi.u1 + 0.1, 2.95, 3.4, 0, 0.08, 'tas_sove'); }
+  if (!sivri) for (let k = n === 1 ? 0 : 1; k < n; k++) { // pencere dizisi: denizlik, üst kuşak, sütunçeler, kemer kuşakları
     const y = Y[k], seg = n === 1 ? [[-span, us[di] - sp / 2], [us[di] + sp / 2, span]] : [[-span, span]];
     for (const [a, b] of seg) if (b - a > 0.2) { kutu(P, Fo, a - 0.05, b + 0.05, y + 0.36, y + 0.54, 0, 0.14, 'tas_sove'); kutu(P, Fo, a - 0.05, b + 0.05, y + hh + 1.25, y + hh + 1.42, 0, 0.1, 'tas_sove'); }
     for (let q = 0; q <= bays; q++) { const u = -span + q * sp; halka(P, 'tas_sove', [[0.11, y + 0.54], [0.11, y + 0.66], [0.07, y + 0.74], [0.065, y + 0.4 + hh], [0.11, y + 0.52 + hh], [0.12, y + 0.62 + hh]], 8, 0, 1, u, 0.1); }
   }
-  for (const q of kemerli) { const u = (q.u0 + q.u1) / 2, o2 = { u0: q.u0, u1: q.u1, ys: q.ys, rise: 0.5, tip: 'yuvarlak' }, m = 12, pt = (k, t) => { const uu = q.u0 + ((q.u1 - q.u0) * k) / m, yy = kemer(o2, uu), ex = uu - u, ey = yy - q.ys + 0.25, l = Math.hypot(ex, ey) || 1; return Fo.pt(uu + (ex / l) * t, yy + (ey / l) * t, 0.06); }; for (let k = 0; k < m; k++) P.quad('tas_sove', [pt(k, 0), pt(k + 1, 0), pt(k + 1, 0.16), pt(k, 0.16)], K.FLAT, V(0, 0, 1)); }
-  if (o.balkon && n > 1) { // taş balkon: konsollar, döşeme, tornalı korkuluk
-    const y = Y[1] + 0.5, b0 = -Math.min(span, sp * 1.5 + 0.3), b1 = -b0, dz = 1.05;
+  if (!sivri) for (const q of kemerli) { const u = (q.u0 + q.u1) / 2, o2 = { u0: q.u0, u1: q.u1, ys: q.ys, rise: 0.5, tip: 'yuvarlak' }, m = 12, pt = (k, t) => { const uu = q.u0 + ((q.u1 - q.u0) * k) / m, yy = kemer(o2, uu), ex = uu - u, ey = yy - q.ys + 0.25, l = Math.hypot(ex, ey) || 1; return Fo.pt(uu + (ex / l) * t, yy + (ey / l) * t, 0.06); }; for (let k = 0; k < m; k++) P.quad('tas_sove', [pt(k, 0), pt(k + 1, 0), pt(k + 1, 0.16), pt(k, 0.16)], K.FLAT, V(0, 0, 1)); }
+  for (const bk of o.balkon === true ? [1] : Array.isArray(o.balkon) ? o.balkon : []) if (n > bk) { // taş balkon: konsollar, döşeme, tornalı korkuluk
+    const y = Y[bk] + (sivri ? 0.84 : 0.5), b0 = -Math.min(span, sp * 1.5 + 0.3), b1 = -b0, dz = 1.05;
     kutu(P, Fo, b0, b1, y - 0.16, y, 0, dz, 'tas_sove');
     for (const u of [b0 + 0.3, 0, b1 - 0.3]) for (let k = 0; k < 3; k++) kutu(P, Fo, u - 0.12, u + 0.12, y - 0.16 - (k + 1) * 0.16, y - 0.16 - k * 0.16, 0, dz * (0.85 - k * 0.27), 'tas_sove');
     for (const [a, b] of [[V(b0, 0, dz - 0.08), V(b1, 0, dz - 0.08)], [V(b0 + 0.08, 0, 0), V(b0 + 0.08, 0, dz - 0.08)], [V(b1 - 0.08, 0, 0), V(b1 - 0.08, 0, dz - 0.08)]]) { K.beam(P, 'tas_sove', a.clone().setY(y + 0.92), b.clone().setY(y + 0.92), 0.1, 0.16); const c = Math.max(2, Math.round(a.distanceTo(b) / 0.26)); for (let k = 0; k <= c; k++) { const q = a.clone().lerp(b, k / c); halka(P, 'tas_sove', [[0.05, y], [0.05, y + 0.1], [0.075, y + 0.3], [0.04, y + 0.55], [0.06, y + 0.8], [0.06, y + 0.88]], 6, 0, 1, q.x, q.z); } }
+  }
+  if (o.balkon === 'pencere') for (const q of kemerli) { // her pencerenin altında küçük korkuluklu çıkma
+    const y = q.y0 - 0.16, a = q.u0 - 0.22, b = q.u1 + 0.22;
+    kutu(P, Fo, a, b, y - 0.12, y, 0, 0.42, 'tas_sove'); kutu(P, Fo, a + 0.1, b - 0.1, y - 0.3, y - 0.12, 0, 0.26, 'tas_sove');
+    kutu(P, Fo, a, b, y + 0.62, y + 0.72, 0.3, 0.42, 'tas_sove');
+    for (let k = 0; k <= 4; k++) { const c = Fo.pt(a + 0.06 + ((b - a - 0.12) * k) / 4, 0, 0.36); halka(P, 'tas_sove', [[0.04, y], [0.06, y + 0.2], [0.035, y + 0.42], [0.05, y + 0.62]], 6, 0, 1, c.x, c.z); }
   }
   // Yan ve arka cepheler
   for (const [C, N, kapali] of [[V(-hw, 0, -D / 2), V(-1, 0, 0), o.solKapali], [V(hw, 0, -D / 2), V(1, 0, 0), o.sagKapali], [V(0, 0, -D), V(0, 0, -1), true]]) {
@@ -445,7 +461,7 @@ function tasBina(P0, o) {
   for (const [a, b, nn] of [[V(-hw, 0, 0), V(hw, 0, 0), V(0, 0, 1)], [V(-hw, 0, -D), V(-hw, 0, 0), V(-1, 0, 0)], [V(hw, 0, 0), V(hw, 0, -D), V(1, 0, 0)], [V(hw, 0, -D), V(-hw, 0, -D), V(0, 0, -1)]]) {
     const F = yuz(a.clone().add(b).multiplyScalar(0.5), nn), L = a.distanceTo(b), yan = (nn.x < 0 && o.solKapali) || (nn.x > 0 && o.sagKapali);
     if (yan) continue;
-    kutu(P, F, -L / 2, L / 2, 0, 0.55, 0, 0.08, 'tas_sove');
+    if (!(o.revak && nn.z > 0)) kutu(P, F, -L / 2, L / 2, 0, 0.55, 0, 0.08, 'tas_sove');
     for (let k = 1; k < n; k++) kutu(P, F, -L / 2 - 0.08, L / 2 + 0.08, Y[k] - 0.1, Y[k] + 0.1, 0, 0.1, 'tas_sove');
     for (const sg of [-1, 1]) kutu(P, F, sg > 0 ? L / 2 - 0.4 : -L / 2, sg > 0 ? L / 2 : -L / 2 + 0.4, 0.55, H - 0.5, 0, 0.05, 'tas_sove');
     kutu(P, F, -L / 2 - 0.12, L / 2 + 0.12, H - 0.5, H - 0.32, 0, 0.12, 'tas_sove');
@@ -472,6 +488,22 @@ function tasBina(P0, o) {
       halka(P, 'demir', [[0.1, ay], [0.15, ay + 0.12], [0.05, ay + 0.24], [0.12, ay + 0.4], [0.03, ay + 0.56], [0.02, ay + 1.0], [0, ay + 1.1]], 8, 0, 1, 0, cz);
     }
   }
+  const kirma4 = (mat, xa, xb, za, zb, y0, rise) => { const cxm = (xa + xb) / 2, czm = (za + zb) / 2, rl = Math.max(0, (xb - xa - (zb - za)) / 2), rlz = Math.max(0, (zb - za - (xb - xa)) / 2), kose = [V(xa, y0, zb), V(xb, y0, zb), V(xb, y0, za), V(xa, y0, za)], top = [V(cxm - rl, y0 + rise, czm + rlz), V(cxm + rl, y0 + rise, czm + rlz), V(cxm + rl, y0 + rise, czm - rlz), V(cxm - rl, y0 + rise, czm - rlz)]; for (let q = 0; q < 4; q++) { const a = kose[q], b = kose[(q + 1) % 4], ta = top[q], tb = top[(q + 1) % 4], m = a.clone().add(b).multiplyScalar(0.5), nrm = V(m.x - cxm, 2, m.z - czm), L = a.distanceTo(b); if (ta.distanceTo(tb) < 1e-6) P.tri(mat, [a, b, ta], [[0, 0], [L / 1.5, 0], [L / 3, 1.5]], nrm); else P.quad(mat, [a, b, tb, ta], [[0, 0], [L / 1.5, 0], [L / 1.5 - 0.6, 1.5], [0.6, 1.5]], nrm); } };
+  if (o.cihannuma) { // çatının üstünde kemerli, korkuluklu seyir köşkü
+    const cw = Math.min(W * 0.62, 5), cd = D * 0.5, y0 = H + 0.4, ch = 2.6, czc = -D / 2;
+    for (const [C, N, L, nb] of [[V(0, 0, czc + cd / 2), V(0, 0, 1), cw, 3], [V(0, 0, czc - cd / 2), V(0, 0, -1), cw, 3], [V(-cw / 2, 0, czc), V(-1, 0, 0), cd, 2], [V(cw / 2, 0, czc), V(1, 0, 0), cd, 2]]) {
+      const F = yuz(C, N), bw = (L - 0.4) / nb, aops = Array.from({ length: nb }, (_, k) => { const a = -L / 2 + 0.2 + k * bw + 0.13, b = -L / 2 + 0.2 + (k + 1) * bw - 0.13; return { u0: a, u1: b, y0: y0 + 0.8, ys: y0 + 1.5, rise: (b - a) / 2 + 0.12, fill: null, depth: 0.2, reveal: 'tas_sove' }; });
+      cephe(P, F, L, [[y0, y0 + ch, T, 3]], aops);
+      kutu(P, F, -L / 2 - 0.06, L / 2 + 0.06, y0 + 0.66, y0 + 0.8, 0, 0.09, 'tas_sove'); kutu(P, F, -L / 2 - 0.1, L / 2 + 0.1, y0 + ch - 0.18, y0 + ch, 0, 0.14, 'tas_sove');
+    }
+    kirma4('kiremit', -cw / 2 - 0.4, cw / 2 + 0.4, czc - cd / 2 - 0.4, czc + cd / 2 + 0.4, y0 + ch, 0.75);
+  }
+  if (o.kule) { // köşede külahlı fener kulesi
+    const kx = -hw + 1.25, kz = -1.25, ks = 0.75, y0 = H + 0.2, kh = 2.5;
+    for (const [C, N] of [[V(kx, 0, kz + ks), V(0, 0, 1)], [V(kx, 0, kz - ks), V(0, 0, -1)], [V(kx - ks, 0, kz), V(-1, 0, 0)], [V(kx + ks, 0, kz), V(1, 0, 0)]]) { const F = yuz(C, N); cephe(P, F, ks * 2, [[y0, y0 + kh, T, 3]], [{ u0: -0.36, u1: 0.36, y0: y0 + 1.0, ys: y0 + 1.7, rise: 0.46, fill: 'karanlik', depth: 0.1, reveal: 'tas_sove' }]); kutu(P, F, -ks - 0.08, ks + 0.08, y0 + kh - 0.16, y0 + kh, 0, 0.12, 'tas_sove'); kutu(P, F, -ks - 0.04, ks + 0.04, y0 + 0.84, y0 + 0.96, 0, 0.07, 'tas_sove'); }
+    halka(P, 'kursun', [[ks * 1.62, y0 + kh], [ks * 0.9, y0 + kh + 0.5], [0.12, y0 + kh + 1.9], [0, y0 + kh + 2.0]], 4, Math.PI / 4, 1, kx, kz);
+    halka(P, 'demir', [[0.07, y0 + kh + 1.92], [0.1, y0 + kh + 2.05], [0.03, y0 + kh + 2.2], [0.02, y0 + kh + 2.6], [0, y0 + kh + 2.7]], 6, 0, 1, kx, kz);
+  }
 }
 const yanYana = (list) => (P) => { const tot = list.reduce((t, o) => t + o.w, 0); let x = -tot / 2; list.forEach((o, i) => { tasBina(P, { ...o, x: x + o.w / 2, solKapali: i > 0, sagKapali: i < list.length - 1 }); x += o.w; }); };
 Object.assign(DIGER, {
@@ -482,6 +514,18 @@ Object.assign(DIGER, {
   tas_bina_1k_zarf: (P) => tasBina(P, { w: 7, d: 7, kat: 1, fh: 4.4, bays: 5, cati: 'zarf' }),
   tas_bina_1k_genis: (P) => tasBina(P, { w: 12.5, d: 7, kat: 1, fh: 4.4, bays: 7, cati: 'kursun' }),
   tas_bina_1k_ikili: yanYana([{ w: 6.5, d: 7, kat: 1, fh: 4.2, bays: 3, cati: 'duz' }, { w: 7.5, d: 7, kat: 1, fh: 4.8, bays: 5, cati: 'zarf' }]),
+  // Kule ev (birinci resim): dar ve yüksek; çift sivri kemerli pencereler, taş balkon, kiremit çatı, tepede cihannüma
+  kule_ev_3k_cihannuma: (P) => tasBina(P, { w: 5.6, d: 6.5, kat: 3, fh: 3.9, bays: 2, stil: 'sivri', cati: 'zarf', balkon: [2], cihannuma: true }),
+  kule_ev_2k_cihannuma: (P) => tasBina(P, { w: 5.6, d: 6.5, kat: 2, fh: 3.9, bays: 2, stil: 'sivri', cati: 'zarf', balkon: [1], cihannuma: true }),
+  kule_ev_3k_balkonlu: (P) => tasBina(P, { w: 5.6, d: 6.5, kat: 3, fh: 3.9, bays: 2, stil: 'sivri', cati: 'zarf', balkon: [1, 2] }),
+  kule_ev_2k_genis: (P) => tasBina(P, { w: 9, d: 7, kat: 2, fh: 3.9, bays: 4, stil: 'sivri', cati: 'zarf', balkon: [1], cihannuma: true }),
+  kule_ev_ikili: yanYana([{ w: 5.6, d: 6.5, kat: 3, fh: 3.9, bays: 2, stil: 'sivri', cati: 'zarf', balkon: [2], cihannuma: true }, { w: 6, d: 6.5, kat: 2, fh: 4.2, bays: 2, stil: 'sivri', cati: 'zarf', balkon: [1] }]),
+  // Revaklı ev (ikinci resim): zemin kat sütunlu revak; üstte ikiz sivri kemerli pencereler ve altlarında korkuluklu çıkmalar, köşede fener kulesi
+  revakli_ev_2k_kuleli: (P) => tasBina(P, { w: 9, d: 7.5, kat: 2, fh: 4.2, bays: 4, stil: 'sivri', cati: 'zarf', revak: 4, balkon: 'pencere', kule: true }),
+  revakli_ev_2k: (P) => tasBina(P, { w: 8, d: 7.5, kat: 2, fh: 4.2, bays: 4, stil: 'sivri', cati: 'zarf', revak: 3, balkon: 'pencere' }),
+  revakli_ev_3k_kuleli: (P) => tasBina(P, { w: 9, d: 7.5, kat: 3, fh: 4.0, bays: 4, stil: 'sivri', cati: 'zarf', revak: 4, balkon: 'pencere', kule: true }),
+  revakli_ev_2k_genis: (P) => tasBina(P, { w: 13.5, d: 7.5, kat: 2, fh: 4.2, bays: 6, stil: 'sivri', cati: 'zarf', revak: 6, balkon: 'pencere', kule: true }),
+  revakli_kule_karisik: yanYana([{ w: 9, d: 7.5, kat: 2, fh: 4.2, bays: 4, stil: 'sivri', cati: 'zarf', revak: 4, balkon: 'pencere', kule: true }, { w: 5.6, d: 7.5, kat: 3, fh: 3.9, bays: 2, stil: 'sivri', cati: 'zarf', balkon: [2], cihannuma: true }]),
   tas_bina_2k_uclu: yanYana([{ w: 6.5, d: 7, kat: 2, fh: 4.0, bays: 4, cati: 'kursun' }, { w: 7, d: 7, kat: 2, fh: 4.4, bays: 4, cati: 'kubbe' }, { w: 6, d: 7, kat: 2, fh: 3.9, bays: 3, cati: 'zarf' }]),
 });
 
