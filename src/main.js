@@ -49,7 +49,7 @@ import * as kit_araba from './kit_araba.js';
 import * as sehir_halki from './sehir_halki.js';
 import * as kit_siper from './kit_siper.js';
 import { createTufekMavzer, tufekRaporu } from './tufek_mavzer.js';
-import { createKaya, KAYALAR } from './kaya.js';
+import { createKaya, KAYALAR, ORMAN_KAYALARI, createOrmanKayalik } from './kaya.js';
 import { createGovde, GOVDELER } from './agac_govde.js';
 import { createHazireYapisi, HAZIRE_YAPILARI } from './hazire_yapilari.js';
 import { createMimariKit, createMimariParca, MIMARI_PARCALAR } from './mimari_kit.js';
@@ -442,6 +442,12 @@ const models = {
     create: () => KERPIC_ORNEKLER[KERPIC_ORNEK](),
     file: `${KERPIC_ORNEK}.glb`,
     target: new THREE.Vector3(0, 3, 0),
+    distance: 34,
+  },
+  ormanKayalik: {
+    create: createOrmanKayalik,
+    file: 'orman_kayalik_ornek.glb',
+    target: new THREE.Vector3(0, 2, -2),
     distance: 34,
   },
   kitAraba: {

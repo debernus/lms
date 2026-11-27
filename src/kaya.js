@@ -110,13 +110,15 @@ function textures(tip, T, f, S, W, fs) {
     g *= 1 + gran * (sp > 0.72 ? -0.26 : sp < 0.22 ? 0.14 : 0);
     g *= 1 - 0.18 * side * sm(0.45, 0.75, fbm(x * 3 + 40, y * 0.35 + o, z * 3, 3)); // yanlarda akıntı izleri
     let R = g * 1.0, G = g * 0.985, B = g * 0.955, rough = 0.84 - 0.06 * gran;
+    const orm2 = T.orman ? 1 : 0;
+    if (orm2) { g = 0.36 + 0.55 * (g - 0.5) * 0.9 + 0.08 * (fbm(x * 0.4 + 70, y * 0.4, z * 0.4 + o, 3) - 0.5); R = g * 0.86; G = g * 0.95; B = g * 1.02; }
     const blend = (cr, cg2, cb, t) => { R = mix(R, cr, t); G = mix(G, cg2, t); B = mix(B, cb, t); };
-    blend(0.47 * (0.7 + g * 0.6), 0.39 * (0.7 + g * 0.6), 0.3 * (0.7 + g * 0.6), 0.5 * sm(0.52, 0.68, fbm(x * 1.1 + 20 + o, y * 1.1, z * 1.1, 4))); // sıcak kahverengi lekeler
+    blend(0.47 * (0.7 + g * 0.6), 0.39 * (0.7 + g * 0.6), 0.3 * (0.7 + g * 0.6), (orm2 ? 0.15 : 0.5) * sm(0.52, 0.68, fbm(x * 1.1 + 20 + o, y * 1.1, z * 1.1, 4))); // sıcak kahverengi lekeler
     const lich = sm(0.55, 0.65, fbm(x * 2.2 + 60, y * 2.2 + o, z * 2.2, 4)) * (0.35 + 0.65 * up);
     blend(0.4, 0.45, 0.29, 0.55 * lich); // yeşilimsi liken
     const pale = sm(0.68, 0.72, fbm(x * 5 + 90, y * 5, z * 5 + o, 3));
-    blend(0.72, 0.72, 0.62, 0.6 * pale); // açık renk liken benekleri
-    blend(0.62, 0.46, 0.2, 0.5 * sm(0.74, 0.77, fbm(x * 7 + 120 + o, y * 7, z * 7, 2)) * up); // turuncu liken
+    blend(0.62, 0.66, 0.6, (orm2 ? 0.12 : 0.6) * pale); // açık renk liken benekleri
+    blend(0.62, 0.46, 0.2, (orm2 ? 0 : 0.5) * sm(0.74, 0.77, fbm(x * 7 + 120 + o, y * 7, z * 7, 2)) * up); // turuncu liken
     // İnce çatlaklar
     const zone = sm(0.46, 0.6, fbm(x * 0.7 + 300 + o, y * 0.7, z * 0.7, 2)); // çatlaklar yalnız bazı bölgelerde, kopuk kopuk
     const fine = zone * Math.max(1 - sm(0.001, 0.0035, Math.abs(fbm(x * 1.2 + 200, y * 1.2 + o, z * 1.2, 4) - 0.5)), 0.6 * (1 - sm(0.001, 0.003, Math.abs(fbm(x * 2.6 + 240 + o, y * 2.6, z * 2.6, 3) - 0.47))) * sm(0.4, 0.6, noise(x * 2.5, y * 2.5 + o, z * 2.5)));
@@ -124,12 +126,15 @@ function textures(tip, T, f, S, W, fs) {
     // Yarıkların içi koyu; oyuklarda ve yarık kenarlarında yosun
     blend(0.1, 0.095, 0.085, 0.85 * sm(0.3, 0.85, crack));
     const moss = Math.min(1, Math.max(0.55 * sm(0.2, 0.5, crack) * (1 - sm(0.6, 0.95, crack)) * (0.4 + 0.6 * sm(-0.3, 0.5, dy)), 0.7 * sm(0.58, 0.72, fbm(x * 1.6 + 150, y * 1.6, z * 1.6 + o, 3)) * sm(0.3, 0.8, dy), 0.6 * fine * up, (T.moss || 0) * sm(-0.05, 0.45, dy) * sm(0.25, 0.5, fbm(x * 1.3 + 400, y * 1.3, z * 1.3 + o, 3) + 0.25 * (T.moss || 0)), (T.north || 0) * sm(-0.1, 0.5, -dz) * sm(-0.4, 0.1, dy) * sm(0.35, 0.55, fbm(x * 1.5 + 500 + o, y * 1.5, z * 1.5, 3) + 0.15))) * sm(0.3, 0.6, noise(x * 9 + o, y * 9, z * 9) + 0.25);
+    const ust = orm2 * (T.yosun ?? 0.8) * sm(0.2, 0.7, dy) * sm(0.32, 0.5, fbm(x * 0.9 + 600 + o, y * 0.9, z * 0.9, 4) + 0.12 * (T.yosun ?? 0.8)) * sm(0.25, 0.55, noise(x * 6 + o, y * 6, z * 6) + 0.3);
+    const yanY = orm2 * 0.6 * sm(0.55, 0.7, fbm(x * 1.4 + 700, y * 0.6, z * 1.4 + o, 3)) * side;
     blend(0.13 + 0.05 * sp, 0.18 + 0.06 * sp, 0.075, 0.8 * moss);
-    rough = Math.min(0.98, rough + 0.1 * moss + 0.05 * lich + 0.04 * pale);
+    if (orm2) { blend(0.075 + 0.04 * sp, 0.12 + 0.05 * sp, 0.05, 0.92 * Math.min(1, ust + moss * 0.5)); blend(0.16, 0.2, 0.13, 0.5 * yanY); }
+    rough = Math.min(0.98, rough + 0.1 * moss + 0.05 * lich + 0.04 * pale + 0.12 * (orm2 ? ust : 0));
     const i = (py * W + px) * 4;
     col.data[i] = Math.min(255, R * 255); col.data[i + 1] = Math.min(255, G * 255); col.data[i + 2] = Math.min(255, B * 255); col.data[i + 3] = 255;
     orm.data[i] = 255; orm.data[i + 1] = rough * 255; orm.data[i + 2] = 0; orm.data[i + 3] = 255;
-    H[i / 4] = 0.55 * fbm(x * 16, y * 16 + o, z * 16, 4) + 0.2 * (sp - 0.5) * gran - 0.5 * fine + 0.25 * moss * noise(x * 40, y * 40, z * 40) - 0.3 * sm(0.3, 0.8, crack);
+    H[i / 4] = 0.55 * fbm(x * 16, y * 16 + o, z * 16, 4) + 0.2 * (sp - 0.5) * gran - 0.5 * fine + 0.25 * (moss + (orm2 ? ust : 0)) * noise(x * 40, y * 40, z * 40) - 0.3 * sm(0.3, 0.8, crack);
   }
   cg.putImageData(col, 0, 0);
   og.putImageData(orm, 0, 0);
@@ -152,6 +157,38 @@ function worley(x, y, z) {
 function rnd(seed) { let s = seed >>> 0; return () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296); }
 // tur: kutle (tek iri kütle), cift (yan yana iki kaya), sivri (sivri tepeli kayalık), blok (üst üste bloklar), yayvan (alçak, geniş)
 const DEV = [['kutle', 14, 8], ['kutle', 18, 10], ['cift', 22, 11], ['sivri', 16, 18], ['sivri', 20, 22], ['blok', 14, 16], ['blok', 20, 14], ['yayvan', 26, 8], ['kutle', 15, 11], ['cift', 28, 14], ['sivri', 24, 12], ['yayvan', 30, 10]];
+// Orman kayaları paketi: koyu mavi-gri granit, yuvarlak hatlı, üstü yosunlu (iğne yapraklı orman ortamı). Hepsinin tabanı düz:
+// yan yana ve üst üste dizilir, yere gömülür.
+const OK = (w, h, cy, form, ek = {}) => ({ w, h, cy, ...form, n1: 0.3, n2: 0.13, orman: true, big: w >= 3.5, ...ek });
+Object.assign(KAYALAR, {
+  orman_kaya_01_iri_yuvarlak: OK(6, 4, 1.0, { ell: [2.1, 1.7, 1.8, 2.3] }, { cracks: [[0.8, 0.1, 0.6, 0.15, 0.04, 0.1, 0.2, 0.6, -0.8]] }),
+  orman_kaya_02_yassi_buyuk: OK(7, 2.4, 0.5, { ell: [2.6, 1.0, 2.0, 2.9] }, { yosun: 1 }),
+  orman_kaya_03_uzun_sirt: OK(9, 3.4, 0.8, { ell: [3.3, 1.3, 1.5, 2.5] }, { cracks: [[0.95, 0, 0.3, 0.3, 0.03, 0.09, 0, 0.3, 1]] }),
+  orman_kaya_04_yuksek_blok: OK(4, 6, 1.6, { ell: [1.5, 2.6, 1.35, 3.0] }, { lean: 0.06, yosun: 0.6 }),
+  orman_kaya_05_kume: OK(11, 5, 1.4, { blobs: [[-2.6, 1.3, 0.3, 2.6, 2.5, 2.2], [2.4, 1.1, -0.4, 2.7, 2.2, 2.3], [0.1, 2.0, 0.6, 2.0, 2.6, 1.9], [0.4, 0.9, -1.6, 2.2, 1.6, 1.9], [-0.9, 1.0, 1.7, 1.8, 1.5, 1.7]] }, { n1: 0.2 }),
+  orman_kaya_06_gomulu_sirt: OK(10, 2.3, 0.25, { ell: [3.4, 1.0, 2.2, 2.2] }, { yosun: 1 }),
+  orman_kaya_07_ikiz: OK(7, 3.6, 1.0, { blobs: [[-1.4, 1.1, 0, 1.9, 1.9, 1.7], [1.5, 0.9, 0.2, 1.7, 1.6, 1.6]] }),
+  orman_kaya_08_yarik: OK(5.5, 3.6, 1.0, { ell: [1.9, 1.5, 1.7, 2.6] }, { split: true }),
+  orman_kaya_09_duvar_kayasi: OK(13, 7, 2.0, { ell: [4.4, 2.8, 2.0, 3.3] }, { cracks: [[0.95, 0.1, 0.3, 0.2, 0.03, 0.08, 0, 0.3, 1], [-0.7, 0.2, 0.7, -0.3, 0.03, 0.07, 0, 0.2, 1]], yosun: 0.7 }),
+  orman_kaya_10_orta_yuvarlak: OK(3, 2.1, 0.55, { ell: [1.4, 1.1, 1.2, 2.3] }),
+  orman_kaya_11_orta_koseli: OK(3.4, 2.4, 0.8, { planes: PLANES2 }, { n1: 0.08, n2: 0.035 }),
+  orman_kaya_12_orta_yassi: OK(3.2, 1.2, 0.3, { ell: [1.5, 0.55, 1.2, 2.8] }, { yosun: 1 }),
+  orman_kaya_13_dik_sivri: OK(3, 5, 1.4, { ell: [1.1, 2.6, 1.0, 2.2] }, { lean: 0.1, base: 0.3 }),
+  orman_kaya_14_kucuk: OK(1.5, 1.0, 0.3, { ell: [0.75, 0.62, 0.66, 2.3] }),
+  orman_kaya_15_kucuk_yassi: OK(1.7, 0.6, 0.18, { ell: [0.8, 0.3, 0.6, 2.7] }, { yosun: 1 }),
+  orman_kaya_16_cakil: OK(0.8, 0.5, 0.15, { ell: [0.4, 0.3, 0.33, 2.2] }),
+});
+export const ORMAN_KAYALARI = Object.keys(KAYALAR).filter((n) => n.startsWith('orman_kaya_'));
+// Örnek dizilim: kayalar yan yana ve üst üste (görsellerdeki orman patikası kenarı gibi)
+export function createOrmanKayalik() {
+  const g = new THREE.Group(); g.name = 'orman_kayalik_ornek';
+  const put = (n, x, y, z, ry = 0, s = 1) => { const m = createKaya(n); m.position.set(x, y, z); m.rotation.y = ry; m.scale.setScalar(s); g.add(m); };
+  put('orman_kaya_09_duvar_kayasi', -6, -0.4, -6, 0.1); put('orman_kaya_05_kume', 6, -0.3, -7, 2.8); put('orman_kaya_01_iri_yuvarlak', -9, 5.4, -6.5, 0.7, 0.8);
+  put('orman_kaya_02_yassi_buyuk', 1.5, -0.2, -3.5, 0.3); put('orman_kaya_10_orta_yuvarlak', 2.2, 1.9, -3.6, 1.2); put('orman_kaya_04_yuksek_blok', 11, -0.3, -2, 0.4);
+  put('orman_kaya_07_ikiz', -12, -0.3, 0.5, 1.9); put('orman_kaya_12_orta_yassi', -7.5, -0.15, 1.5, 0.5); put('orman_kaya_14_kucuk', -7.2, 0.95, 1.6, 0.2);
+  put('orman_kaya_06_gomulu_sirt', 5, -0.4, 2.5, 0.2); put('orman_kaya_11_orta_koseli', 8.5, -0.2, 3.5, 2.2); put('orman_kaya_15_kucuk_yassi', -3, -0.1, 3.5, 1.0); put('orman_kaya_16_cakil', -2, -0.05, 4.4); put('orman_kaya_16_cakil', 0.3, -0.05, 5, 1.4, 0.7); put('orman_kaya_14_kucuk', 2.5, -0.15, 5.2, 2.6, 0.8);
+  return g;
+}
 DEV.forEach(([tur, w, h], i) => { KAYALAR[`kaya_dev_${String(i + 1).padStart(2, '0')}`] = { w, h, cy: 0.28 * h, dev: tur, big: true, moss: i === 8 ? 0.7 : 0, tint: i }; });
 function devBlobs(T, r) {
   const W = T.w, H = T.h, j = (v, d = 0.15) => v * (1 + (r() - 0.5) * 2 * d), B = [];
@@ -250,7 +287,7 @@ function texturesDev(tip, T, f, S, W) {
 
 export function createKaya(tip = 'kaya_buyuk_1') {
   const T = KAYALAR[tip], f = (T.dev ? shapeDev : shape)(T, Object.keys(KAYALAR).indexOf(tip)), width = T.w, height = T.h, lean = T.lean || 0;
-  const M = T.big ? 104 : 48, N = T.dev ? 57 : T.big ? 56 : 30, size = T.dev ? 1536 : T.big ? 1024 : 512; // büyükler ~11 600, küçükler 2 880 üçgen
+  const M = T.big ? 104 : 48, N = T.dev ? 57 : T.big ? 56 : 30, size = T.dev ? 1536 : T.big || T.orman ? 1024 : 512; // büyükler ~11 600, küçükler 2 880 üçgen
   // Ham ağ: tepe noktası, N halka (kutup açısı 0 … TH), taban merkezi. Köşeler paylaşılır: ağ kapalıdır.
   const raw = [];
   for (let j = 1; j <= N; j++) for (let k = 0; k < M; k++) {
