@@ -54,7 +54,8 @@ import { createGovde, GOVDELER } from './agac_govde.js';
 import { createHazireYapisi, HAZIRE_YAPILARI } from './hazire_yapilari.js';
 import { createMimariKit, createMimariParca, MIMARI_PARCALAR } from './mimari_kit.js';
 import { createSehirParca, createSehirOrnek, SEHIR_PARCALAR } from './sehir.js';
-import { createBatikGemi } from './batik_gemi.js';
+import { createBatikGemi, BATIK_GEMILER } from './batik_gemi.js';
+const BATIK = Math.min(5, Math.max(1, +new URLSearchParams(location.search).get('batik') || 3));
 const SEHIR = SEHIR_PARCALAR.includes(new URLSearchParams(location.search).get('sehir')) ? new URLSearchParams(location.search).get('sehir') : 'ev_01';
 const GOVDE = GOVDELER.includes(new URLSearchParams(location.search).get('govde')) ? new URLSearchParams(location.search).get('govde') : 'govde_mese';
 const KAYA = KAYALAR[new URLSearchParams(location.search).get('kaya')] ? new URLSearchParams(location.search).get('kaya') : 'kaya_buyuk_1';
@@ -412,11 +413,12 @@ const models = {
     target: new THREE.Vector3(24, 5, 0),
     distance: 70,
   },
+  // Batık gemiler: ?batik=1…5 (küçükten büyüğe)
   batikGemi: {
-    create: createBatikGemi,
-    file: 'batik_gemi.glb',
-    target: new THREE.Vector3(0, 4, -2),
-    distance: 55,
+    create: () => createBatikGemi(BATIK),
+    file: `${BATIK_GEMILER[BATIK - 1].ad}.glb`,
+    target: new THREE.Vector3(0, 5, 0),
+    distance: 30 + BATIK * 22,
   },
   kitAraba: {
     create: kit_araba.createKit,
