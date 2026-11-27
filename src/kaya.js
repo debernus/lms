@@ -63,10 +63,12 @@ function shape(T, seed) {
     const top = sm(0.35, 0.8, dy);
     r *= 1 + T.n1 * (fbm(dx * 1.3 + 3 + sd, dy * 1.3, dz * 1.3, 3) - 0.5) + T.n2 * (fbm(dx * 3.1, dy * 3.1 + 9 + sd, dz * 3.1, 3) - 0.5) * (1 - 0.75 * top);
     if (T.base) r *= 1 + T.base * sm(0.15, -0.5, dy);
+    if (T.dar) r *= 1 - T.dar * sm(0.1, -0.75, dy); // altı içe çekilmiş (sarkan çıkıntı)
     if (T.strata) { // yatay katmanlar: her katman bir basamak
       const y = T.cy + dy * r, t = y / T.strata[0] + 0.35 * fbm(dx * 0.8 + sd, 0.3, dz * 0.8, 2), fr = t - Math.floor(t);
       r *= 1 - T.strata[1] * (fr - 0.5) - T.strata[1] * 0.6 * sm(0.9, 1, fr);
     }
+    for (const [nx, ny, nz, d] of T.clip || []) { const c = nx * dx + ny * dy + nz * dz; if (c > 1e-3) r = Math.min(r, d / c); } // düz kesme yüzleri (arka yüz, üst)
     let crack = 0;
     (T.cracks || []).forEach(([nx, ny, nz, off, w, depth, mx, my, mz], k) => {
       const d = dx * nx + dy * ny + dz * nz - off + 0.16 * (fbm(dx * 2.4 + k * 13 + sd, dy * 2.4, dz * 2.4, 2) - 0.5), c = Math.exp(-((d / w) ** 2)) * sm(-0.15, 0.3, dx * mx + dy * my + dz * mz);
@@ -129,6 +131,9 @@ function textures(tip, T, f, S, W, fs) {
     const ust = orm2 * (T.yosun ?? 0.8) * sm(0.2, 0.7, dy) * sm(0.32, 0.5, fbm(x * 0.9 + 600 + o, y * 0.9, z * 0.9, 4) + 0.12 * (T.yosun ?? 0.8)) * sm(0.25, 0.55, noise(x * 6 + o, y * 6, z * 6) + 0.3);
     const yanY = orm2 * 0.6 * sm(0.55, 0.7, fbm(x * 1.4 + 700, y * 0.6, z * 1.4 + o, 3)) * side;
     blend(0.13 + 0.05 * sp, 0.18 + 0.06 * sp, 0.075, 0.8 * moss);
+    const islak = orm2 * (T.islak ?? 1) * sm(0.15, -0.6, dy) * (0.7 + 0.3 * fbm(x * 1.2 + 800, y * 2, z * 1.2 + o, 3));
+    if (orm2) { R *= 1 - 0.42 * islak; G *= 1 - 0.38 * islak; B *= 1 - 0.34 * islak; rough -= 0.35 * islak; }
+    if (T.cilali) rough *= 0.55;
     if (orm2) { blend(0.075 + 0.04 * sp, 0.12 + 0.05 * sp, 0.05, 0.92 * Math.min(1, ust + moss * 0.5)); blend(0.16, 0.2, 0.13, 0.5 * yanY); }
     rough = Math.min(0.98, rough + 0.1 * moss + 0.05 * lich + 0.04 * pale + 0.12 * (orm2 ? ust : 0));
     const i = (py * W + px) * 4;
@@ -285,14 +290,16 @@ function texturesDev(tip, T, f, S, W) {
   return new THREE.MeshStandardMaterial({ name: tip, map: tex(`${tip}_renk`, cc, true), roughnessMap: m, metalnessMap: m, normalMap: tex(`${tip}_kabartma`, normalFrom(H, W, 7), false), roughness: 1, metalness: 1 });
 }
 
-export function createKaya(tip = 'kaya_buyuk_1') {
-  const T = KAYALAR[tip], f = (T.dev ? shapeDev : shape)(T, Object.keys(KAYALAR).indexOf(tip)), width = T.w, height = T.h, lean = T.lean || 0;
-  const M = T.big ? 104 : 48, N = T.dev ? 57 : T.big ? 56 : 30, size = T.dev ? 1536 : T.big || T.orman ? 1024 : 512; // büyükler ~11 600, küçükler 2 880 üçgen
+function geomOf(T, f) {
+  const width = T.w, height = T.h, lean = T.lean || 0;
+  const [M, N] = T.res || (T.big ? [104, 56] : [48, 30]);
+  if (T.dev && !T.res) { /* dev kayalar */ }
+  const NN = T.dev && !T.res ? 57 : N;
   // Ham ağ: tepe noktası, N halka (kutup açısı 0 … TH), taban merkezi. Köşeler paylaşılır: ağ kapalıdır.
   const raw = [];
-  for (let j = 1; j <= N; j++) for (let k = 0; k < M; k++) {
-    const th = (j / N) * TH, ph = (k / M) * TAU, dx = Math.sin(th) * Math.cos(ph), dy = Math.cos(th), dz = Math.sin(th) * Math.sin(ph), [r] = f(dx, dy, dz);
-    raw.push([dx * r, T.cy + dy * r, dz * r, 0.5 + 0.5 * (j / N) * Math.cos(ph), 0.5 + 0.5 * (j / N) * Math.sin(ph)]);
+  for (let j = 1; j <= NN; j++) for (let k = 0; k < M; k++) {
+    const th = (j / NN) * TH, ph = (k / M) * TAU, dx = Math.sin(th) * Math.cos(ph), dy = Math.cos(th), dz = Math.sin(th) * Math.sin(ph), [r] = f(dx, dy, dz);
+    raw.push([dx * r, T.cy + dy * r, dz * r, 0.5 + 0.5 * (j / NN) * Math.cos(ph), 0.5 + 0.5 * (j / NN) * Math.sin(ph)]);
   }
   const top = T.cy + f(0, 1, 0)[0];
   // Tabanın altına düşen noktalar, merkezden çıkan ışın boyunca y = 0 kesitine çekilir: düz taban. Sonra eğiklik uygulanır.
@@ -312,16 +319,53 @@ export function createKaya(tip = 'kaya_buyuk_1') {
   const id = (j, k) => 1 + (j - 1) * M + (k % M);
   for (let k = 0; k < M; k++) {
     idx.push(0, id(1, k + 1), id(1, k));
-    for (let j = 1; j < N; j++) idx.push(id(j, k), id(j, k + 1), id(j + 1, k + 1), id(j, k), id(j + 1, k + 1), id(j + 1, k));
-    idx.push(bottom, id(N, k), id(N, k + 1));
+    for (let j = 1; j < NN; j++) idx.push(id(j, k), id(j, k + 1), id(j + 1, k + 1), id(j, k), id(j + 1, k + 1), id(j + 1, k));
+    idx.push(bottom, id(NN, k), id(NN, k + 1));
   }
-  const g = new THREE.BufferGeometry();
-  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-  g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
-  g.setIndex(idx);
-  g.computeVertexNormals();
-  const mesh = new THREE.Mesh(g, T.dev ? texturesDev(tip, T, f, S, size) : textures(tip, T, f, S, size, Math.min(6, (4 / width) ** 0.7)));
+  return { pos, uv, idx, S };
+}
+const bufGeo = ({ pos, uv, idx }) => { const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); g.setIndex(idx); g.computeVertexNormals(); return g; };
+function yerlestir(G, x, y, z, ry, sc = 1) { const c = Math.cos(ry), s = Math.sin(ry), p = G.pos; for (let i = 0; i < p.length; i += 3) { const px = p[i] * sc, pz = p[i + 2] * sc; p[i] = px * c + pz * s + x; p[i + 1] = p[i + 1] * sc + y; p[i + 2] = -px * s + pz * c + z; } return G; }
+export function createKaya(tip = 'kaya_buyuk_1') {
+  const T = KAYALAR[tip], seed = Object.keys(KAYALAR).indexOf(tip), f = (T.dev ? shapeDev : shape)(T, seed), size = T.tex || (T.dev ? 1536 : T.big || T.orman ? 1024 : 512);
+  const G = geomOf(T, f), fs = T.fs ?? Math.min(6, (4 / T.w) ** 0.7);
+  const mat = T.dev ? texturesDev(tip, T, f, G.S, size) : textures(tip, T, f, G.S, size, fs);
+  if (T.parcalar) { // birden çok kaya: ayri ise ayrı düğümler, değilse tek ağ
+    const subs = T.parcalar.map((q, i) => { const Q = { ...T, ...q, parcalar: null }, g = geomOf(Q, shape(Q, seed * 13 + i + 1)); return yerlestir(g, q.x || 0, q.y || 0, q.z || 0, q.ry || 0); });
+    if (T.ayri) { const grp = new THREE.Group(); grp.name = tip; subs.forEach((g, i) => { const m = new THREE.Mesh(bufGeo(g), mat); m.name = `${tip}_${i + 1}`; m.castShadow = m.receiveShadow = true; grp.add(m); }); return grp; }
+    const all = { pos: [...G.pos], uv: [...G.uv], idx: [...G.idx] };
+    for (const g of subs) { const base = all.pos.length / 3; all.pos.push(...g.pos); all.uv.push(...g.uv); for (const v of g.idx) all.idx.push(v + base); }
+    const m = new THREE.Mesh(bufGeo(all), mat); m.name = tip; m.castShadow = m.receiveShadow = true; return m;
+  }
+  const mesh = new THREE.Mesh(bufGeo(G), mat);
   mesh.name = tip;
   mesh.castShadow = mesh.receiveShadow = true;
   return mesh;
+}
+// ---------- Islak çam ormanı kaya seti: 10 parça (koyu gri granit, soğuk mavi-yeşil ton, yarıklarda yosun, ıslak koyu alt) ----------
+const OS = (w, h, cy, form, ek = {}) => ({ w, h, cy, ...form, n1: 0.22, n2: 0.1, orman: true, big: true, ...ek });
+const r9 = K_rng(9);
+function K_rng(seed) { let s = seed >>> 0; return () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296); }
+const koseli = (n, sd) => { const r = K_rng(sd); return Array.from({ length: n }, () => { let x = r() * 2 - 1, y = r() * 1.6 - 0.5, z = r() * 2 - 1; const l = Math.hypot(x, y, z) || 1; return [x / l, y / l, z / l, 0.6 + r() * 0.15]; }); };
+Object.assign(KAYALAR, {
+  orman_set_01_ucurum_duvari: OS(16, 20, 3.5, { ell: [7, 9, 2.4, 3.2] }, { clip: [[0, 0, -1, 1.5]], strata: [1.3, 0.028], res: [150, 104], tex: 1536, fs: 0.75, yosun: 0.6, cracks: [[1, 0, 0.1, -0.15, 0.022, 0.12, 0, 0.1, 1], [0.95, 0.15, -0.1, 0.35, 0.02, 0.1, 0, 0.2, 1], [-0.95, 0.1, 0.1, 0.25, 0.022, 0.11, 0, 0.1, 1], [0.1, 1, 0.1, 0.25, 0.02, 0.08, 0, 0, 1]] }),
+  orman_set_02_ucurum_kose: OS(12, 15, 4, { blobs: [[4.2, 4.5, 0, 6.6, 8.5, 2.4], [0, 4.5, 4.2, 2.4, 8.5, 6.6]] }, { clip: [[0, 0, -1, 1.6], [-1, 0, 0, 1.6]], strata: [1.2, 0.028], res: [150, 96], tex: 1536, fs: 0.8, yosun: 0.6, n1: 0.16, cracks: [[0.7, 0, 0.7, 0.05, 0.02, 0.1, 1, 0, 1], [1, 0, 0.1, 0.45, 0.02, 0.09, 0, 0.1, 1]] }),
+  orman_set_03_sarkan_cikinti: OS(6, 2.8, 0.7, { ell: [2.6, 1.3, 1.6, 3.0] }, { dar: 0.42, clip: [[0, 1, 0, 0.95]], res: [120, 64], yosun: 0.9, cracks: [[1, 0, 0.2, 0.1, 0.03, 0.1, 0, 0.5, 1]] }),
+  orman_set_04_dev_yuvarlak: OS(6, 5, 1.3, { ell: [2.0, 1.9, 1.8, 2.15] }, { n1: 0.1, n2: 0.045, res: [120, 64], yosun: 0.85, cracks: [[0.8, 0.1, 0.6, 0.15, 0.03, 0.06, 0.2, 0.6, -0.8]] }),
+  orman_set_05_uclu_kume: OS(5.5, 3, 0.9, { blobs: [[-1.1, 0.9, 0.2, 1.4, 1.35, 1.2], [1.1, 0.75, -0.2, 1.3, 1.15, 1.2], [0.1, 1.2, 0.9, 1.05, 1.25, 1.0]] }, { n1: 0.16, res: [120, 64] }),
+  orman_set_06_kucuk_taslar: OS(0.8, 0.5, 0.15, { ell: [0.4, 0.3, 0.33, 2.2] }, { big: false, res: [40, 26], tex: 512, ayri: true, parcalar: [
+    { x: -2.2, w: 0.8, h: 0.5, cy: 0.15, ell: [0.4, 0.3, 0.33, 2.2] }, { x: -1.0, w: 0.6, h: 0.32, cy: 0.1, planes: koseli(11, 3) }, { x: 0, w: 0.5, h: 0.45, cy: 0.15, ell: [0.25, 0.32, 0.22, 2.6] },
+    { x: 1.0, w: 0.7, h: 0.25, cy: 0.06, ell: [0.36, 0.16, 0.28, 2.8] }, { x: 2.0, w: 0.3, h: 0.24, cy: 0.08, planes: koseli(9, 7) }] }),
+  orman_set_07_kirik_plaka: OS(2, 0.45, 0.06, { ell: [1.1, 0.24, 0.85, 4] }, { big: false, res: [64, 34], yosun: 1, cracks: [[0.9, 0, 0.44, 0.1, 0.02, 0.25, 0, 1, 0], [-0.4, 0, 0.92, -0.25, 0.018, 0.22, 0, 1, 0], [0.6, 0, -0.8, 0.4, 0.015, 0.18, 0.5, 1, 0]] }),
+  orman_set_08_dere_tasi: OS(1.5, 0.8, 0.24, { ell: [0.75, 0.42, 0.56, 2.0] }, { big: false, n1: 0.035, n2: 0.012, res: [64, 34], yosun: 0.2, cilali: true }),
+  orman_set_09_kaya_kulesi: OS(6, 25, 1.8, { ell: [1.3, 7, 1.15, 2.4] }, { base: 0.4, lean: 0.03, strata: [0.85, 0.035], res: [110, 130], tex: 1536, fs: 0.8, yosun: 0.5, cracks: [[0.9, 0.2, 0.3, 0.1, 0.03, 0.12, 0, 0.2, 1], [-0.5, 0.3, 0.8, 0.0, 0.03, 0.1, 1, 0.2, 0]] }),
+  orman_set_10_moloz_yigini: OS(4, 1.2, 0.12, { ell: [2, 0.45, 1.6, 2.0] }, { res: [80, 40], n1: 0.12, parcalar: Array.from({ length: 30 }, (_, i) => { const a = r9() * TAU, e = Math.sqrt(r9()) * 0.92, s = 0.25 + r9() ** 2 * 0.5, hgt = 1.2 * Math.sqrt(Math.max(0, 1 - e * e)); return { x: Math.cos(a) * e * 2, z: Math.sin(a) * e * 1.6, y: Math.max(0, hgt - s * 0.15), ry: r9() * TAU, w: s, h: s * (0.5 + r9() * 0.4), cy: s * 0.2, planes: koseli(9 + (i % 4), 40 + i), big: false, res: [18, 10], ell: undefined, blobs: undefined }; }) }),
+});
+export const ORMAN_SETI = Object.keys(KAYALAR).filter((n) => n.startsWith('orman_set_'));
+// Ön izleme dizilimi: on parça boş zeminde aralıklı, birbirine değmeden
+export function createOrmanSeti() {
+  const g = new THREE.Group(); g.name = 'orman_kaya_seti';
+  const yer = [[-24, -6], [-4, -8], [12, -6], [-22, 10], [-12, 12], [-3, 12], [4, 13], [10, 13], [22, -4], [18, 12]];
+  ORMAN_SETI.forEach((n, i) => { const m = createKaya(n); m.position.set(yer[i][0], 0, yer[i][1]); g.add(m); });
+  return g;
 }
