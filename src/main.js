@@ -56,6 +56,8 @@ import { createMimariKit, createMimariParca, MIMARI_PARCALAR } from './mimari_ki
 import { createSehirParca, createSehirOrnek, SEHIR_PARCALAR } from './sehir.js';
 import { createBatikGemi, BATIK_GEMILER } from './batik_gemi.js';
 import { createHarabe, HARABE_PARCALAR } from './kit_harabe.js';
+import { createKerpicKit, createKerpicParca, KERPIC_PARCALAR, KERPIC_ORNEKLER } from './kit_kerpic_sehir.js';
+const KERPIC_ORNEK = KERPIC_ORNEKLER[new URLSearchParams(location.search).get('kerpic')] ? new URLSearchParams(location.search).get('kerpic') : 'ornek_carsi_hani';
 const HARABE = HARABE_PARCALAR.includes(new URLSearchParams(location.search).get('harabe')) ? new URLSearchParams(location.search).get('harabe') : 'harabe_1_ev';
 const BATIK = Math.min(5, Math.max(1, +new URLSearchParams(location.search).get('batik') || 3));
 const SEHIR = SEHIR_PARCALAR.includes(new URLSearchParams(location.search).get('sehir')) ? new URLSearchParams(location.search).get('sehir') : 'ev_01';
@@ -428,6 +430,19 @@ const models = {
     file: `${HARABE}.glb`,
     target: new THREE.Vector3(0, 2.5, 0),
     distance: 28,
+  },
+  kitKerpicSehir: {
+    create: createKerpicKit,
+    file: 'kerpic_sehir_kiti.glb',
+    target: new THREE.Vector3(0, 2, -18),
+    distance: 90,
+  },
+  // Kerpiç şehir örnekleri: ?kerpic=ornek_carsi_hani | ornek_turbe | ornek_kerpic_ev
+  ornekKerpicSehir: {
+    create: () => KERPIC_ORNEKLER[KERPIC_ORNEK](),
+    file: `${KERPIC_ORNEK}.glb`,
+    target: new THREE.Vector3(0, 3, 0),
+    distance: 34,
   },
   kitAraba: {
     create: kit_araba.createKit,
