@@ -55,6 +55,8 @@ import { createHazireYapisi, HAZIRE_YAPILARI } from './hazire_yapilari.js';
 import { createMimariKit, createMimariParca, MIMARI_PARCALAR } from './mimari_kit.js';
 import { createSehirParca, createSehirOrnek, SEHIR_PARCALAR } from './sehir.js';
 import { createBatikGemi, BATIK_GEMILER } from './batik_gemi.js';
+import { createHarabe, HARABE_PARCALAR } from './kit_harabe.js';
+const HARABE = HARABE_PARCALAR.includes(new URLSearchParams(location.search).get('harabe')) ? new URLSearchParams(location.search).get('harabe') : 'harabe_1_ev';
 const BATIK = Math.min(5, Math.max(1, +new URLSearchParams(location.search).get('batik') || 3));
 const SEHIR = SEHIR_PARCALAR.includes(new URLSearchParams(location.search).get('sehir')) ? new URLSearchParams(location.search).get('sehir') : 'ev_01';
 const GOVDE = GOVDELER.includes(new URLSearchParams(location.search).get('govde')) ? new URLSearchParams(location.search).get('govde') : 'govde_mese';
@@ -419,6 +421,13 @@ const models = {
     file: `${BATIK_GEMILER[BATIK - 1].ad}.glb`,
     target: new THREE.Vector3(0, 5, 0),
     distance: 30 + BATIK * 22,
+  },
+  // Savaş harabeleri kiti: ?harabe=<ad> (adlar: kit_harabe.js HARABE_PARCALAR)
+  harabe: {
+    create: () => createHarabe(HARABE),
+    file: `${HARABE}.glb`,
+    target: new THREE.Vector3(0, 2.5, 0),
+    distance: 28,
   },
   kitAraba: {
     create: kit_araba.createKit,
