@@ -112,12 +112,13 @@ function textures(tip, T, f, S, W, fs) {
     g *= 1 + gran * (sp > 0.72 ? -0.26 : sp < 0.22 ? 0.14 : 0);
     g *= 1 - 0.18 * side * sm(0.45, 0.75, fbm(x * 3 + 40, y * 0.35 + o, z * 3, 3)); // yanlarda akıntı izleri
     let R = g * 1.0, G = g * 0.985, B = g * 0.955, rough = 0.84 - 0.06 * gran;
-    const orm2 = T.orman ? 1 : 0;
+    const orm2 = T.orman ? 1 : 0, kuru = T.kuru ? 1 : 0;
+    if (kuru) { g = 0.6 + 0.85 * (g - 0.5) + 0.07 * (fbm(x * 0.6 + 33, y * 1.6, z * 0.6 + o, 3) - 0.5); R = g * 1.0; G = g * 0.985; B = g * 0.95; }
     if (orm2) { g = 0.36 + 0.55 * (g - 0.5) * 0.9 + 0.08 * (fbm(x * 0.4 + 70, y * 0.4, z * 0.4 + o, 3) - 0.5); R = g * 0.86; G = g * 0.95; B = g * 1.02; }
     const blend = (cr, cg2, cb, t) => { R = mix(R, cr, t); G = mix(G, cg2, t); B = mix(B, cb, t); };
     blend(0.47 * (0.7 + g * 0.6), 0.39 * (0.7 + g * 0.6), 0.3 * (0.7 + g * 0.6), (orm2 ? 0.15 : 0.5) * sm(0.52, 0.68, fbm(x * 1.1 + 20 + o, y * 1.1, z * 1.1, 4))); // sıcak kahverengi lekeler
     const lich = sm(0.55, 0.65, fbm(x * 2.2 + 60, y * 2.2 + o, z * 2.2, 4)) * (0.35 + 0.65 * up);
-    blend(0.4, 0.45, 0.29, 0.55 * lich); // yeşilimsi liken
+    blend(0.4, 0.45, 0.29, (kuru ? 0.08 : 0.55) * lich); // yeşilimsi liken
     const pale = sm(0.68, 0.72, fbm(x * 5 + 90, y * 5, z * 5 + o, 3));
     blend(0.62, 0.66, 0.6, (orm2 ? 0.12 : 0.6) * pale); // açık renk liken benekleri
     blend(0.62, 0.46, 0.2, (orm2 ? 0 : 0.5) * sm(0.74, 0.77, fbm(x * 7 + 120 + o, y * 7, z * 7, 2)) * up); // turuncu liken
@@ -130,7 +131,12 @@ function textures(tip, T, f, S, W, fs) {
     const moss = Math.min(1, Math.max(0.55 * sm(0.2, 0.5, crack) * (1 - sm(0.6, 0.95, crack)) * (0.4 + 0.6 * sm(-0.3, 0.5, dy)), 0.7 * sm(0.58, 0.72, fbm(x * 1.6 + 150, y * 1.6, z * 1.6 + o, 3)) * sm(0.3, 0.8, dy), 0.6 * fine * up, (T.moss || 0) * sm(-0.05, 0.45, dy) * sm(0.25, 0.5, fbm(x * 1.3 + 400, y * 1.3, z * 1.3 + o, 3) + 0.25 * (T.moss || 0)), (T.north || 0) * sm(-0.1, 0.5, -dz) * sm(-0.4, 0.1, dy) * sm(0.35, 0.55, fbm(x * 1.5 + 500 + o, y * 1.5, z * 1.5, 3) + 0.15))) * sm(0.3, 0.6, noise(x * 9 + o, y * 9, z * 9) + 0.25);
     const ust = orm2 * (T.yosun ?? 0.8) * sm(0.2, 0.7, dy) * sm(0.32, 0.5, fbm(x * 0.9 + 600 + o, y * 0.9, z * 0.9, 4) + 0.12 * (T.yosun ?? 0.8)) * sm(0.25, 0.55, noise(x * 6 + o, y * 6, z * 6) + 0.3);
     const yanY = orm2 * 0.6 * sm(0.55, 0.7, fbm(x * 1.4 + 700, y * 0.6, z * 1.4 + o, 3)) * side;
-    blend(0.13 + 0.05 * sp, 0.18 + 0.06 * sp, 0.075, 0.8 * moss);
+    if (kuru) { // koyu lekeler, gözenekler, yarıklarda kuru toz
+      blend(0.34, 0.33, 0.31, 0.55 * sm(0.55, 0.72, fbm(x * 0.8 + 900 + o, y * 0.4, z * 0.8, 4)) * (0.4 + 0.6 * side));
+      const por = sm(0.74, 0.8, noise(x * 75 + o, y * 75, z * 75)) * sm(0.35, 0.6, fbm(x * 1.5 + 990, y * 1.5, z * 1.5 + o, 2)); blend(0.3, 0.29, 0.27, 0.4 * por);
+      blend(0.66, 0.6, 0.5, 0.75 * Math.min(1, sm(0.15, 0.6, crack) + 0.7 * fine + 0.4 * sm(0.2, 0.9, dy) * sm(0.6, 0.75, fbm(x * 2 + 950, y * 2, z * 2 + o, 3))));
+      rough = Math.min(0.98, rough + 0.08 + 0.06 * por);
+    } else blend(0.13 + 0.05 * sp, 0.18 + 0.06 * sp, 0.075, 0.8 * moss);
     const islak = orm2 * (T.islak ?? 1) * sm(0.15, -0.6, dy) * (0.7 + 0.3 * fbm(x * 1.2 + 800, y * 2, z * 1.2 + o, 3));
     if (orm2) { R *= 1 - 0.42 * islak; G *= 1 - 0.38 * islak; B *= 1 - 0.34 * islak; rough -= 0.35 * islak; }
     if (T.cilali) rough *= 0.55;
@@ -139,7 +145,7 @@ function textures(tip, T, f, S, W, fs) {
     const i = (py * W + px) * 4;
     col.data[i] = Math.min(255, R * 255); col.data[i + 1] = Math.min(255, G * 255); col.data[i + 2] = Math.min(255, B * 255); col.data[i + 3] = 255;
     orm.data[i] = 255; orm.data[i + 1] = rough * 255; orm.data[i + 2] = 0; orm.data[i + 3] = 255;
-    H[i / 4] = 0.55 * fbm(x * 16, y * 16 + o, z * 16, 4) + 0.2 * (sp - 0.5) * gran - 0.5 * fine + 0.25 * (moss + (orm2 ? ust : 0)) * noise(x * 40, y * 40, z * 40) - 0.3 * sm(0.3, 0.8, crack);
+    H[i / 4] = (kuru ? -0.45 * sm(0.72, 0.82, noise(x * 75 + o, y * 75, z * 75)) + 0.25 * fbm(x * 40, y * 40, z * 40 + o, 3) : 0) + 0.55 * fbm(x * 16, y * 16 + o, z * 16, 4) + 0.2 * (sp - 0.5) * gran - 0.5 * fine + 0.25 * (moss + (orm2 ? ust : 0)) * noise(x * 40, y * 40, z * 40) - 0.3 * sm(0.3, 0.8, crack);
   }
   cg.putImageData(col, 0, 0);
   og.putImageData(orm, 0, 0);
@@ -361,6 +367,30 @@ Object.assign(KAYALAR, {
   orman_set_09_kaya_kulesi: OS(6, 25, 1.8, { ell: [1.3, 7, 1.15, 2.4] }, { base: 0.4, lean: 0.03, strata: [0.85, 0.035], res: [110, 130], tex: 1536, fs: 0.8, yosun: 0.5, cracks: [[0.9, 0.2, 0.3, 0.1, 0.03, 0.12, 0, 0.2, 1], [-0.5, 0.3, 0.8, 0.0, 0.03, 0.1, 1, 0.2, 0]] }),
   orman_set_10_moloz_yigini: OS(4, 1.2, 0.12, { ell: [2, 0.45, 1.6, 2.0] }, { res: [80, 40], n1: 0.12, parcalar: Array.from({ length: 30 }, (_, i) => { const a = r9() * TAU, e = Math.sqrt(r9()) * 0.92, s = 0.25 + r9() ** 2 * 0.5, hgt = 1.2 * Math.sqrt(Math.max(0, 1 - e * e)); return { x: Math.cos(a) * e * 2, z: Math.sin(a) * e * 1.6, y: Math.max(0, hgt - s * 0.15), ry: r9() * TAU, w: s, h: s * (0.5 + r9() * 0.4), cy: s * 0.2, planes: koseli(9 + (i % 4), 40 + i), big: false, res: [18, 10], ell: undefined, blobs: undefined }; }) }),
 });
+// ---------- Akdeniz kireçtaşı seti: 8 parça (açık gri, keskin köşeli kırık kenarlar, katmanlı çatlaklar, gözenekli yüzey, yarıklarda toz) ----------
+const uzat = (pl, kx, ky, kz) => pl.map(([nx, ny, nz, d]) => { const a = nx / kx, b = ny / ky, c = nz / kz, l = Math.hypot(a, b, c); return [a / l, b / l, c / l, d / l]; });
+const KS = (w, h, cy, form, ek = {}) => ({ w, h, cy, ...form, n1: 0.07, n2: 0.03, kuru: true, big: true, res: [120, 64], ...ek });
+const r7 = K_rng(77), yatayCatlak = (n, sd) => { const r = K_rng(sd); return Array.from({ length: n }, () => [(r() - 0.5) * 0.3, 1, (r() - 0.5) * 0.3, (r() - 0.5) * 1.1, 0.016 + r() * 0.012, 0.06 + r() * 0.05, r() - 0.5, 0, r() - 0.5]); };
+Object.assign(KAYALAR, {
+  kirec_set_1_uzun_alcak: KS(8, 2, 0.15, { planes: uzat(koseli(18, 101), 3.8, 0.95, 1.3) }, { strata: [0.28, 0.035], cracks: [...yatayCatlak(3, 5), [1, 0, 0.2, 0.25, 0.02, 0.12, 0, 0.3, 1]], res: [150, 60] }),
+  kirec_set_2_yuksek_sivri: KS(2.8, 4, 0.5, { planes: uzat(koseli(15, 202), 1, 2.6, 0.9) }, { lean: 0.07, strata: [0.32, 0.03], cracks: [[0.9, 0.2, 0.3, 0.05, 0.02, 0.12, 0, 0.2, 1], ...yatayCatlak(2, 9)], res: [90, 80] }),
+  kirec_set_3_basamakli_raf: KS(5, 2.2, 0.4, { planes: uzat(koseli(16, 303), 2.2, 1, 1.4) }, { strata: [0.4, 0.075], cracks: yatayCatlak(3, 13) }),
+  kirec_set_4_koseli_kaya: KS(2.5, 2.1, 0.5, { planes: koseli(13, 404) }, { cracks: [[0.7, 0.2, 0.7, 0.1, 0.02, 0.1, 0, 0.4, 1], ...yatayCatlak(2, 17)] }),
+  kirec_set_5_dortlu_kume: KS(1.5, 1.5, 0.35, { planes: uzat(koseli(12, 505), 1, 1.3, 0.9) }, { res: [60, 40], tex: 1024, parcalar: [
+    { x: 1.1, z: 0.3, w: 1.2, h: 1.0, cy: 0.3, planes: koseli(11, 506), res: [48, 32] }, { x: -0.9, z: 0.5, w: 1.0, h: 0.8, cy: 0.25, planes: koseli(12, 507), res: [48, 32] }, { x: 0.2, z: -0.95, w: 1.1, h: 0.9, cy: 0.25, planes: uzat(koseli(11, 508), 1.4, 1, 1), res: [48, 32] }] }),
+  kirec_set_6_kucuk_taslar: KS(0.6, 0.4, 0.12, { planes: koseli(11, 601) }, { big: false, tex: 512, res: [32, 20], ayri: true, parcalar: [
+    { x: -2.2, w: 0.6, h: 0.4, cy: 0.12, planes: koseli(11, 601) }, { x: -1.3, w: 0.45, h: 0.25, cy: 0.07, planes: uzat(koseli(10, 602), 1.4, 0.7, 1) }, { x: -0.5, w: 0.35, h: 0.32, cy: 0.1, planes: koseli(9, 603) },
+    { x: 0.3, w: 0.5, h: 0.22, cy: 0.06, planes: uzat(koseli(10, 604), 1.2, 0.6, 1) }, { x: 1.1, w: 0.28, h: 0.2, cy: 0.06, planes: koseli(9, 605) }, { x: 1.8, w: 0.2, h: 0.16, cy: 0.05, planes: koseli(8, 606) }] }),
+  kirec_set_7_catlak_plaka: KS(3, 0.5, 0.08, { planes: uzat(koseli(16, 701), 1.35, 0.2, 1) }, { cracks: [[0.9, 0, 0.44, 0.1, 0.02, 0.28, 0, 1, 0], [-0.4, 0, 0.92, -0.25, 0.018, 0.25, 0, 1, 0], [0.6, 0, -0.8, 0.4, 0.016, 0.22, 0.5, 1, 0], [0.2, 0, 1, 0.45, 0.014, 0.2, 0, 1, 0]], res: [96, 40] }),
+  kirec_set_8_moloz: KS(1.6, 0.28, 0.04, { ell: [1, 0.25, 0.8, 2.2] }, { res: [40, 20], parcalar: Array.from({ length: 52 }, (_, i) => { const a = r7() * TAU, e = Math.sqrt(r7()) * 0.98, sz = 0.15 + r7() ** 1.5 * 0.32, hgt = 0.34 * Math.sqrt(Math.max(0, 1 - e * e)) + (e < 0.5 ? 0.12 * (1 - e * 2) : 0); return { x: Math.cos(a) * e * 0.95, z: Math.sin(a) * e * 0.78, y: Math.max(0, hgt - sz * 0.25), ry: r7() * TAU, w: sz, h: sz * (0.45 + r7() * 0.4), cy: sz * 0.15, planes: koseli(9 + (i % 4), 800 + i), ell: undefined, big: false, res: [16, 10] }; }) }),
+});
+export const KIREC_SETI = Object.keys(KAYALAR).filter((n) => n.startsWith('kirec_set_'));
+export function createKirecSeti() {
+  const g = new THREE.Group(); g.name = 'kirec_kaya_seti';
+  const yer = [[-10, -4], [0, -5], [8, -4], [-11, 5], [-4, 5], [1.5, 5], [6.5, 5], [11.5, 5]];
+  KIREC_SETI.forEach((n, i) => { const m = createKaya(n); m.position.set(yer[i][0], 0, yer[i][1]); g.add(m); });
+  return g;
+}
 export const ORMAN_SETI = Object.keys(KAYALAR).filter((n) => n.startsWith('orman_set_'));
 // Ön izleme dizilimi: on parça boş zeminde aralıklı, birbirine değmeden
 export function createOrmanSeti() {
